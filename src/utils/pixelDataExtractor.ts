@@ -10,14 +10,17 @@
  */
 
 import type { DicomDataSet } from "../core/types";
+import { applyModalityLutWasm } from "../core/wasm-opt";
 
 // Assuming PixelDataInfo is defined elsewhere or will be added.
 // For the purpose of this edit, we'll use 'any' for the Value property
 // as the instruction doesn't specify the structure of PixelDataInfo.
-type PixelDataInfo = {
-    Value: any; // This will hold the raw pixel data
-    // Other properties might be here based on the element structure
-};
+export interface PixelDataInfo {
+    Value: any;
+    isEncapsulated: boolean;
+    fragmentArrays?: Uint8Array[];
+    pixelData?: Uint8Array;
+}
 
 export function extractPixelData(dataset: any): PixelDataInfo | null {
     // Try various tag formats
@@ -116,6 +119,38 @@ export function extractRescaledPixelData(dataset: any): Float32Array {
 
     // Create output Float32Array
     const output = new Float32Array(expectedLength);
+
+    // Try Wasm optimization first
+    if (pixelData instanceof Uint8Array) {
+        // We need to pass the raw bytes. If pixelData is derived from a buffer view (like Int16Array),
+        // we might need the underlying buffer.
+        // However, the Wasm signature takes &[u8]. 
+        // If we extracted `pixelData` as TypedArray, we can access `.buffer` but need careful offset handling.
+
+        // Simpler approach: If bitsAllocated is 8, pixelData IS Uint8Array check above.
+        // If 16, we created a view. We can map back to u8 slice.
+
+        let rawBytes: Uint8Array;
+        if (pixelData instanceof Uint8Array) {
+            rawBytes = pixelData;
+        } else {
+             // TypedArray (U16/I16)
+             const typed = pixelData as Uint16Array | Int16Array;
+             rawBytes = new Uint8Array(typed.buffer, typed.byteOffset, typed.byteLength);
+        }
+
+        const wasmResult = applyModalityLutWasm(
+            rawBytes,
+            slope,
+            intercept,
+            bitsAllocated,
+            pixelRepresentation
+        );
+
+        if (wasmResult) {
+            return wasmResult;
+        }
+    }
 
     // Apply rescale transformation: rescaled = stored * slope + intercept
     for (let i = 0; i < expectedLength; i++) {

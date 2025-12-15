@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll } from "vitest";
 import { RleCodec } from "../../src/codecs/rle";
 import { JpegNativeCodec } from "../../src/codecs/jpegNative";
-import { initCodecsWasm } from "../../src/wasm-codecs-build/rad_parser_wasm_codecs";
+
 import { readFileSync } from "fs";
 import path from "path";
 
@@ -10,8 +10,17 @@ describe("Wasm Encoding", () => {
     let jpegCodec: JpegNativeCodec;
 
     beforeAll(async () => {
-        // Initialize Wasm
-        await initCodecsWasm();
+        // Initialize Wasm via dynamic import to avoid ESM/CJS interop issues in tests
+        const wasmModule = await import("../../src/wasm-codecs-build/rad_parser_wasm_codecs");
+        const init = wasmModule.default; 
+        
+        const fs = await import("fs");
+        const path = await import("path");
+        const wasmPath = path.resolve(__dirname, "../../src/wasm-codecs-build/rad_parser_wasm_codecs_bg.wasm");
+        const wasmBuffer = fs.readFileSync(wasmPath);
+        
+        await init(wasmBuffer);
+        
         rleCodec = new RleCodec();
         jpegCodec = new JpegNativeCodec();
 

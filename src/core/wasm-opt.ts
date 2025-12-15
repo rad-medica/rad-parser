@@ -1,6 +1,8 @@
 import init, {
     parse_ds,
     parse_is,
+    apply_modality_lut,
+    apply_voi_lut,
 } from "../wasm-core-build/rad_parser_wasm_core";
 
 let isWasmInitialized = false;
@@ -13,12 +15,11 @@ let wasmExports: any = null;
 export function initCoreWasm(
     module_or_path?: string | Request | URL,
 ): Promise<unknown> {
-    return init(module_or_path).then((res) => {
+    return init(module_or_path).then(async (res) => {
         isWasmInitialized = true;
         // Store reference to wasm module exports
         try {
-            // eslint-disable-next-line @typescript-eslint/no-require-imports
-            wasmExports = require("../wasm-core-build/rad_parser_wasm_core");
+            wasmExports = await import("../wasm-core-build/rad_parser_wasm_core");
         } catch {
             // Module loaded via init already
         }
@@ -76,5 +77,48 @@ export function parseTMWasm(value: string): string | null {
         return wasmExports.parse_time(value);
     } catch {
         return null;
+    }
+}
+
+export function findSequenceDelimiterWasm(input: Uint8Array): number | null {
+    if (!isWasmInitialized || !wasmExports?.find_sequence_delimiter) return null;
+    try {
+        return wasmExports.find_sequence_delimiter(input);
+    } catch {
+        return null; // Fallback to JS
+    }
+}
+
+export function applyModalityLutWasm(
+    pixelData: Uint8Array,
+    slope: number,
+    intercept: number,
+    bitsAllocated: number,
+    pixelRepresentation: number,
+): Float32Array | null {
+    if (!isWasmInitialized || !wasmExports?.apply_modality_lut) return null;
+    try {
+        return wasmExports.apply_modality_lut(
+            pixelData,
+            slope,
+            intercept,
+            bitsAllocated,
+            pixelRepresentation,
+        );
+    } catch {
+        return null; // Fallback to JS
+    }
+}
+
+export function applyVoiLutWasm(
+    input: Float32Array,
+    windowCenter: number,
+    windowWidth: number,
+): Uint8Array | null {
+    if (!isWasmInitialized || !wasmExports?.apply_voi_lut) return null;
+    try {
+        return wasmExports.apply_voi_lut(input, windowCenter, windowWidth);
+    } catch {
+        return null; // Fallback to JS
     }
 }

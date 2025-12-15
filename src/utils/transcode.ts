@@ -37,7 +37,7 @@ export async function transcode(
         );
     }
 
-    if (!targetCodec.canEncode(options.targetTransferSyntax)) {
+    if (targetCodec.canEncode && !targetCodec.canEncode(options.targetTransferSyntax)) {
         throw new Error(
             `Codec ${targetCodec.name} implies support but cannot encode ${options.targetTransferSyntax}`,
         );
@@ -58,7 +58,7 @@ export async function transcode(
     const columns = dataset.uint16("x00280011") || 0;
     const samples = dataset.uint16("x00280002") || 1;
     const bits = dataset.uint16("x00280100") || 8;
-    const frames = dataset.intString("x00280008") || 1; // "number" handles string/int conversion safely
+    const frames = dataset.intString?.("x00280008") || 1; // "number" handles string/int conversion safely
 
     // Decode all frames
     const decodedFrames: Uint8Array[] = [];
@@ -85,8 +85,17 @@ export async function transcode(
 
         // This decodes the ENTIRE pixel data blob into one flat buffer (usually)
         // or we need frame-by-frame access.
-        // Existing `decodePixelData` usually returns one flat buffer of all frames.
-        const fullDecodedBuffer = await decodePixelData(dataset);
+        const fragments = pixelDataInfo.fragmentArrays || [pixelDataInfo.Value as Uint8Array];
+        const fullDecodedBuffer = await decodePixelData(
+            currentTS,
+            fragments,
+            {
+                rows,
+                columns,
+                samplesPerPixel: samples,
+                bitsAllocated: bits,
+            }
+        );
 
         // Split back into frames
         const frameSize = rows * columns * samples * (bits / 8);
@@ -134,7 +143,7 @@ export async function transcode(
     // 3. Encode to Target Syntax
     const encodedFragments: Uint8Array[] = [];
     for (const frame of decodedFrames) {
-        const fragments = await targetCodec.encode(
+        const fragments = await targetCodec.encode!(
             frame,
             options.targetTransferSyntax,
             columns,

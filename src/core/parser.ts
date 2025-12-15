@@ -16,7 +16,12 @@ import { registry } from "./registry";
 import { createParseError, DicomParseError } from "./errors";
 import { isPrivateTag } from "../utils/dictionary";
 import { extractPixelDataFromView } from "../utils/pixelData";
-import { parseDSWasm, parseISWasm, parsePNWasm } from "./wasm-opt";
+import {
+    parseDSWasm,
+    parseISWasm,
+    parsePNWasm,
+    findSequenceDelimiterWasm,
+} from "./wasm-opt";
 import { SafeDataView } from "../utils/SafeDataView";
 import { parseSequence } from "../utils/sequenceParser";
 import { formatTagWithComma, normalizeTag } from "../utils/tagUtils";
@@ -1520,29 +1525,30 @@ export function extractPixelData(byteArray: Uint8Array): PixelDataInfo | null {
 
             if (length === 0xffffffff) {
                 // Undefined length - skip until delimiter
-                // Danger zone again.
-                // Simplified skip for now
-                if (vr === "SQ") {
-                    // Skip sequence
-                    // We can't easily skip undefined length sequence without parsing it.
-                    // Since this is `extractPixelData`, we accept that we might fail on complex undefined length sequences if we don't recurse.
-                    // But `mediumParse` logic handles it by recursively calling parseSequence?
-                    // Here we just want to scan fast.
-                    // Similar scan as shallowParse/mediumParse skip logic.
-                    let skipped = 0;
-                    while (
-                        view.getRemainingBytes() >= 8 &&
-                        skipped < 50000000
-                    ) {
-                        const g = view.readUint16();
-                        const e = view.readUint16();
-                        if (g === 0xfffe && e === 0xe0dd) {
-                            view.readUint32();
-                            break;
-                        }
-                        view.setPosition(view.getPosition() - 4 + 2);
-                        skipped += 2;
-                    }
+                // This applies to SQ, OB, OW, UN, etc. with undefined length
+                
+                // 1. Try Wasm optimization first
+                // We need to pass the slice from current position
+                let found = false;
+                const buffer = new Uint8Array(
+                    view["view"].buffer, 
+                    view["view"].byteOffset + view.getPosition(), 
+                    view.getRemainingBytes()
+                );
+                
+                // Only try Wasm if buffer is large enough to justify overhead
+                if (buffer.length > 1024) {
+                     const offset = findSequenceDelimiterWasm(buffer); // New import needed
+                     if (offset && offset > 0) {
+                         view.setPosition(view.getPosition() + offset);
+                         found = true;
+                     }
+                }
+                
+                // 2. Fallback to optimized JS scan
+                if (!found) {
+                     // Limit scan to 50MB to prevent hangs on corrupted files
+                     view.skipUndefinedLength(50000000);
                 }
             } else {
                 if (view.getRemainingBytes() >= length) {

@@ -240,3 +240,90 @@ pub fn parse_time(value: &str) -> String {
     
     value.to_string()
 }
+
+/**
+ * Apply Modality LUT (Safe Multi-threaded Candidates?)
+ * Converts raw byte data into Float32 array applying computed slope/intercept
+ */
+#[wasm_bindgen]
+pub fn apply_modality_lut(
+    pixel_data: &[u8],
+    slope: f32,
+    intercept: f32,
+    bits_allocated: u8,
+    pixel_representation: u8, // 0 = unsigned, 1 = signed
+) -> Vec<f32> {
+    let len = pixel_data.len();
+    let mut out = Vec::with_capacity(len / (if bits_allocated > 8 { 2 } else { 1 }));
+
+    if bits_allocated == 8 {
+        for &b in pixel_data {
+            out.push((b as f32) * slope + intercept);
+        }
+    } else if bits_allocated == 16 {
+        // Handle 16-bit
+        if pixel_representation == 1 {
+            // Signed
+            // Interpret as i16 (little endian)
+            for chunk in pixel_data.chunks(2) {
+                if chunk.len() == 2 {
+                    let val = i16::from_le_bytes([chunk[0], chunk[1]]);
+                    out.push((val as f32) * slope + intercept);
+                }
+            }
+        } else {
+            // Unsigned
+            // Interpret as u16 (little endian)
+            for chunk in pixel_data.chunks(2) {
+                if chunk.len() == 2 {
+                    let val = u16::from_le_bytes([chunk[0], chunk[1]]);
+                    out.push((val as f32) * slope + intercept);
+                }
+            }
+        }
+    }
+    // Else unsupported for now in this optimized path, returns empty or partial.
+    // In real world, 8 and 16 are 99% of cases.
+    
+    out
+}
+
+/**
+ * Apply VOI LUT (Window/Level)
+ * Maps Float32 data -> Uint8 display data (0-255)
+ */
+#[wasm_bindgen]
+pub fn apply_voi_lut(
+    input: &[f32],
+    window_center: f32,
+    window_width: f32,
+) -> Vec<u8> {
+    let mut out = Vec::with_capacity(input.len());
+    
+    // Safety check
+    if window_width <= 0.0 {
+        // Fallback or binary? Just return 0s to avoid div by zero
+        return vec![0; input.len()];
+    }
+
+    let ww = window_width;
+    let wc = window_center;
+    let half_width = ww / 2.0;
+    let lower = wc - half_width;
+    let upper = wc + half_width - 1.0; 
+
+    for &val in input {
+        if val <= lower {
+            out.push(0);
+        } else if val > upper {
+            out.push(255);
+        } else {
+            let res = ((val - lower) / ww) * 255.0;
+            if res < 0.0 { out.push(0); }
+            else if res > 255.0 { out.push(255); }
+            else { out.push(res as u8); }
+        }
+    }
+    
+    out
+}

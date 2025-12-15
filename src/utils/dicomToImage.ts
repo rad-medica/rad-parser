@@ -2,6 +2,7 @@ import { DicomDataSet } from "../core/types";
 import { extractRescaledPixelData } from "./pixelDataExtractor"; // Reusing our handy tool
 import { encodePNG } from "../codecs/png"; // Native encoder
 import { JpegNativeCodec } from "../codecs/jpegNative"; // Wasm Native encoder
+import { applyVoiLutWasm } from "../core/wasm-opt";
 
 export interface ImageExportOptions {
     frame?: number;
@@ -82,8 +83,8 @@ export async function dicomToImage(
             wc = min + ww / 2;
         } else {
             // Fallback to tags or full range
-            wc = dataset.number("x00281050");
-            ww = dataset.number("x00281051");
+            wc = dataset.floatString("x00281050");
+            ww = dataset.floatString("x00281051");
         }
     }
 
@@ -91,36 +92,36 @@ export async function dicomToImage(
     if (wc === undefined) wc = 128;
     if (ww === undefined) ww = 256;
 
-    // Apply Windowing
-    // Output: Uint8Array (RGBA or Grayscale)
-    // PNG Encoder expects:
-    // Grayscale: Uint8Array [L, L, L...]
-    // RGB: Uint8Array [R, G, B...]
-    // RGBA: Uint8Array [R, G, B, A...]
+    let outputBuffer: Uint8Array | null = null;
+    
+    // Try Wasm integration
+    outputBuffer = applyVoiLutWasm(frameData, wc, ww);
 
-    const outputBuffer = new Uint8Array(frameData.length);
+    if (!outputBuffer) {
+         // JS Fallback
+        outputBuffer = new Uint8Array(frameData.length);
+        const halfWidth = ww / 2;
+        const lower = wc - halfWidth;
+        const upper = wc + halfWidth - 1; // inclusive?
 
-    const halfWidth = ww / 2;
-    const lower = wc - halfWidth;
-    const upper = wc + halfWidth - 1; // inclusive?
+        for (let i = 0; i < frameData.length; i++) {
+            let val = frameData[i];
 
-    for (let i = 0; i < frameData.length; i++) {
-        let val = frameData[i];
+            // Linear Windowing
+            if (val <= lower) {
+                val = 0;
+            } else if (val > upper) {
+                val = 255;
+            } else {
+                val = (val - (wc - 0.5)) / (ww - 1) + 0.5;
+                // Standard DICOM formula: y = ((x - (c - 0.5)) / (w - 1) + 0.5) * (ymax-ymin) + ymin
+                // Assuming output range 0-255
+                val = ((val - lower) / ww) * 255;
+            }
 
-        // Linear Windowing
-        if (val <= lower) {
-            val = 0;
-        } else if (val > upper) {
-            val = 255;
-        } else {
-            val = (val - (wc - 0.5)) / (ww - 1) + 0.5;
-            // Standard DICOM formula: y = ((x - (c - 0.5)) / (w - 1) + 0.5) * (ymax-ymin) + ymin
-            // Assuming output range 0-255
-            val = ((val - lower) / ww) * 255;
+            // Clamp
+            outputBuffer[i] = Math.max(0, Math.min(255, val));
         }
-
-        // Clamp
-        outputBuffer[i] = Math.max(0, Math.min(255, val));
     }
 
     // 3. Encode
@@ -136,7 +137,7 @@ export async function dicomToImage(
         const jpegCodec = new JpegNativeCodec();
         // Ensure Wasm is init (might need awaiting if not static)
         await jpegCodec.initWasm();
-        const frags = await jpegCodec.encode(
+        const frags = await jpegCodec.encode!(
             outputBuffer,
             "1.2.840.10008.1.2.4.50",
             columns,
