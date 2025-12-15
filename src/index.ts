@@ -94,7 +94,6 @@ export { AutoDetectCodec } from "./codecs/autodetect";
 export { decodePixelData, encodePixelData } from "./core/codec-helpers";
 export { extractRescaledPixelData } from "./utils/pixelDataExtractor";
 
-
 // Initialize dynamic codec registration
 import "./codecs/auto-register";
 

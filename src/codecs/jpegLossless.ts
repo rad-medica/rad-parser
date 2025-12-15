@@ -38,7 +38,8 @@ export class JpegLosslessDecoder implements PixelDataCodec {
     async initWasm() {
         try {
             // @ts-ignore
-            this.wasmModule = await import("../../src/wasm-codecs-build/rad_parser_wasm_codecs.js");
+            this.wasmModule =
+                await import("../../src/wasm-codecs-build/rad_parser_wasm_codecs.js");
             await this.wasmModule.default();
             this.isWasmInitialized = true;
             console.log("JPEG Lossless WASM module initialized");
@@ -90,7 +91,10 @@ export class JpegLosslessDecoder implements PixelDataCodec {
             try {
                 return this.wasmModule.jpeg_lossless_decode(combined);
             } catch (e) {
-                console.warn("Wasm JPEG Lossless decode failed, falling back", e);
+                console.warn(
+                    "Wasm JPEG Lossless decode failed, falling back",
+                    e,
+                );
             }
         }
 

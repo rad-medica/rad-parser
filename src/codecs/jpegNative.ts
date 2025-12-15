@@ -23,9 +23,8 @@ export class JpegNativeCodec implements PixelDataCodec {
     async initWasm() {
         try {
             // @ts-ignore
-            this.wasmModule = await import(
-                "../../src/wasm-codecs-build/rad_parser_wasm_codecs.js"
-            );
+            this.wasmModule =
+                await import("../../src/wasm-codecs-build/rad_parser_wasm_codecs.js");
             await this.wasmModule.default();
             this.isWasmInitialized = true;
             console.log("JPEG Native WASM module initialized");
@@ -39,7 +38,9 @@ export class JpegNativeCodec implements PixelDataCodec {
     }
 
     canDecode(ts: string): boolean {
-        return ["1.2.840.10008.1.2.4.50", "1.2.840.10008.1.2.4.51"].includes(ts);
+        return ["1.2.840.10008.1.2.4.50", "1.2.840.10008.1.2.4.51"].includes(
+            ts,
+        );
     }
 
     canEncode(ts: string): boolean {
@@ -51,7 +52,7 @@ export class JpegNativeCodec implements PixelDataCodec {
         // Reuse existing decode logic or delegate to another codec if needed
         // For now, simple Wasm decode
         const combined = concatFragments(encodedBuffer);
-        
+
         if (this.isWasmInitialized && this.wasmModule) {
             try {
                 return this.wasmModule.jpeg_decode(combined);
@@ -68,7 +69,7 @@ export class JpegNativeCodec implements PixelDataCodec {
         width: number,
         height: number,
         samples: number,
-        bits: number
+        bits: number,
     ): Promise<Uint8Array[]> {
         if (!this.isWasmInitialized || !this.wasmModule) {
             throw new Error("JPEG Wasm module not initialized");
@@ -90,7 +91,7 @@ export class JpegNativeCodec implements PixelDataCodec {
                 width,
                 height,
                 quality,
-                colorType
+                colorType,
             );
             return [encoded];
         } catch (e) {

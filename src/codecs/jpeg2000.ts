@@ -38,7 +38,8 @@ export class Jpeg2000Decoder implements PixelDataCodec {
     async initWasm() {
         try {
             // @ts-ignore
-            this.wasmModule = await import("../../src/wasm-codecs-build/rad_parser_wasm_codecs.js");
+            this.wasmModule =
+                await import("../../src/wasm-codecs-build/rad_parser_wasm_codecs.js");
             await this.wasmModule.default();
             this.isWasmInitialized = true;
             console.log("JPEG 2000 WASM module initialized (Stub)");

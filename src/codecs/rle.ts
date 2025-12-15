@@ -23,16 +23,15 @@ export class RleCodec implements PixelDataCodec {
         try {
             // Dynamic import to avoid hard dependency
             // @ts-ignore - Build artifact
-            this.wasmModule = await import(
-                "../../src/wasm-codecs-build/rad_parser_wasm_codecs.js"
-            );
+            this.wasmModule =
+                await import("../../src/wasm-codecs-build/rad_parser_wasm_codecs.js");
             await this.wasmModule.default(); // Initialize WASM
             this.isWasmInitialized = true;
             console.log("RLE WASM module initialized");
         } catch (e) {
             console.warn(
                 "Failed to load RLE WASM module, falling back to JS",
-                e
+                e,
             );
         }
     }
@@ -73,7 +72,7 @@ export class RleCodec implements PixelDataCodec {
         const view = new DataView(
             buffer.buffer,
             buffer.byteOffset,
-            buffer.byteLength
+            buffer.byteLength,
         );
 
         if (view.byteLength < 64) {
@@ -196,7 +195,7 @@ export class RleCodec implements PixelDataCodec {
         width: number,
         height: number,
         samples: number,
-        bits: number
+        bits: number,
     ): Promise<Uint8Array[]> {
         // Split into segments
         // Inverse of processFrame.
@@ -248,10 +247,13 @@ export class RleCodec implements PixelDataCodec {
                         width,
                         height,
                         samples, // samples per pixel (can be 1 or 3)
-                        bits // bits allocated (8 or 16)
+                        bits, // bits allocated (8 or 16)
                     );
                 } catch (e) {
-                    console.warn("Wasm encode failed, fallback to JS. Error:", e);
+                    console.warn(
+                        "Wasm encode failed, fallback to JS. Error:",
+                        e,
+                    );
                     // Fallback to JS if Wasm fails
                     return this.packBits(s);
                 }
@@ -341,4 +343,3 @@ export class RleCodec implements PixelDataCodec {
         return new Uint8Array(out);
     }
 }
-

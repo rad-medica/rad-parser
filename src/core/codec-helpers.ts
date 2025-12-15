@@ -3,8 +3,8 @@
  * with the codec system externally.
  */
 
-import { registry } from './registry';
-import { DicomDataSet } from './types';
+import { registry } from "./registry";
+import { DicomDataSet } from "./types";
 /**
  * Decodes a compressed pixel data buffer using the rad-parser codec registry.
  *
@@ -20,16 +20,15 @@ import { DicomDataSet } from './types';
 export async function decodePixelData(
     transferSyntax: string,
     fragments: Uint8Array[],
-    decodeOptions?: any
+    decodeOptions?: any,
 ): Promise<Uint8Array> {
     const decoder = await registry.getDecoder(transferSyntax);
 
     if (!decoder) {
         throw new Error(
-            `No decoder found for Transfer Syntax: ${transferSyntax}`
+            `No decoder found for Transfer Syntax: ${transferSyntax}`,
         );
     }
-
 
     return decoder.decode(fragments, decodeOptions);
 }
@@ -51,22 +50,22 @@ export async function encodePixelData(
         samplesPerPixel: number;
         bitsAllocated: number;
         [key: string]: any; // Allow other properties
-    }
+    },
 ): Promise<Uint8Array[]> {
     const encoder = await registry.getEncoder(transferSyntax);
 
     if (!encoder || !encoder.encode) {
         throw new Error(
-            `No encoder found for Transfer Syntax: ${transferSyntax}`
+            `No encoder found for Transfer Syntax: ${transferSyntax}`,
         );
     }
-    
+
     return encoder.encode(
         pixelData,
         transferSyntax,
         encodeOptions.width,
         encodeOptions.height,
         encodeOptions.samplesPerPixel,
-        encodeOptions.bitsAllocated
+        encodeOptions.bitsAllocated,
     );
 }

@@ -1,4 +1,7 @@
-import init, { parse_ds, parse_is } from "../wasm-core-build/rad_parser_wasm_core";
+import init, {
+    parse_ds,
+    parse_is,
+} from "../wasm-core-build/rad_parser_wasm_core";
 
 let isWasmInitialized = false;
 let wasmExports: any = null;
@@ -7,11 +10,14 @@ let wasmExports: any = null;
  * Initialize the Core Wasm module (optional but recommended for performance).
  * If not called, the parser will fall back to pure JavaScript.
  */
-export function initCoreWasm(module_or_path?: string | Request | URL): Promise<unknown> {
+export function initCoreWasm(
+    module_or_path?: string | Request | URL,
+): Promise<unknown> {
     return init(module_or_path).then((res) => {
         isWasmInitialized = true;
         // Store reference to wasm module exports
         try {
+            // eslint-disable-next-line @typescript-eslint/no-require-imports
             wasmExports = require("../wasm-core-build/rad_parser_wasm_core");
         } catch {
             // Module loaded via init already
@@ -22,7 +28,7 @@ export function initCoreWasm(module_or_path?: string | Request | URL): Promise<u
 
 /**
  * Wasm Optimization Wrappers
- * 
+ *
  * Safe wrappers that attempt to use Wasm for parsing if available.
  * If Wasm is not initialized, these return null, signaling the caller
  * to use the JavaScript fallback.

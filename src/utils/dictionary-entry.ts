@@ -1,1 +1,1 @@
-export { dicomDictionary } from './dictionary';
+export { dicomDictionary } from "./dictionary";

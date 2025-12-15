@@ -1,8 +1,8 @@
-import { readFileSync } from 'fs';
-import { parse } from './src/index';
-import { DicomDataSet } from './src/core/types';
+import { readFileSync } from "fs";
+import { parse } from "./src/index";
+import { DicomDataSet } from "./src/core/types";
 
-const buffer = readFileSync('test_cli.dcm');
+const buffer = readFileSync("test_cli.dcm");
 const result = parse(buffer) as any;
 
 let dataset: DicomDataSet;

@@ -16,13 +16,13 @@ interface GPUBufferUsage {
     COPY_SRC: number;
     MAP_READ: number;
 }
-declare var GPUBufferUsage: GPUBufferUsage;
+declare const GPUBufferUsage: GPUBufferUsage;
 
 interface GPUMapMode {
     READ: number;
     WRITE: number;
 }
-declare var GPUMapMode: GPUMapMode;
+declare const GPUMapMode: GPUMapMode;
 
 interface GPUDevice {
     createBuffer(desc: any): any;

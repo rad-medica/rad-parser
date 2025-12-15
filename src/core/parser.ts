@@ -145,22 +145,6 @@ export function canParse(byteArray: Uint8Array): boolean {
     }
 }
 
-/**
- * @deprecated Use fullParse instead
- */
-
-/**
- * Parse DICOM file but skip loading Pixel Data value
- * Useful for reading metadata without memory overhead of image.
- * @deprecated Use `parse(byteArray, { type: 'light' })` instead.
- *
- * @param byteArray - The DICOM file as a Uint8Array
- * @returns A DicomDataSet
- */
-
-/**
- * Options for parsing
- */
 export interface ParseOptions {
     skipPixelData?: boolean;
     /**
@@ -314,7 +298,7 @@ function detectDicomFormat(
     let transferSyntax = TRANSFER_SYNTAX_EXPLICIT_VR_LITTLE_ENDIAN;
     let explicitVR = true;
     let littleEndian = true;
-    let characterSet = "ISO_IR 192"; // Default: UTF-8
+    const characterSet = "ISO_IR 192"; // Default: UTF-8
 
     // Check for DICM preamble (128 bytes) + "DICM" magic string
     if (buffer.byteLength >= 132) {
@@ -331,15 +315,12 @@ function detectDicomFormat(
         view.setPosition(0);
         try {
             const group = view.peekUint16();
-            // console.log(`detectDicomFormat: Group=0x${group.toString(16)} (Pos: ${view.getPosition()})`);
             if (group <= 0xffff && group !== 0x0000) {
                 offset = 0;
             } else {
-                // console.log('detectDicomFormat: Invalid group');
                 throw new Error("Invalid DICOM file format");
             }
         } catch (e) {
-            // console.log('detectDicomFormat: Catch', e);
             throw new Error("Invalid DICOM file format");
         }
     }
@@ -1015,7 +996,7 @@ function createLazyDataSet(
  * Ultra-fast parsing mode - optimized for maximum speed
  * Minimal overhead: skips most validations, uses numeric tag comparison
  * Only creates string keys when storing tags
- * 
+ *
  * @param byteArray - The DICOM file as a Uint8Array
  * @param filterTags - Optional array of tags to include
  * @returns A ShallowDicomDataSet map
@@ -1066,7 +1047,7 @@ function fastParse(
         filterSet = new Set();
         for (const tag of filterTags) {
             const normalized = normalizeTag(tag);
-            if (normalized.startsWith('x') && normalized.length === 9) {
+            if (normalized.startsWith("x") && normalized.length === 9) {
                 const group = parseInt(normalized.substring(1, 5), 16);
                 const element = parseInt(normalized.substring(5, 9), 16);
                 filterSet.add((group << 16) | element);
@@ -1075,17 +1056,17 @@ function fastParse(
     }
 
     // Hex digit lookup table for fast tag string generation
-    const hexDigits = '0123456789abcdef';
+    const hexDigits = "0123456789abcdef";
     const hexCache: string[] = [];
     for (let i = 0; i < 65536; i++) {
-        hexCache[i] = i.toString(16).padStart(4, '0');
+        hexCache[i] = i.toString(16).padStart(4, "0");
     }
 
     while (view.getRemainingBytes() >= 8 && iterations < maxIterations) {
         iterations++;
 
         const elementStart = view.getPosition();
-        
+
         // Read tag
         const group = view.readUint16();
         const element = view.readUint16();
@@ -1093,7 +1074,11 @@ function fastParse(
 
         // Fast delimiter check
         if (group === 0xfffe) {
-            if (element === 0xe0dd || element === 0xe00d || element === 0xe000) {
+            if (
+                element === 0xe0dd ||
+                element === 0xe00d ||
+                element === 0xe000
+            ) {
                 view.readUint32();
                 continue;
             }
@@ -1109,15 +1094,18 @@ function fastParse(
             const vr0 = vrBytes[0];
             const vr1 = vrBytes[1];
             vr = String.fromCharCode(vr0, vr1);
-            
+
             // Fast check for long VRs using char codes (avoid string comparison)
-            if ((vr0 === 0x53 && vr1 === 0x51) || // SQ
-                (vr0 === 0x4F && vr1 === 0x42) || // OB
-                (vr0 === 0x4F && vr1 === 0x57) || // OW
-                (vr0 === 0x4F && vr1 === 0x46) || // OF
-                (vr0 === 0x4F && vr1 === 0x44) || // OD
-                (vr0 === 0x4F && vr1 === 0x4C) || // OL
-                (vr0 === 0x55 && vr1 === 0x4E)) { // UN
+            if (
+                (vr0 === 0x53 && vr1 === 0x51) || // SQ
+                (vr0 === 0x4f && vr1 === 0x42) || // OB
+                (vr0 === 0x4f && vr1 === 0x57) || // OW
+                (vr0 === 0x4f && vr1 === 0x46) || // OF
+                (vr0 === 0x4f && vr1 === 0x44) || // OD
+                (vr0 === 0x4f && vr1 === 0x4c) || // OL
+                (vr0 === 0x55 && vr1 === 0x4e)
+            ) {
+                // UN
                 view.readUint16(); // Reserved
                 length = view.readUint32();
                 headerLength = 12;
@@ -1149,7 +1137,10 @@ function fastParse(
                         // Item start - read length and skip
                         if (view.getRemainingBytes() >= 4) {
                             const itemLength = view.readUint32();
-                            const skip = Math.min(itemLength, view.getRemainingBytes());
+                            const skip = Math.min(
+                                itemLength,
+                                view.getRemainingBytes(),
+                            );
                             view.setPosition(view.getPosition() + skip);
                         }
                     } else {
@@ -1200,7 +1191,10 @@ function fastParse(
                     // Item start - skip declared length
                     if (view.getRemainingBytes() >= 4) {
                         const itemLength = view.readUint32();
-                        const skip = Math.min(itemLength, view.getRemainingBytes());
+                        const skip = Math.min(
+                            itemLength,
+                            view.getRemainingBytes(),
+                        );
                         view.setPosition(view.getPosition() + skip);
                     }
                 } else {
@@ -1678,17 +1672,17 @@ function parseElementValue(
         if (wasmResult) {
             return wasmResult;
         }
-         // Fallback
+        // Fallback
         const str = new TextDecoder().decode(bytes);
         const parts = str.split("\\").filter((p) => p.trim());
-         if (parts.length === 1) {
-             const num = parseFloat(parts[0]);
-             return isNaN(num) ? str : Math.floor(num);
-         }
-         return parts.map((p) => {
-             const num = parseFloat(p.trim());
-             return isNaN(num) ? p.trim() : num;
-         });
+        if (parts.length === 1) {
+            const num = parseFloat(parts[0]);
+            return isNaN(num) ? str : Math.floor(num);
+        }
+        return parts.map((p) => {
+            const num = parseFloat(p.trim());
+            return isNaN(num) ? p.trim() : num;
+        });
     }
 
     // String-based VR
@@ -1704,14 +1698,12 @@ function parseElementValue(
  * Create dataset with accessor methods
  */
 
-function createDataSet(
-    dict: Record<string, DicomElement>,
-): DicomDataSet {
+function createDataSet(dict: Record<string, DicomElement>): DicomDataSet {
     const getElement = (tag: string): DicomElement | undefined => {
         // Try direct lookup first (most common case)
         const normalized = normalizeTag(tag);
         if (dict[normalized]) return dict[normalized];
-        
+
         // Fallback: try other tag format variations for compatibility
         const comma = formatTagWithComma(tag);
         const plain = tag.replace(/^x/i, "").replace(/,/g, "");
@@ -1723,56 +1715,71 @@ function createDataSet(
             const elem = getElement(tag);
             if (!elem) return undefined;
             const val = elem.Value ?? elem.value;
-            
+
             // Handle already-parsed TypedArrays from Wasm
             if (
-                (val instanceof Float64Array || val instanceof Int32Array || val instanceof Float32Array) &&
+                (val instanceof Float64Array ||
+                    val instanceof Int32Array ||
+                    val instanceof Float32Array) &&
                 val.length > 0
             ) {
                 return String(val[0]);
             }
-            
+
             // Handle string values (may need lazy parsing)
             if (typeof val === "string") {
                 // Check if needs special parsing based on VR
                 const vr = elem.vr || elem.VR;
-                if (vr === 'PN') {
+                if (vr === "PN") {
                     // Try Wasm PN parsing first
                     const wasmParsed = parsePNWasm(val);
-                    if (wasmParsed && typeof wasmParsed === 'object' && 'Alphanumeric' in wasmParsed) {
+                    if (
+                        wasmParsed &&
+                        typeof wasmParsed === "object" &&
+                        "Alphanumeric" in wasmParsed
+                    ) {
                         // Cache the parsed result to avoid re-parsing
                         elem.Value = wasmParsed;
                         return wasmParsed.Alphanumeric;
                     }
                     // Fallback to JS parsing
                     const parsed = parseValueByVR(vr, val);
-                    if (typeof parsed === 'object' && parsed !== null && 'Alphanumeric' in parsed) {
+                    if (
+                        typeof parsed === "object" &&
+                        parsed !== null &&
+                        "Alphanumeric" in parsed
+                    ) {
                         // Cache the parsed result
                         elem.Value = parsed;
-                        return (parsed as { Alphanumeric?: string }).Alphanumeric;
+                        return (parsed as { Alphanumeric?: string })
+                            .Alphanumeric;
                     }
                 }
                 // Multi-value strings: split and return first value
-                if (val.includes('\\')) {
-                    return val.split('\\')[0];
+                if (val.includes("\\")) {
+                    return val.split("\\")[0];
                 }
                 return val;
             }
-            
+
             // Handle arrays
             if (Array.isArray(val) && val.length > 0) {
                 if (typeof val[0] === "string") return val[0];
                 if (typeof val[0] === "number") return String(val[0]);
             }
-            
+
             // Handle already-parsed PN objects
-            if (typeof val === "object" && val !== null && "Alphanumeric" in val) {
+            if (
+                typeof val === "object" &&
+                val !== null &&
+                "Alphanumeric" in val
+            ) {
                 return (val as { Alphanumeric?: string }).Alphanumeric;
             }
-            
+
             // Handle numbers
             if (typeof val === "number") return String(val);
-            
+
             return undefined;
         },
         uint16: (tag: string) => {
@@ -1792,7 +1799,9 @@ function createDataSet(
                 return isNaN(num) ? undefined : num & 0xffff;
             }
             if (
-                (val instanceof Float64Array || val instanceof Int32Array || val instanceof Float32Array) &&
+                (val instanceof Float64Array ||
+                    val instanceof Int32Array ||
+                    val instanceof Float32Array) &&
                 val.length > 0
             ) {
                 return Math.floor(val[0]) & 0xffff;
@@ -1822,7 +1831,9 @@ function createDataSet(
                     : num;
             }
             if (
-                (val instanceof Float64Array || val instanceof Int32Array || val instanceof Float32Array) &&
+                (val instanceof Float64Array ||
+                    val instanceof Int32Array ||
+                    val instanceof Float32Array) &&
                 val.length > 0
             ) {
                 const num = Math.floor(val[0]);
@@ -1847,10 +1858,12 @@ function createDataSet(
                 return isNaN(num) ? undefined : num;
             }
             if (
-                (val instanceof Float64Array || val instanceof Int32Array || val instanceof Float32Array) &&
+                (val instanceof Float64Array ||
+                    val instanceof Int32Array ||
+                    val instanceof Float32Array) &&
                 val.length > 0
             ) {
-                 return val[0];
+                return val[0];
             }
             return undefined;
         },
@@ -1871,10 +1884,12 @@ function createDataSet(
                 return isNaN(num) ? undefined : Math.floor(num);
             }
             if (
-                (val instanceof Float64Array || val instanceof Int32Array || val instanceof Float32Array) &&
+                (val instanceof Float64Array ||
+                    val instanceof Int32Array ||
+                    val instanceof Float32Array) &&
                 val.length > 0
             ) {
-                 return Math.floor(val[0]);
+                return Math.floor(val[0]);
             }
             return undefined;
         },

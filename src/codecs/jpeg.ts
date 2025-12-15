@@ -1,6 +1,6 @@
 /**
  * Standard JPEG Decoder Plugin via Wasm
- * Transfer Syntaxes: 
+ * Transfer Syntaxes:
  *  - 1.2.840.10008.1.2.4.50 (JPEG Baseline)
  *  - 1.2.840.10008.1.2.4.51 (JPEG Extended 12-bit - Note: 'image' crate might map to 8-bit)
  */
@@ -24,7 +24,8 @@ export class JpegDecoder implements PixelDataCodec {
     async initWasm() {
         try {
             // @ts-ignore
-            this.wasmModule = await import("../../src/wasm-codecs-build/rad_parser_wasm_codecs.js");
+            this.wasmModule =
+                await import("../../src/wasm-codecs-build/rad_parser_wasm_codecs.js");
             await this.wasmModule.default();
             this.isWasmInitialized = true;
             console.log("JPEG WASM module initialized");
@@ -35,9 +36,9 @@ export class JpegDecoder implements PixelDataCodec {
 
     isSupported(): boolean {
         // Fallback to ImageDecoder (Browser) if Wasm missing?
-        // Actually, for standard JPEG, Browser ImageDecoder is very fast. 
+        // Actually, for standard JPEG, Browser ImageDecoder is very fast.
         // Wasm is mainly useful for Node.js or if stricter control needed.
-        return true; 
+        return true;
     }
 
     canDecode(ts: string): boolean {
@@ -49,7 +50,7 @@ export class JpegDecoder implements PixelDataCodec {
 
     async decode(encodedBuffer: Uint8Array[], info: any): Promise<Uint8Array> {
         const combined = concatFragments(encodedBuffer);
-        
+
         // 1. Try Wasm
         if (this.isWasmInitialized && this.wasmModule) {
             try {
@@ -60,18 +61,29 @@ export class JpegDecoder implements PixelDataCodec {
         }
 
         // 2. Fallback to Browser Native
-        if (typeof ImageDecoder !== 'undefined') {
-            const decoder = new ImageDecoder({ data: combined, type: 'image/jpeg' });
+        if (typeof ImageDecoder !== "undefined") {
+            const decoder = new ImageDecoder({
+                data: combined,
+                type: "image/jpeg",
+            });
             const image = await decoder.decode();
-            const canvas = new OffscreenCanvas(image.image.displayWidth, image.image.displayHeight);
-            const ctx = canvas.getContext('2d');
+            const canvas = new OffscreenCanvas(
+                image.image.displayWidth,
+                image.image.displayHeight,
+            );
+            const ctx = canvas.getContext("2d");
             if (ctx) {
                 ctx.drawImage(image.image, 0, 0);
-                return new Uint8Array(ctx.getImageData(0, 0, canvas.width, canvas.height).data.buffer);
+                return new Uint8Array(
+                    ctx.getImageData(0, 0, canvas.width, canvas.height).data
+                        .buffer,
+                );
             }
         }
 
-        throw new Error("No JPEG decoder available (Wasm failed and no ImageDecoder)");
+        throw new Error(
+            "No JPEG decoder available (Wasm failed and no ImageDecoder)",
+        );
     }
 }
 
