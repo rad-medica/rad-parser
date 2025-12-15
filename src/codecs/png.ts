@@ -181,3 +181,30 @@ export class NodePngEncoder implements PixelDataCodec {
         return table;
     }
 }
+/**
+ * Standalone PNG Encode Helper
+ */
+export interface EncodePngOptions {
+    data: Uint8Array;
+    width: number;
+    height: number;
+    colorType: "grayscale" | "rgb";
+    bitDepth: 8 | 16;
+}
+
+export async function encodePNG(options: EncodePngOptions): Promise<Uint8Array> {
+    const encoder = new NodePngEncoder();
+    // Try to init wasm (best effort, non-blocking if we want sync-like behavior but this is async)
+    await encoder.initWasm(); 
+    
+    const samples = options.colorType === 'grayscale' ? 1 : 3;
+    const fragments = await encoder.encode(
+        options.data, 
+        "png", 
+        options.width, 
+        options.height, 
+        samples, 
+        options.bitDepth
+    );
+    return fragments[0];
+}

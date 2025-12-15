@@ -88,13 +88,13 @@ export class Jpeg2000Decoder implements PixelDataCodec {
     async decode(encodedBuffer: Uint8Array[], info: any): Promise<Uint8Array> {
         const combined = concatFragments(encodedBuffer);
 
-        // 1. Try Wasm (Stub/Future Impl)
+        // 1. Try Wasm
         if (this.isWasmInitialized && this.wasmModule) {
             try {
+                // Use wasm decoder
                 return this.wasmModule.jpeg2000_decode(combined);
             } catch (e) {
-                // Expected failure for stub
-                // console.debug("Wasm J2K decode failed/stubbed, falling back", e);
+                console.warn("Wasm J2K decode failed, falling back", e);
             }
         }
 

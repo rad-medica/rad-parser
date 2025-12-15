@@ -85,8 +85,9 @@ export { Jpeg2000Decoder } from "./codecs/jpeg2000";
 export { JpegLsDecoder } from "./codecs/jpegls";
 export { JpegLosslessDecoder } from "./codecs/jpegLossless";
 export { VideoDecoder } from "./codecs/video";
-export { NodePngEncoder } from "./codecs/png";
+export { NodePngEncoder, encodePNG } from "./codecs/png";
 export { JpegLosslessNativeDecoder } from "./codecs/jpegLosslessNative";
+export { JpegNativeCodec } from "./codecs/jpegNative";
 export { AutoDetectCodec } from "./codecs/autodetect";
 
 // New helper functions

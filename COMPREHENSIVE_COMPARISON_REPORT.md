@@ -1,8 +1,8 @@
 # Comprehensive DICOM Parser Comparison
 
-**Date:** 2025-12-11  
+**Date:** 2025-12-15  
 **Test Files:** 254 DICOM files  
-**Parsers:** rad-parser (fast, shallow, medium, full, streaming), dcmjs, dicom-parser, efferent-dicom
+**Parsers:** rad-parser (fast, shallow, medium, full, wasm, streaming), dcmjs, dicom-parser, efferent-dicom
 
 ---
 
@@ -12,8 +12,8 @@
 
 **Key Highlights:**
 - **Most Reliable:** efferent-dicom (99.6% success rate)
-- **Fastest (100% success):** rad-parser-fast (2.04 ms average)
-- **Most Elements:** rad-parser-streaming (414 elements/file)
+- **Fastest (100% success):** rad-parser-shallow (2.25 ms average)
+- **Most Elements:** rad-parser-streaming (138 elements/file)
 
 ---
 
@@ -24,10 +24,11 @@
 | Parser | Success Rate | Files Parsed | Failures |
 |--------|-------------|--------------|----------|
 | **efferent-dicom** | 99.6% ████████████████████ | 253/254 | 1 |
-| **rad-parser-fast** | 100.0% ████████████████████ | 254/254 | 0 |
 | **rad-parser-shallow** | 100.0% ████████████████████ | 254/254 | 0 |
-| **rad-parser** | 100.0% ████████████████████ | 254/254 | 0 |
+| **rad-parser-fast** | 100.0% ████████████████████ | 254/254 | 0 |
 | **rad-parser-medium** | 100.0% ████████████████████ | 254/254 | 0 |
+| **rad-parser** | 100.0% ████████████████████ | 254/254 | 0 |
+| **rad-parser-wasm** | 100.0% ████████████████████ | 254/254 | 0 |
 | **rad-parser-streaming** | 100.0% ████████████████████ | 254/254 | 0 |
 | **dicom-parser** | 88.2% ██████████████████ | 224/254 | 30 |
 | **dcmjs** | 89.0% ██████████████████ | 226/254 | 28 |
@@ -36,25 +37,27 @@
 
 | Parser | Avg Time | Min Time | Max Time | Throughput | Speed vs Fastest |
 |--------|----------|----------|----------|------------|------------------|
-| **efferent-dicom** | 756.99 μs | 1.30 μs | 10.41 ms | 1321 files/s | 0.37x |
-| **rad-parser-fast** | 2.04 ms | 1.38 ms | 4.66 ms | 491 files/s | 1.00x |
-| **rad-parser-shallow** | 7.42 ms | 3.20 μs | 208.09 ms | 135 files/s | 3.64x |
-| **rad-parser** | 7.47 ms | 9.50 μs | 169.10 ms | 134 files/s | 3.67x |
-| **rad-parser-medium** | 7.57 ms | 10.80 μs | 164.68 ms | 132 files/s | 3.72x |
-| **rad-parser-streaming** | 15.49 ms | 34.20 μs | 231.30 ms | 65 files/s | 7.61x |
-| **dicom-parser** | 114.78 μs | 24.40 μs | 1.11 ms | 8712 files/s | 0.06x |
-| **dcmjs** | 1.11 ms | 98.90 μs | 10.81 ms | 902 files/s | 0.54x |
+| **efferent-dicom** | 1.18 ms | 0.90 μs | 15.17 ms | 849 files/s | 0.52x |
+| **rad-parser-shallow** | 2.25 ms | 1.20 μs | 77.52 ms | 445 files/s | 1.00x |
+| **rad-parser-fast** | 2.76 ms | 2.14 ms | 5.57 ms | 362 files/s | 1.23x |
+| **rad-parser-medium** | 11.53 ms | 8.40 μs | 262.30 ms | 87 files/s | 5.13x |
+| **rad-parser** | 11.77 ms | 9.50 μs | 304.38 ms | 85 files/s | 5.24x |
+| **rad-parser-wasm** | 12.30 ms | 12.30 μs | 278.69 ms | 81 files/s | 5.47x |
+| **rad-parser-streaming** | 23.75 ms | 28.50 μs | 337.03 ms | 42 files/s | 10.56x |
+| **dicom-parser** | 100.63 μs | 29.10 μs | 1.38 ms | 9938 files/s | 0.04x |
+| **dcmjs** | 1.49 ms | 132.70 μs | 23.99 ms | 673 files/s | 0.66x |
 
 ### Element Parsing Depth
 
 | Parser | Avg Elements | Total Elements | Coverage |
 |--------|--------------|---------------|----------|
 | **efferent-dicom** | 71 | 18.037 | Good |
+| **rad-parser-shallow** | 72 | 18.286 | Good |
 | **rad-parser-fast** | 37 | 9.425 | Good |
-| **rad-parser-shallow** | 69 | 17.472 | Good |
-| **rad-parser** | 280 | 71.154 | Good |
-| **rad-parser-medium** | 280 | 71.154 | Good |
-| **rad-parser-streaming** | 414 | 105.108 | Good |
+| **rad-parser-medium** | 93 | 23.718 | Good |
+| **rad-parser** | 93 | 23.718 | Good |
+| **rad-parser-wasm** | 93 | 23.718 | Good |
+| **rad-parser-streaming** | 138 | 35.036 | Good |
 | **dicom-parser** | 84 | 18.916 | Good |
 | **dcmjs** | 76 | 17.170 | Good |
 
@@ -62,15 +65,15 @@
 
 ## Capability Matrix
 
-| Feature | rad-fast | rad-shallow | rad-medium | rad-full | rad-streaming | dcmjs | dicom-parser | efferent |
-|---------|----------|-------------|------------|----------|---------------|-------|--------------|----------|
-| Core Parsing | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| Streaming | ❌ | ❌ | ❌ | ❌ | ✅ | ❌ | ❌ | ❌ |
-| Serialization | ❌ | ❌ | ❌ | ✅ | ❌ | ❌ | ❌ | ❌ |
-| Anonymization | ❌ | ❌ | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ |
-| Pixel Data | ❌ | ❌ | ❌ | ✅ | ✅ | ✅ | ⚠️ | ⚠️ |
-| Sequences | ⚠️ | ⚠️ | ✅ | ✅ | ✅ | ✅ | ⚠️ | ⚠️ |
-| 100% Reliability | ✅ | ✅ | ✅ | ✅ | ⚠️ | ❌ | ❌ | ⚠️ |
+| Feature | rad-fast | rad-shallow | rad-medium | rad-full | rad-wasm | rad-streaming | dcmjs | dicom-parser | efferent |
+|---------|----------|-------------|------------|----------|----------|---------------|-------|--------------|----------|
+| Core Parsing | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Streaming | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ | ❌ | ❌ | ❌ |
+| Serialization | ❌ | ❌ | ❌ | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ |
+| Anonymization | ❌ | ❌ | ✅ | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ |
+| Pixel Data | ❌ | ❌ | ❌ | ✅ | ✅ | ✅ | ✅ | ⚠️ | ⚠️ |
+| Sequences | ⚠️ | ⚠️ | ✅ | ✅ | ✅ | ✅ | ✅ | ⚠️ | ⚠️ |
+| 100% Reliability | ✅ | ✅ | ✅ | ✅ | ✅ | ⚠️ | ❌ | ❌ | ⚠️ |
 
 ---
 
@@ -79,58 +82,66 @@
 ### efferent-dicom
 
 - **Success Rate:** 99.6% (253/254)
-- **Average Time:** 756.99 μs
-- **Min/Max Time:** 1.30 μs / 10.41 ms
+- **Average Time:** 1.18 ms
+- **Min/Max Time:** 0.90 μs / 15.17 ms
 - **Average Elements:** 71
 - **Total Size Processed:** 288.34 MB
 - **Errors:** 1 files failed
   - explicit_VR-UN.dcm: charsetTagValue.trim is not a function
 
-### rad-parser-fast
-
-- **Success Rate:** 100.0% (254/254)
-- **Average Time:** 2.04 ms
-- **Min/Max Time:** 1.38 ms / 4.66 ms
-- **Average Elements:** 37
-- **Total Size Processed:** 288.34 MB
-
 ### rad-parser-shallow
 
 - **Success Rate:** 100.0% (254/254)
-- **Average Time:** 7.42 ms
-- **Min/Max Time:** 3.20 μs / 208.09 ms
-- **Average Elements:** 69
+- **Average Time:** 2.25 ms
+- **Min/Max Time:** 1.20 μs / 77.52 ms
+- **Average Elements:** 72
 - **Total Size Processed:** 288.34 MB
 
-### rad-parser
+### rad-parser-fast
 
 - **Success Rate:** 100.0% (254/254)
-- **Average Time:** 7.47 ms
-- **Min/Max Time:** 9.50 μs / 169.10 ms
-- **Average Elements:** 280
+- **Average Time:** 2.76 ms
+- **Min/Max Time:** 2.14 ms / 5.57 ms
+- **Average Elements:** 37
 - **Total Size Processed:** 288.34 MB
 
 ### rad-parser-medium
 
 - **Success Rate:** 100.0% (254/254)
-- **Average Time:** 7.57 ms
-- **Min/Max Time:** 10.80 μs / 164.68 ms
-- **Average Elements:** 280
+- **Average Time:** 11.53 ms
+- **Min/Max Time:** 8.40 μs / 262.30 ms
+- **Average Elements:** 93
+- **Total Size Processed:** 288.34 MB
+
+### rad-parser
+
+- **Success Rate:** 100.0% (254/254)
+- **Average Time:** 11.77 ms
+- **Min/Max Time:** 9.50 μs / 304.38 ms
+- **Average Elements:** 93
+- **Total Size Processed:** 288.34 MB
+
+### rad-parser-wasm
+
+- **Success Rate:** 100.0% (254/254)
+- **Average Time:** 12.30 ms
+- **Min/Max Time:** 12.30 μs / 278.69 ms
+- **Average Elements:** 93
 - **Total Size Processed:** 288.34 MB
 
 ### rad-parser-streaming
 
 - **Success Rate:** 100.0% (254/254)
-- **Average Time:** 15.49 ms
-- **Min/Max Time:** 34.20 μs / 231.30 ms
-- **Average Elements:** 414
+- **Average Time:** 23.75 ms
+- **Min/Max Time:** 28.50 μs / 337.03 ms
+- **Average Elements:** 138
 - **Total Size Processed:** 288.34 MB
 
 ### dicom-parser
 
 - **Success Rate:** 88.2% (224/254)
-- **Average Time:** 114.78 μs
-- **Min/Max Time:** 24.40 μs / 1.11 ms
+- **Average Time:** 100.63 μs
+- **Min/Max Time:** 29.10 μs / 1.38 ms
 - **Average Elements:** 84
 - **Total Size Processed:** 288.34 MB
 - **Errors:** 30 files failed
@@ -144,8 +155,8 @@
 ### dcmjs
 
 - **Success Rate:** 89.0% (226/254)
-- **Average Time:** 1.11 ms
-- **Min/Max Time:** 98.90 μs / 10.81 ms
+- **Average Time:** 1.49 ms
+- **Min/Max Time:** 132.70 μs / 23.99 ms
 - **Average Elements:** 76
 - **Total Size Processed:** 288.34 MB
 - **Errors:** 28 files failed

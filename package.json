@@ -4,6 +4,9 @@
   "description": "A lightweight, performant, self-contained DICOM parser with zero external dependencies",
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
+  "bin": {
+    "rad": "./bin/rad.ts"
+  },
   "types": "./dist/index.d.ts",
   "exports": {
     ".": {
@@ -86,11 +89,10 @@
     "test": "vitest run",
     "benchmark": "tsx --tsconfig tsconfig.json scripts/benchmark.ts",
     "benchmark:advanced": "tsx --tsconfig tsconfig.json scripts/benchmark_advanced_features.ts",
-    "benchmark:comprehensive": "tsx --tsconfig tsconfig.json scripts/comprehensive_benchmark_safe.ts",
+    "benchmark:comprehensive": "tsx --tsconfig tsconfig.json scripts/comprehensive_benchmark.ts",
     "report:comprehensive": "tsx --tsconfig tsconfig.json scripts/generate_comprehensive_report.ts",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
-    "benchmark": "tsx --tsconfig tsconfig.json scripts/benchmark.ts",
     "benchmark:streaming": "npx tsx scripts/benchmark-streaming.ts",
     "lint": "eslint . --ext .ts",
     "format": "prettier --write \"**/*.ts\"",

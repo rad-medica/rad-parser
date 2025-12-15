@@ -8,8 +8,10 @@ registry.registerDynamic('1.2.840.10008.1.2.5', () => import('./rle'));
 
 // JPEG Baseline (Process 1) & Extended (Process 2 & 4)
 // These are often handled by the browser or a standard JPEG library.
-registry.registerDynamic('1.2.840.10008.1.2.4.50', () => import('./browser'));
-registry.registerDynamic('1.2.840.10008.1.2.4.51', () => import('./browser'));
+// JPEG Baseline (Process 1) & Extended (Process 2 & 4)
+// Use native Wasm implementation for universal support (Node.js + Browser)
+registry.registerDynamic('1.2.840.10008.1.2.4.50', () => import('./jpegNative'));
+registry.registerDynamic('1.2.840.10008.1.2.4.51', () => import('./browser')); // Keep extended on browser for now (or fallback)
 
 // JPEG Lossless, Non-Hierarchical (Process 14)
 registry.registerDynamic('1.2.840.10008.1.2.4.57', () => import('./jpegLossless'));

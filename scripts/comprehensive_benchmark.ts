@@ -9,11 +9,29 @@
 import { readFileSync, readdirSync, statSync, writeFileSync, mkdirSync, existsSync } from 'fs';
 import { join, dirname, resolve } from 'path';
 import { fileURLToPath } from 'url';
-import { parse } from '../src/index.js';
+import { parse, initCoreWasm } from '../src/index.js';
 import { StreamingParser } from '../src/index.js';
 import dcmjs from 'dcmjs';
 import dicomParser from 'dicom-parser';
 import efferentDicom from 'efferent-dicom';
+
+// ... (keep existing imports)
+
+// ...
+
+  // All parsers to benchmark
+  // Note: rad-parser-wasm must come LAST or after rad-parser to avoid polluting the JS-only run
+  const parsers = [
+    'rad-parser-fast',
+    'rad-parser-shallow',
+    'rad-parser-medium',
+    'rad-parser',
+    'rad-parser-streaming',
+    'dcmjs',
+    'dicom-parser',
+    'efferent-dicom',
+    'rad-parser-wasm',
+  ];
 
 function parseWithDcmjs(data: Uint8Array) {
   const buffer = Buffer.from(data.buffer, data.byteOffset, data.byteLength) as Buffer;
@@ -109,6 +127,7 @@ function benchmarkParser(
     let dataset;
     switch (parserName) {
       case 'rad-parser':
+      case 'rad-parser-wasm':
         dataset = parse(fileData, { type: 'full' });
         elementCount = Object.keys(dataset.dict || {}).length;
         break;
@@ -268,10 +287,9 @@ async function main() {
   console.log('Comprehensive DICOM Parser Benchmark');
   console.log('='.repeat(80) + '\n');
 
-  // Find all test data directories - only TEST folder
+  // Find all test data directories
   const testDataPaths = [
-    join(__dirname, '..', 'test_data', 'TEST', 'SOLO'),
-    join(__dirname, '..', 'test_data', 'TEST', 'SUBF'),
+    join(__dirname, '..', 'test_data'),
   ];
 
   const allFiles: string[] = [];
@@ -311,12 +329,23 @@ async function main() {
     'dcmjs',
     'dicom-parser',
     'efferent-dicom',
+    'rad-parser-wasm',
   ];
 
   const allResults: BenchmarkResult[] = [];
 
   // Benchmark each parser
   for (const parserName of parsers) {
+    if (parserName === 'rad-parser-wasm') {
+      console.log('\nInitializing Wasm...');
+      try {
+        await initCoreWasm();
+        console.log('Wasm initialized successfully.');
+      } catch (err) {
+        console.error('Failed to initialize Wasm:', err);
+      }
+    }
+
     console.log(`\nBenchmarking ${parserName}...`);
     const parserResults: BenchmarkResult[] = [];
     let processed = 0;

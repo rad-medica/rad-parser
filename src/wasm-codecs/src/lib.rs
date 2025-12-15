@@ -5,7 +5,7 @@ use image::io::Reader as ImageReader;
 use image::ImageFormat;
 // charls 0.4 might expose items at top level or submodule
 // We will try importing expected structs or functions
-use charls::CharLS;
+// use charls::CharLS;
 
 // RLE and PNG implementations
 
@@ -42,39 +42,7 @@ pub fn rle_decode(input: &[u8]) -> Vec<u8> {
     out
 }
 
-#[wasm_bindgen]
-pub fn rle_encode(input: &[u8]) -> Vec<u8> {
-    let mut out = Vec::with_capacity(input.len());
-    let mut i = 0;
-    while i < input.len() {
-        if i + 1 < input.len() && input[i] == input[i+1] {
-            let mut run_len = 1;
-            while i + run_len < input.len() && input[i] == input[i + run_len] && run_len < 128 {
-                run_len += 1;
-            }
-            if run_len > 1 {
-                let n_val = 1 - (run_len as i8);
-                out.push(n_val as u8);
-                out.push(input[i]);
-                i += run_len;
-            } else { i += 1; }
-        } else {
-            let mut run_len = 0;
-            while i + run_len < input.len() && run_len < 128 {
-                if i + run_len + 1 < input.len() && input[i+run_len] == input[i+run_len+1] { break; }
-                run_len += 1;
-            }
-            if run_len > 0 {
-                let n_val = (run_len - 1) as u8;
-                out.push(n_val);
-                out.extend_from_slice(&input[i..i+run_len]);
-                i += run_len;
-            }
-        }
-    }
-    out
-}
-
+// --- PNG ---
 #[wasm_bindgen]
 pub fn png_encode(pixel_data: &[u8], width: u32, height: u32, bits: u8, samples: u8) -> Result<Vec<u8>, JsValue> {
     let mut png_data = Vec::new();
@@ -141,6 +109,112 @@ pub fn jpeg_lossless_decode(input: &[u8]) -> Result<Vec<u8>, JsValue> {
     Ok(pixels)
 }
 
+#[wasm_bindgen]
+pub fn rle_encode(
+    input: &[u8],
+    width: u32,
+    height: u32,
+    samples_per_pixel: u8,
+    bits_allocated: u8,
+) -> Result<Vec<u8>, JsValue> {
+    // RLE encoding for DICOM (PackBits variant)
+    // Header: 64 bytes (16 u32 segment offsets, little-endian)
+    // Then encoded segments for each sample plane
+    
+    let bytes_per_pixel = if bits_allocated <= 8 { 1 } else { 2 };
+    let stride = (width * bytes_per_pixel as u32) as usize;
+    let num_segments = samples_per_pixel as usize;
+    
+    let mut result = Vec::new();
+    let mut segment_offsets = vec![0u32; 15];
+    
+    // Reserve space for header (64 bytes)
+    result.resize(64, 0);
+    
+    // Encode each segment (sample plane)
+    for seg in 0..num_segments {
+        segment_offsets[seg] = result.len() as u32;
+        
+        // Encode rows for this segment
+        for row in 0..height as usize {
+            let row_start = row * stride + seg * bytes_per_pixel;
+            
+            // Simple PackBits RLE encoding
+            let mut i = 0;
+            while i < stride {
+                if i + 2 < stride 
+                    && input.get(row_start + i) == input.get(row_start + i + 1)
+                    && input.get(row_start + i) == input.get(row_start + i + 2) {
+                    // Run of identical bytes
+                    let byte_val = input[row_start + i];
+                    let mut run_len = 1;
+                    while i + run_len < stride 
+                        && run_len < 128
+                        && input.get(row_start + i + run_len) == Some(&byte_val) {
+                        run_len += 1;
+                    }
+                    result.push((run_len as u8).wrapping_neg().wrapping_add(1)); // -(run_len - 1)
+                    result.push(byte_val);
+                    i += run_len;
+                } else {
+                    // Literal run
+                    let mut lit_len = 1;
+                    while i + lit_len < stride 
+                        && lit_len < 128
+                        && (i + lit_len + 2 >= stride
+                            || input.get(row_start + i + lit_len) != input.get(row_start + i + lit_len + 1)
+                            || input.get(row_start + i + lit_len) != input.get(row_start + i + lit_len + 2)) {
+                        lit_len += 1;
+                    }
+                    result.push((lit_len - 1) as u8);
+                    for j in 0..lit_len {
+                        if let Some(&b) = input.get(row_start + i + j) {
+                            result.push(b);
+                        }
+                    }
+                    i += lit_len;
+                }
+            }
+        }
+    }
+    
+    // Write segment offsets to header (little-endian)
+    for (i, &offset) in segment_offsets.iter().enumerate().take(15) {
+        let offset_pos = i * 4;
+        result[offset_pos..offset_pos + 4].copy_from_slice(&offset.to_le_bytes());
+    }
+    
+    Ok(result)
+}
+
+// --- JPEG Encoding ---
+
+#[wasm_bindgen]
+pub fn jpeg_encode(
+    input: &[u8],
+    width: u16,
+    height: u16,
+    quality: u8,
+    color_type: u8, // 0 = grayscale, 1 = RGB
+) -> Result<Vec<u8>, JsValue> {
+    use jpeg_encoder::{Encoder, ColorType};
+    
+    let ct = if color_type == 0 {
+        ColorType::Luma
+    } else {
+        ColorType::Rgb
+    };
+    
+    let mut encoded = Vec::new();
+    let encoder = Encoder::new(&mut encoded, quality);
+    
+    encoder
+        .encode(input, width, height, ct)
+        .map_err(|e| JsValue::from_str(&format!("JPEG encode failed: {}", e)))?;
+    
+    Ok(encoded)
+}
+
 // --- JPEG 2000 (Pure Rust via hayro) ---
 #[wasm_bindgen]
 pub fn jpeg2000_decode(input: &[u8]) -> Result<Vec<u8>, JsValue> {
@@ -151,9 +225,22 @@ pub fn jpeg2000_decode(input: &[u8]) -> Result<Vec<u8>, JsValue> {
 
 // --- JPEG-LS ---
 
-#[wasm_bindgen]
-pub fn jpegls_decode(input: &[u8]) -> Result<Vec<u8>, JsValue> {
-    let mut decoder = CharLS::default();
-    let decoded = decoder.decode(input).map_err(|e| JsValue::from_str(&format!("JPEG-LS decode failed: {}", e)))?;
-    Ok(decoded)
-}
+// #[wasm_bindgen]
+// pub fn jpegls_decode(input: &[u8]) -> Result<Vec<u8>, JsValue> {
+//     let mut decoder = CharLS::default();
+//     let decoded = decoder.decode(input).map_err(|e| JsValue::from_str(&format!("JPEG-LS decode failed: {}", e)))?;
+//     Ok(decoded)
+// }
+
+// #[wasm_bindgen]
+// pub fn jpegls_encode(
+//     input: &[u8],
+//     width: u32,
+//     height: u32,
+//     bits_allocated: u8,
+//     samples_per_pixel: u8,
+//     near_lossless: u8,
+// ) -> Result<Vec<u8>, JsValue> {
+//     // Placeholder until CharLS API is fixed
+//     Err(JsValue::from_str("JPEG-LS encoding not enabled"))
+// }

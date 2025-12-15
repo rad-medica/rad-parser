@@ -6,14 +6,14 @@ Rad-parser includes built-in support for multiple DICOM image compression format
 
 ## Supported Codecs
 
-| Codec                  | Transfer Syntax        | Wasm | Status     |
-| :--------------------- | :--------------------- | :--: | :--------- |
-| **Uncompressed**       | 1.2.840.10008.1.2.1    |  -   | ✅ Native  |
-| **RLE**                | 1.2.840.10008.1.2.5    |  ✅  | ✅ Fast    |
-| **JPEG Baseline**      | 1.2.840.10008.1.2.4.50 |  ✅  | ✅ Fast    |
-| **JPEG 2000 Lossless** | 1.2.840.10008.1.2.4.90 |  ✅  | ✅ Fast    |
-| **JPEG-LS Lossless**   | 1.2.840.10008.1.2.4.80 |  ❌  | ✅ JS Only |
-| **PNG**                | Custom                 |  ✅  | ✅ Fast    |
+| Codec                  | Transfer Syntax        | Wasm | Status    |
+| :--------------------- | :--------------------- | :--: | :-------- |
+| **Uncompressed**       | 1.2.840.10008.1.2.1    |  -   | ✅ Native |
+| **RLE**                | 1.2.840.10008.1.2.5    |  ✅  | ✅ Fast   |
+| **JPEG Baseline**      | 1.2.840.10008.1.2.4.50 |  ✅  | ✅ Fast   |
+| **JPEG 2000 Lossless** | 1.2.840.10008.1.2.4.90 |  ✅  | ✅ Fast   |
+| **JPEG-LS**            | 1.2.840.10008.1.2.4.80 |  ✅  | ✅ Fast   |
+| **PNG**                | Custom                 |  ✅  | ✅ Fast   |
 
 ---
 

@@ -47,6 +47,59 @@ const result = extractPixelDataFromView(view, length, "1.2.840.10008.1.2.1");
 
 ---
 
+## Transcoding & Image Utilities
+
+### transcode(dataset, options)
+
+Transcode a dataset to a different Transfer Syntax.
+
+```typescript
+import { transcode } from "rad-parser";
+
+// Transcode to RLE Lossless
+const newDataset = await transcode(dataset, {
+    targetTransferSyntax: "1.2.840.10008.1.2.5", // RLE
+});
+
+// Transcode to JPEG 2000
+const j2kDataset = await transcode(dataset, {
+    targetTransferSyntax: "1.2.840.10008.1.2.4.90",
+});
+```
+
+**Features:**
+
+-   Automatically decodes original pixel data.
+-   Re-encodes using registered Wasm codecs.
+-   Updates `TransferSyntaxUID` and `PixelData` tags.
+-   Handles fragmentation for encapsulated data.
+
+---
+
+### dicomToImage(options)
+
+Convert a DICOM frame to a standard image buffer (PNG/JPEG).
+
+```typescript
+import { dicomToImage } from "rad-parser";
+
+const buffer = await dicomToImage({
+    dataset: dataset,
+    frame: 0, // (Optional) Frame index, default 0
+    format: "png", // "png" | "jpeg"
+});
+
+fs.writeFileSync("output.png", buffer);
+```
+
+**Features:**
+
+-   Extracts frame from multi-frame datasets.
+-   Decodes compressed pixel data.
+-   Renders to 8-bit RGB/Grayscale image buffer.
+
+---
+
 ## Compression Utilities
 
 ### decompressPixelData(data, transferSyntax, options)

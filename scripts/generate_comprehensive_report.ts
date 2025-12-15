@@ -66,7 +66,7 @@ function generateReport() {
 
 **Date:** ${new Date().toISOString().split('T')[0]}  
 **Test Files:** ${stats[0]?.totalFiles || 0} DICOM files  
-**Parsers:** rad-parser (fast, shallow, medium, full, streaming), dcmjs, dicom-parser, efferent-dicom
+**Parsers:** rad-parser (fast, shallow, medium, full, wasm, streaming), dcmjs, dicom-parser, efferent-dicom
 
 ---
 
@@ -115,21 +115,21 @@ function generateReport() {
   }
 
   report += `\n---\n\n## Capability Matrix\n\n`;
-  report += `| Feature | rad-fast | rad-shallow | rad-medium | rad-full | rad-streaming | dcmjs | dicom-parser | efferent |\n`;
-  report += `|---------|----------|-------------|------------|----------|---------------|-------|--------------|----------|\n`;
+  report += `| Feature | rad-fast | rad-shallow | rad-medium | rad-full | rad-wasm | rad-streaming | dcmjs | dicom-parser | efferent |\n`;
+  report += `|---------|----------|-------------|------------|----------|----------|---------------|-------|--------------|----------|\n`;
 
   const capabilities = [
-    { feature: 'Core Parsing', radFast: '✅', radShallow: '✅', radMedium: '✅', radFull: '✅', radStreaming: '✅', dcmjs: '✅', dicomParser: '✅', efferent: '✅' },
-    { feature: 'Streaming', radFast: '❌', radShallow: '❌', radMedium: '❌', radFull: '❌', radStreaming: '✅', dcmjs: '❌', dicomParser: '❌', efferent: '❌' },
-    { feature: 'Serialization', radFast: '❌', radShallow: '❌', radMedium: '❌', radFull: '✅', radStreaming: '❌', dcmjs: '❌', dicomParser: '❌', efferent: '❌' },
-    { feature: 'Anonymization', radFast: '❌', radShallow: '❌', radMedium: '✅', radFull: '✅', radStreaming: '❌', dcmjs: '❌', dicomParser: '❌', efferent: '❌' },
-    { feature: 'Pixel Data', radFast: '❌', radShallow: '❌', radMedium: '❌', radFull: '✅', radStreaming: '✅', dcmjs: '✅', dicomParser: '⚠️', efferent: '⚠️' },
-    { feature: 'Sequences', radFast: '⚠️', radShallow: '⚠️', radMedium: '✅', radFull: '✅', radStreaming: '✅', dcmjs: '✅', dicomParser: '⚠️', efferent: '⚠️' },
-    { feature: '100% Reliability', radFast: '✅', radShallow: '✅', radMedium: '✅', radFull: '✅', radStreaming: '⚠️', dcmjs: '❌', dicomParser: '❌', efferent: '⚠️' },
+    { feature: 'Core Parsing', radFast: '✅', radShallow: '✅', radMedium: '✅', radFull: '✅', radWasm: '✅', radStreaming: '✅', dcmjs: '✅', dicomParser: '✅', efferent: '✅' },
+    { feature: 'Streaming', radFast: '❌', radShallow: '❌', radMedium: '❌', radFull: '❌', radWasm: '❌', radStreaming: '✅', dcmjs: '❌', dicomParser: '❌', efferent: '❌' },
+    { feature: 'Serialization', radFast: '❌', radShallow: '❌', radMedium: '❌', radFull: '✅', radWasm: '✅', radStreaming: '❌', dcmjs: '❌', dicomParser: '❌', efferent: '❌' },
+    { feature: 'Anonymization', radFast: '❌', radShallow: '❌', radMedium: '✅', radFull: '✅', radWasm: '✅', radStreaming: '❌', dcmjs: '❌', dicomParser: '❌', efferent: '❌' },
+    { feature: 'Pixel Data', radFast: '❌', radShallow: '❌', radMedium: '❌', radFull: '✅', radWasm: '✅', radStreaming: '✅', dcmjs: '✅', dicomParser: '⚠️', efferent: '⚠️' },
+    { feature: 'Sequences', radFast: '⚠️', radShallow: '⚠️', radMedium: '✅', radFull: '✅', radWasm: '✅', radStreaming: '✅', dcmjs: '✅', dicomParser: '⚠️', efferent: '⚠️' },
+    { feature: '100% Reliability', radFast: '✅', radShallow: '✅', radMedium: '✅', radFull: '✅', radWasm: '✅', radStreaming: '⚠️', dcmjs: '❌', dicomParser: '❌', efferent: '⚠️' },
   ];
 
   for (const cap of capabilities) {
-    report += `| ${cap.feature} | ${cap.radFast} | ${cap.radShallow} | ${cap.radMedium} | ${cap.radFull} | ${cap.radStreaming} | ${cap.dcmjs} | ${cap.dicomParser} | ${cap.efferent} |\n`;
+    report += `| ${cap.feature} | ${cap.radFast} | ${cap.radShallow} | ${cap.radMedium} | ${cap.radFull} | ${cap.radWasm} | ${cap.radStreaming} | ${cap.dcmjs} | ${cap.dicomParser} | ${cap.efferent} |\n`;
   }
 
   report += `\n---\n\n## Detailed Statistics\n\n`;

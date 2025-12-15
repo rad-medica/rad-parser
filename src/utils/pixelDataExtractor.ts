@@ -11,10 +11,42 @@
 
 import type { DicomDataSet } from '../core/types';
 
-export function extractRescaledPixelData(dataset: DicomDataSet): Float32Array {
+// Assuming PixelDataInfo is defined elsewhere or will be added.
+// For the purpose of this edit, we'll use 'any' for the Value property
+// as the instruction doesn't specify the structure of PixelDataInfo.
+type PixelDataInfo = {
+  Value: any; // This will hold the raw pixel data
+  // Other properties might be here based on the element structure
+};
+
+export function extractPixelData(dataset: any): PixelDataInfo | null {
+  // Try various tag formats
+  const element = 
+    dataset.elements?.['x7fe00010'] || 
+    dataset.elements?.['7fe00010'] ||
+    dataset.dict?.['x7fe00010'] ||
+    dataset.dict?.['7fe00010'] ||
+    (dataset.elements ? Object.values(dataset.elements).find((e: any) => e.tag === 'x7fe00010' || e.tag === '7fe00010') : null);
+
+  if (!element) {
+    // console.log("Debug: Pixel Data element not found. Available keys:", Object.keys(dataset.elements || dataset.dict || {}).slice(0, 10));
+    return null;
+  }
+  
+  return {
+      Value: element.Value,
+      isEncapsulated: (element as any).isEncapsulated || false
+  };
+}
+
+export function extractRescaledPixelData(dataset: any): Float32Array {
   // Get rescale parameters (default to y = x if not present)
-  const rescaleSlope = dataset.floats('x00281053')?.[0] ?? 1.0;
-  const rescaleIntercept = dataset.floats('x00281052')?.[0] ?? 0.0;
+  // Rescale Intercept (0028,1052)
+  // DS (Decimal String) - use floatString or check element directly
+  const intercept = dataset.floatString("x00281052") ?? 0;
+
+  // Rescale Slope (0028,1053)
+  const slope = dataset.floatString("x00281053") ?? 1;
   
   // Get pixel data dimensions
   const rows = dataset.uint16('x00280010') ?? 0;
@@ -33,20 +65,25 @@ export function extractRescaledPixelData(dataset: DicomDataSet): Float32Array {
   let pixelData: Uint8Array | Uint16Array | Int16Array;
   
   if (bitsAllocated === 8) {
-    pixelData = dataset.uint8('x7fe00010') ?? new Uint8Array(0);
+      const val = dataset.dict['x7fe00010']?.Value;
+      if (val instanceof Uint8Array) {
+          pixelData = val;
+      } else {
+          pixelData = new Uint8Array(0);
+      }
   } else if (bitsAllocated === 16) {
     if (pixelRepresentation === 1) {
       // Signed 16-bit
-      const raw = dataset.uint8('x7fe00010');
-      if (!raw) {
-        throw new Error('Pixel data not found');
+      const raw = dataset.dict['x7fe00010']?.Value;
+      if (!(raw instanceof Uint8Array)) {
+        throw new Error('Pixel data not found or invalid format');
       }
       pixelData = new Int16Array(raw.buffer, raw.byteOffset, raw.byteLength / 2);
     } else {
       // Unsigned 16-bit
-      const raw = dataset.uint8('x7fe00010');
-      if (!raw) {
-        throw new Error('Pixel data not found');
+      const raw = dataset.dict['x7fe00010']?.Value;
+      if (!(raw instanceof Uint8Array)) {
+        throw new Error('Pixel data not found or invalid format');
       }
       pixelData = new Uint16Array(raw.buffer, raw.byteOffset, raw.byteLength / 2);
     }
@@ -67,7 +104,7 @@ export function extractRescaledPixelData(dataset: DicomDataSet): Float32Array {
   // Apply rescale transformation: rescaled = stored * slope + intercept
   for (let i = 0; i < expectedLength; i++) {
     const storedValue = pixelData[i];
-    output[i] = storedValue * rescaleSlope + rescaleIntercept;
+    output[i] = storedValue * slope + intercept;
   }
   
   return output;

@@ -219,20 +219,9 @@ function serializeElement(tagHex: string, element: DicomElement): Uint8Array | n
 
    // Handle Sequences (SQ)
    if (vr === 'SQ' || (element.items && Array.isArray(element.items))) {
-       // We'll use Undefined Length for SQ + Undefined Length for Items (or Explicit for Items if possible)
-       // Standard practice: SQ (Undefined Length) -> Item (Undefined Length) -> Elements -> Item Delim -> Item ... -> Seq Delim
-       // Simpler for Writer: SQ (Undefined Length) -> Item (Explicit Length) -> Elements -> (No Item Delim needed if explicit) -> Seq Delim
-       
-       // Let's use SQ with Undefined Length (0xFFFFFFFF)
-       // And Items with Explicit Length if we can calculate it easily, otherwise Undefined.
-       // Recursive calling requires explicit handling.
-       
        const itemChunks: Uint8Array[] = [];
        const items = (element.items || []) as any[];
        for (const item of items) {
-           // Item Tag (FFFE, E000)
-           // Each item has 'elements' (or 'dict' depending on structure)
-           // Parser produces SequenceItem { elements: ... }
            const itemElementsIn = item.elements || {}; 
            const itemBody = serializeDataset(itemElementsIn); // Recursive
            
@@ -256,131 +245,196 @@ function serializeElement(tagHex: string, element: DicomElement): Uint8Array | n
        
        itemChunks.push(seqDelim);
        
-       // Concatenate all items content (without SQ header yet)
-       valueBytes = concatChunks(itemChunks);
-   } else if (element.Value instanceof Uint8Array) {
+        // Concatenate all items content (without SQ header yet)
+        valueBytes = concatChunks(itemChunks);
+    } else if ((element as any).isEncapsulated && (vr === 'OB' || vr === 'OW')) {
+        // Encapsulated Pixel Data (Compressed)
+        const fragments = element.Value as Uint8Array[];
+        const fragmentChunks: Uint8Array[] = [];
+        
+        for (const frag of fragments) {
+             const itemHeader = new Uint8Array(8);
+             const itemView = new DataView(itemHeader.buffer);
+             itemView.setUint16(0, 0xFFFE, true);
+             itemView.setUint16(2, 0xE000, true);
+             itemView.setUint32(4, frag.length, true);
+             
+             fragmentChunks.push(itemHeader);
+             fragmentChunks.push(frag);
+        }
+        
+        const seqDelim = new Uint8Array(8);
+        const seqDelimView = new DataView(seqDelim.buffer);
+        seqDelimView.setUint16(0, 0xFFFE, true);
+        seqDelimView.setUint16(2, 0xE0DD, true);
+        seqDelimView.setUint32(4, 0, true);
+        fragmentChunks.push(seqDelim);
+        
+        valueBytes = concatChunks(fragmentChunks);
+    } else if (element.Value instanceof Uint8Array) {
        valueBytes = element.Value;
    } else if (element.Value instanceof ArrayBuffer) {
         valueBytes = new Uint8Array(element.Value);
    } else if (Array.isArray(element.Value) && element.Value.length > 0 && element.Value[0] instanceof Uint8Array) {
        const totalLen = (element.Value as Uint8Array[]).reduce((a, b) => a + b.length, 0);
-       valueBytes = new Uint8Array(totalLen);
        let off = 0;
+       valueBytes = new Uint8Array(totalLen);
        for (const v of (element.Value as Uint8Array[])) {
            valueBytes.set(v, off);
            off += v.length;
        }
    } else {
-       // String or Number
-       let valStr: string = '';
-       if (element.Value === undefined || element.Value === null) {
-           valStr = '';
-       } else if (Array.isArray(element.Value)) {
-           valStr = element.Value.join('\\');
-       } else {
-           // Optimized: Fast path for common cases
-           const val = element.Value;
-           if (val === undefined || val === null) {
+        // Handle Numeric/Binary VRs
+        if (['US', 'SS', 'UL', 'SL', 'FL', 'FD', 'AT'].includes(vr)) {
+            const val = element.Value;
+            let nums: number[] = [];
+            
+            if (Array.isArray(val)) {
+                nums = val.map(Number);
+            } else if (typeof val === 'number') {
+                nums = [val];
+            } else if (typeof val === 'string') {
+                nums = val.split('\\').map(Number);
+            } else if (val instanceof Uint8Array) {
+               valueBytes = val;
+            }
+
+            if (!valueBytes) {
+                // Pack numbers
+                let byteSize = 0;
+                 if (vr === 'US' || vr === 'SS') byteSize = 2;
+                 else if (vr === 'UL' || vr === 'SL' || vr === 'FL') byteSize = 4;
+                 else if (vr === 'FD') byteSize = 8;
+                 else if (vr === 'AT') byteSize = 4; 
+
+                 valueBytes = new Uint8Array(nums.length * byteSize);
+                 const view = new DataView(valueBytes.buffer);
+                 
+                 for (let i = 0; i < nums.length; i++) {
+                     const n = nums[i];
+                     const off = i * byteSize;
+                     if (vr === 'US') view.setUint16(off, n, true);
+                     else if (vr === 'SS') view.setInt16(off, n, true);
+                     else if (vr === 'UL') view.setUint32(off, n, true);
+                     else if (vr === 'SL') view.setInt32(off, n, true);
+                     else if (vr === 'FL') view.setFloat32(off, n, true);
+                     else if (vr === 'FD') view.setFloat64(off, n, true);
+                     else if (vr === 'AT') {
+                         view.setUint32(off, n, true); 
+                     }
+                 }
+            }
+        } 
+        
+        if (!valueBytes) {
+           // String Handling (default fallthrough for strings)
+           let valStr: string = '';
+           if (element.Value === undefined || element.Value === null) {
                valStr = '';
-           } else if (typeof val === 'string') {
-               valStr = val;
-           } else if (typeof val === 'number') {
-               valStr = String(val);
-           } else if (Array.isArray(val)) {
-               // Optimized array join - check if all strings first
-               if (val.length === 0) {
+           } else if (Array.isArray(element.Value)) {
+               valStr = element.Value.join('\\');
+           } else {
+               // Optimized: Fast path for common cases
+               const val = element.Value;
+               if (val === undefined || val === null) {
                    valStr = '';
-               } else if (val.length === 1) {
-                   valStr = String(val[0]);
-               } else {
-                   valStr = val.join('\\');
-               }
-           } else if (typeof val === 'object') {
-               // Handle parsed objects
-               if ('Alphanumeric' in val) {
-                   valStr = (val as any).Alphanumeric || '';
-               } else if (val instanceof Date) {
-                   // Optimized Date/Time conversion
-                   const iso = val.toISOString();
-                   if (vr === 'DA') {
-                        valStr = iso.slice(0, 4) + iso.slice(5, 7) + iso.slice(8, 10);
-                   } else if (vr === 'TM') {
-                        valStr = iso.slice(11, 13) + iso.slice(14, 16) + iso.slice(17, 19);
-                   } else if (vr === 'DT') {
-                        valStr = iso.slice(0, 4) + iso.slice(5, 7) + iso.slice(8, 10) + 
-                                iso.slice(11, 13) + iso.slice(14, 16) + iso.slice(17, 19);
+               } else if (typeof val === 'string') {
+                   valStr = val;
+               } else if (typeof val === 'number') {
+                   valStr = String(val);
+               } else if (Array.isArray(val)) {
+                   if (val.length === 0) {
+                       valStr = '';
+                   } else if (val.length === 1) {
+                       valStr = String(val[0]);
                    } else {
-                        valStr = String(val);
+                       valStr = val.join('\\');
                    }
-               } else if ('value' in val && 'unit' in val) {
-                   valStr = `${(val as any).value}${(val as any).unit}`;
+               } else if (typeof val === 'object') {
+                   if ('Alphanumeric' in val) {
+                       valStr = (val as any).Alphanumeric || '';
+                   } else if (val instanceof Date) {
+                       const iso = val.toISOString();
+                       if (vr === 'DA') {
+                            valStr = iso.slice(0, 4) + iso.slice(5, 7) + iso.slice(8, 10);
+                       } else if (vr === 'TM') {
+                            valStr = iso.slice(11, 13) + iso.slice(14, 16) + iso.slice(17, 19);
+                       } else if (vr === 'DT') {
+                            valStr = iso.slice(0, 4) + iso.slice(5, 7) + iso.slice(8, 10) + 
+                                    iso.slice(11, 13) + iso.slice(14, 16) + iso.slice(17, 19);
+                       } else {
+                            valStr = String(val);
+                       }
+                   } else if ('value' in val && 'unit' in val) {
+                       valStr = `${(val as any).value}${(val as any).unit}`;
+                   } else {
+                       valStr = String(val);
+                   }
                } else {
                    valStr = String(val);
                }
-           } else {
-               valStr = String(val);
            }
-       }
-       
-       // Encode string to bytes
-       const strLen = valStr.length;
-       if (strLen === 0) {
-           valueBytes = new Uint8Array(0);
-       } else {
-           valueBytes = encoder.encode(valStr);
            
-           // Optimized padding - inline check and pad
-           if (valueBytes.length % 2 !== 0) {
-               const padChar = SPACE_PADDED_VRS.has(vr) ? 0x20 : 0x00;
-               const padded = new Uint8Array(valueBytes.length + 1);
-               padded.set(valueBytes);
-               padded[valueBytes.length] = padChar;
-               valueBytes = padded;
+           // Encode string to bytes
+           const strLen = valStr.length;
+           if (strLen === 0) {
+               valueBytes = new Uint8Array(0);
+           } else {
+               valueBytes = encoder.encode(valStr);
+               
+               // Optimized padding - inline check and pad
+               if (valueBytes.length % 2 !== 0) {
+                   const padChar = SPACE_PADDED_VRS.has(vr) ? 0x20 : 0x00;
+                   const padded = new Uint8Array(valueBytes.length + 1);
+                   padded.set(valueBytes);
+                   padded[valueBytes.length] = padChar;
+                   valueBytes = padded;
+               }
            }
-       }
-   }
-   
-   if (!valueBytes) {
-      // Empty value
-      valueBytes = new Uint8Array(0);
-   }
-
-   // Optimized: Write Element Header - use direct buffer operations where possible
-   const valueLen = valueBytes.length;
-   const headerLen = isLongVR ? 12 : 8;
-   const buffer = new Uint8Array(headerLen + valueLen);
-   const view = new DataView(buffer.buffer);
-   
-   // Tag (little endian)
-   view.setUint16(0, group, true);
-   view.setUint16(2, elem, true);
-   
-   // VR (direct byte assignment is faster)
-   const vr0 = vr.charCodeAt(0);
-   const vr1 = vr.charCodeAt(1);
-   buffer[4] = vr0;
-   buffer[5] = vr1;
-   
-   // Length
-   if (isLongVR) {
-       view.setUint16(6, 0, true); // Reserved
-       
-       if (vr === 'SQ') {
-           view.setUint32(8, 0xFFFFFFFF, true); // Undefined Length for SQ
-       } else {
-           view.setUint32(8, valueLen, true);
-       }
-       // Copy value bytes
-       if (valueLen > 0) {
-           buffer.set(valueBytes, 12);
-       }
-   } else {
-       view.setUint16(6, valueLen, true);
-       // Copy value bytes
-       if (valueLen > 0) {
-           buffer.set(valueBytes, 8);
-       }
-   }
-   
-   return buffer;
+        }
+    }
+    
+    if (!valueBytes) {
+       // Empty value
+       valueBytes = new Uint8Array(0);
+    }
+ 
+    // Optimized: Write Element Header - use direct buffer operations where possible
+    const valueLen = valueBytes.length;
+    const headerLen = isLongVR ? 12 : 8;
+    const buffer = new Uint8Array(headerLen + valueLen);
+    const view = new DataView(buffer.buffer);
+    
+    // Tag (little endian)
+    view.setUint16(0, group, true);
+    view.setUint16(2, elem, true);
+    
+    // VR (direct byte assignment is faster)
+    const vr0 = vr.charCodeAt(0);
+    const vr1 = vr.charCodeAt(1);
+    buffer[4] = vr0;
+    buffer[5] = vr1;
+    
+    // Length
+    if (isLongVR) {
+        view.setUint16(6, 0, true); // Reserved
+        
+        if (vr === 'SQ' || (element as any).isEncapsulated) {
+            view.setUint32(8, 0xFFFFFFFF, true); // Undefined Length for SQ or Encapsulated Pixel Data
+        } else {
+            view.setUint32(8, valueLen, true);
+        }
+        // Copy value bytes
+        if (valueLen > 0) {
+            buffer.set(valueBytes, 12);
+        }
+    } else {
+        view.setUint16(6, valueLen, true);
+        // Copy value bytes
+        if (valueLen > 0) {
+            buffer.set(valueBytes, 8);
+        }
+    }
+    
+    return buffer;
 }

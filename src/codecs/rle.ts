@@ -242,9 +242,17 @@ export class RleCodec implements PixelDataCodec {
         const encodedSegments = segments.map((s) => {
             if (this.isWasmInitialized && this.wasmModule) {
                 try {
-                    return this.wasmModule.rle_encode(s);
+                    // Wasm encode
+                    return this.wasmModule.rle_encode(
+                        s,
+                        width,
+                        height,
+                        samples, // samples per pixel (can be 1 or 3)
+                        bits // bits allocated (8 or 16)
+                    );
                 } catch (e) {
-                    console.warn("Wasm encode failed, fallback to JS", e);
+                    console.warn("Wasm encode failed, fallback to JS. Error:", e);
+                    // Fallback to JS if Wasm fails
                     return this.packBits(s);
                 }
             }
