@@ -8,6 +8,13 @@ dist/
 build/
 *.tsbuildinfo
 
+# Wasm builds
+src/wasm/target/
+src/wasm-build/
+src/wasm-core-build/
+src/wasm-codecs-build/
+*.wasm
+
 # IDE
 .vscode/
 .idea/
@@ -38,14 +45,20 @@ coverage/
 
 # Benchmark output
 benchmark-results.json
+scripts/results/benchmark-summary.json
 
 # Test data (ignore contents but keep folder structure)
 test_data/*
 !test_data/.gitkeep
+!test_data/WG04/
 
 # Results
 results/*
 scripts/results/*
-# Benchmark results
-benchmark-results.json
 
+# Documentation artifacts (local only)
+.gemini/
+
+# Temporary files
+*.tmp
+.cache/
