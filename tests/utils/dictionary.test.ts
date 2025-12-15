@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { dicomDictionary, getTagName, isPrivateTag, registerDictionary } from '../src/utils/dictionary';
-import { dicomDictionary as data } from '../src/utils/dictionary-data';
+import { dicomDictionary, getTagName, isPrivateTag, registerDictionary } from '../../src/utils/dictionary';
+import { dicomDictionary as data } from '../../src/utils/dictionary-data';
 
 registerDictionary(data);
 
@@ -16,3 +16,4 @@ describe('dictionary helpers', () => {
     expect(isPrivateTag('00190010')).toBe(true);
   });
 });
+

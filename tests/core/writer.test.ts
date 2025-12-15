@@ -1,6 +1,6 @@
 
 import { describe, it, expect } from 'vitest';
-import { parse, write } from '../src/index';
+import { parse, write } from '../../src/index';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -31,3 +31,4 @@ describe('DICOM Writer', () => {
         expect(reParsed.string('x00100010')).toBe(dataset.string('x00100010'));
     });
 });
+

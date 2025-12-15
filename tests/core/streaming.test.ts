@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
-import { StreamingParser, parseFromStream, parseFromAsyncIterator } from '../src/core/streaming';
-import { write } from '../src/core/writer';
-import { DicomElement } from '../src/core/types';
+import { StreamingParser, parseFromStream, parseFromAsyncIterator } from '../../src/core/streaming';
+import { write } from '../../src/core/writer';
+import { DicomElement } from '../../src/core/types';
 
 // Helper to create a proper DICOM buffer
 function createDicomBuffer(): Uint8Array {
@@ -168,3 +168,4 @@ describe('parseFromStream', () => {
         expect(onElement).toHaveBeenCalled();
     });
 });
+

@@ -2,7 +2,7 @@
 import { describe, it, expect } from 'vitest';
 import * as fs from 'fs';
 import * as path from 'path';
-import { parse, extractPixelData } from '../src/index';
+import { parse, extractPixelData } from '../../src/index';
 
 const testFile = path.resolve(__dirname, '../test_data/patient/DICOM/18CBDD76');
 
@@ -59,3 +59,4 @@ describe('New Parser Features', () => {
         expect(pixelData?.pixelData.length).toBeGreaterThan(0);
     });
 });
+

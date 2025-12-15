@@ -1,6 +1,6 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { WebGlDecoder } from '../src/codecs/webgl';
+import { WebGlDecoder } from '../../src/codecs/webgl';
 
 describe('WebGlDecoder', () => {
   let originalDocument: any;
@@ -40,3 +40,4 @@ describe('WebGlDecoder', () => {
       expect(await decoder.canDecode('1.2.840.10008.1.2.4.50')).toBe(true);
   });
 });
+

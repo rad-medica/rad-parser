@@ -1,6 +1,6 @@
 
 import { describe, it, expect } from 'vitest';
-import { parse } from '../src/index';
+import { parse } from '../../src/index';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -56,3 +56,4 @@ describe('Test Data Verification', () => {
     expect(failureCount).toBe(0);
   }, 60000); // Increase timeout to 60s
 });
+

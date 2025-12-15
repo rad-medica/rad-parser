@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { formatTagWithComma, normalizeTag } from '../src/utils/tagUtils';
+import { formatTagWithComma, normalizeTag } from '../../src/utils/tagUtils';
 
 describe('tag utilities', () => {
   it('normalizes tags into x-prefixed format', () => {
@@ -14,3 +14,4 @@ describe('tag utilities', () => {
     expect(formatTagWithComma('x1030')).toBe('1030');
   });
 });
+

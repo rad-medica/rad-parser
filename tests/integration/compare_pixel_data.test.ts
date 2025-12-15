@@ -3,7 +3,7 @@ import { describe, it, expect } from 'vitest';
 import * as fs from 'fs';
 import * as path from 'path';
 import dcmjs from 'dcmjs';
-import { parse } from '../src/index';
+import { parse } from '../../src/index';
 
 const TEST_DIR = path.resolve(__dirname, '../test_data/patient/DICOM');
 
@@ -115,3 +115,4 @@ describe('Pixel Data Comparison with dcmjs', () => {
     }
   });
 });
+

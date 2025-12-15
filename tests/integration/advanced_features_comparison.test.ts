@@ -21,7 +21,7 @@ import {
   parseFromStream,
   TRANSFER_SYNTAX,
   extractTransferSyntax
-} from '../src/index';
+} from '../../src/index';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -523,4 +523,5 @@ describe('Advanced Features Comparison', () => {
     }, 60000);
   });
 });
+
 

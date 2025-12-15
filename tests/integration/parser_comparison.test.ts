@@ -13,7 +13,7 @@ import { dirname } from 'path';
 import dcmjs from 'dcmjs';
 import * as dicomParser from 'dicom-parser';
 import efferentDicom from 'efferent-dicom';
-import { parse, parseWithMetadata, extractTransferSyntax } from '../src/index';
+import { parse, parseWithMetadata, extractTransferSyntax } from '../../src/index';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -426,4 +426,5 @@ describe('Parser Comparison Tests', () => {
     }, 60000);
   });
 });
+
 

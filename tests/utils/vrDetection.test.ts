@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { detectVR, detectVRForPrivateTag, requiresExplicitLength } from '../src/utils/vrDetection';
+import { detectVR, detectVRForPrivateTag, requiresExplicitLength } from '../../src/utils/vrDetection';
 
 describe('vrDetection helpers', () => {
   it('detects explicit VRs for well-known tags', () => {
@@ -26,3 +26,4 @@ describe('vrDetection helpers', () => {
     expect(detectVRForPrivateTag(0x0029, 0x1010, 0xffffffff)).toBe('SQ');
   });
 });
+

@@ -1,6 +1,6 @@
 
 import { describe, it, expect, vi } from 'vitest';
-import { registry, RleCodec, BrowserImageCodec, WebGpuDecoder, Jpeg2000Decoder, JpegLsDecoder, VideoDecoder, JpegLosslessDecoder } from '../src/index';
+import { registry, RleCodec, BrowserImageCodec, WebGpuDecoder, Jpeg2000Decoder, JpegLsDecoder, VideoDecoder, JpegLosslessDecoder } from '../../src/index';
 
 describe('Codec Registry and Plugins', () => {
 
@@ -95,3 +95,4 @@ describe('Adapter Plugins with Injection', () => {
     });
 
 });
+

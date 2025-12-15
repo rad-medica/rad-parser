@@ -1,8 +1,8 @@
 import { describe, test, expect } from 'vitest';
 import { readFileSync } from 'fs';
 import { join } from 'path';
-import { parse } from '../src/index';
-import { extractRescaledPixelData } from '../src/utils/pixelDataExtractor';
+import { parse } from '../../src/index';
+import { extractRescaledPixelData } from '../../src/utils/pixelDataExtractor';
 
 describe('extractRescaledPixelData', () => {
   test('should extract and rescale pixel data with default parameters', () => {
@@ -112,3 +112,4 @@ describe('extractRescaledPixelData', () => {
     expect(() => extractRescaledPixelData(mockDataset)).toThrow('Invalid image dimensions');
   });
 });
+

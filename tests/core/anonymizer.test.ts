@@ -1,6 +1,6 @@
 
 import { describe, it, expect } from 'vitest';
-import { parse, anonymize } from '../src/index';
+import { parse, anonymize } from '../../src/index';
 
 describe('Anonymizer', () => {
     // Create a mock dataset
@@ -97,3 +97,4 @@ describe('Anonymizer', () => {
         expect(anon.dict['x00110010'].Value).toBe('PrivateData');
     });
 });
+

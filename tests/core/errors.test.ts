@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { DicomParseError, createParseError } from '../src/core/errors';
+import { DicomParseError, createParseError } from '../../src/core/errors';
 
 describe('Error Handling', () => {
   describe('DicomParseError', () => {
@@ -52,3 +52,4 @@ describe('Error Handling', () => {
     });
   });
 });
+

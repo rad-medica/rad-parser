@@ -3,8 +3,8 @@ import {
     canParse, 
     parseWithMetadata, 
     extractTransferSyntax 
-} from '../src/index';
-import { write } from '../src/core/writer';
+} from '../../src/index';
+import { write } from '../../src/core/writer';
 
 // Helper to create valid DICOM Part 10 buffer
 function createDicomBuffer(tags: Record<string, any> = {}): Uint8Array {
@@ -127,3 +127,4 @@ describe('Parser Edge Cases', () => {
      });
   });
 });
+

@@ -4,7 +4,7 @@ import {
   extractTransferSyntax,
   parseWithMetadata,
   parse,
-} from '../src/index';
+} from '../../src/index';
 
 const encoder = new TextEncoder();
 
@@ -108,3 +108,4 @@ describe('integration', () => {
     expect(dataset.string('x00100010')).toBe('DOE^PATIENT');
   });
 });
+

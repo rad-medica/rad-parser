@@ -1,7 +1,7 @@
 import { describe, test, expect } from 'vitest';
 import { readFileSync, readdirSync, statSync } from 'fs';
 import { join } from 'path';
-import { parse } from '../src/index';
+import { parse } from '../../src/index';
 
 /**
  * Comprehensive compatibility test for all parser modes
@@ -158,3 +158,4 @@ describe('Parser Mode Compatibility', () => {
         expect(shallowTime).toBeLessThan(fullTime);
     });
 });
+
