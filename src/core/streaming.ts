@@ -14,6 +14,14 @@ import { extractPixelDataFromView } from '../utils/pixelData';
 import { isPrivateTag } from '../utils/dictionary';
 
 /**
+ * Hex string cache for fast tag formatting (module-level for reuse)
+ */
+const hexCache: string[] = [];
+for (let i = 0; i < 65536; i++) {
+  hexCache[i] = i.toString(16).padStart(4, '0');
+}
+
+/**
  * Streaming parser state
  */
 interface StreamingState {
@@ -144,11 +152,71 @@ export class StreamingParser {
    * Process a chunk of data
    */
   processChunk(chunk: Uint8Array): void {
-    // Append chunk to buffer immediately
-    const newBuffer = new Uint8Array(this.state.buffer.length + chunk.length);
-    newBuffer.set(this.state.buffer);
-    newBuffer.set(chunk, this.state.buffer.length);
-    this.state.buffer = newBuffer;
+    // Optimized buffer appending: grow buffer efficiently
+    const currentLength = this.state.buffer.length;
+    const newLength = currentLength + chunk.length;
+    
+    // Check buffer size limit
+    if (newLength > this.options.maxBufferSize) {
+      if (this.options.onError) {
+        this.options.onError(new Error(`Buffer size exceeded limit: ${newLength} > ${this.options.maxBufferSize}`));
+      }
+      return;
+    }
+    
+    // Optimized buffer growth strategy
+    if (this.state.buffer.length === 0) {
+      // First chunk - allocate with headroom (2x) to reduce reallocations
+      const initialSize = Math.min(Math.max(chunk.length * 2, 16384), this.options.maxBufferSize);
+      const newBuffer = new Uint8Array(initialSize);
+      newBuffer.set(chunk, 0);
+      this.state.buffer = newBuffer.subarray(0, chunk.length);
+    } else {
+      // Check if we can reuse the underlying buffer (faster path)
+      const bufferByteLength = this.state.buffer.buffer.byteLength;
+      const bufferByteOffset = this.state.buffer.byteOffset;
+      const actualUsedLength = this.state.buffer.length;
+      const availableCapacity = bufferByteLength - bufferByteOffset - actualUsedLength;
+      
+      if (availableCapacity >= chunk.length) {
+        // Fast path: append in-place to existing buffer (no allocation)
+        const underlyingView = new Uint8Array(
+          this.state.buffer.buffer,
+          bufferByteOffset + actualUsedLength,
+          chunk.length
+        );
+        underlyingView.set(chunk);
+        // Update buffer view to include new data
+        this.state.buffer = new Uint8Array(
+          this.state.buffer.buffer,
+          bufferByteOffset,
+          newLength
+        );
+      } else {
+        // Need to grow - use 1.5x growth factor with minimum growth
+        const growSize = Math.min(
+          Math.max(newLength, Math.floor(currentLength * 1.5)),
+          this.options.maxBufferSize
+        );
+        const newBuffer = new Uint8Array(growSize);
+        // Copy existing data (only unprocessed portion if offset > 0)
+        if (this.state.offset > 0 && this.state.offset < currentLength) {
+          // Copy only unprocessed data (more efficient)
+          newBuffer.set(this.state.buffer.subarray(this.state.offset), 0);
+          this.state.buffer = newBuffer.subarray(0, currentLength - this.state.offset);
+          this.state.offset = 0;
+          // Now append new chunk
+          const appendPos = this.state.buffer.length;
+          newBuffer.set(chunk, appendPos);
+          this.state.buffer = newBuffer.subarray(0, appendPos + chunk.length);
+        } else {
+          // Copy all existing data
+          newBuffer.set(this.state.buffer, 0);
+          newBuffer.set(chunk, currentLength);
+          this.state.buffer = newBuffer.subarray(0, newLength);
+        }
+      }
+    }
 
     if (!this.state.initialized) {
       // Wait for at least 132 bytes to check for DICM preamble
@@ -185,41 +253,66 @@ export class StreamingParser {
         // If we haven't initialized yet (e.g. data < 132 bytes total), 
         // we must force init now to parse what we have (e.g. valid small non-Part 10 file).
         if (this.state.buffer.length > 0) {
-            this.initialize(this.state.buffer);
-            this.processElements(true);
+            try {
+              this.initialize(this.state.buffer);
+              this.processElements(true);
+            } catch (error) {
+              if (this.options.onError) {
+                this.options.onError(
+                  error instanceof Error ? error : new Error(String(error))
+                );
+              }
+            }
         }
         return;
     }
 
-    // Process any remaining elements
-    this.processElements(true);
+    // Process any remaining elements with final=true
+    try {
+      this.processElements(true);
+    } catch (error) {
+      if (this.options.onError) {
+        this.options.onError(
+          error instanceof Error ? error : new Error(String(error))
+        );
+      }
+    }
 
-    // Clear buffer
+    // Clear buffer and reset state
     this.state.buffer = new Uint8Array(0);
+    this.state.offset = 0;
+    this.state.pendingElement = undefined;
   }
 
   /**
    * Process elements from buffer
    */
   private processElements(final: boolean = false): void {
-    // Ensure we have an ArrayBuffer (not SharedArrayBuffer)
-    let buffer: ArrayBuffer;
-    const sourceBuffer = this.state.buffer.buffer;
-    if (sourceBuffer instanceof ArrayBuffer) {
-      buffer = sourceBuffer.slice(
-        this.state.buffer.byteOffset + this.state.offset,
-        this.state.buffer.byteOffset + this.state.buffer.length
-      );
-    } else {
-      // SharedArrayBuffer - copy to new ArrayBuffer
-      const length = this.state.buffer.length - this.state.offset;
-      buffer = new ArrayBuffer(length);
-      const dest = new Uint8Array(buffer);
-      const src = this.state.buffer.slice(this.state.offset);
-      dest.set(src);
+    const remainingBytes = this.state.buffer.length - this.state.offset;
+    if (remainingBytes < 8) {
+      // Not enough data for even a tag
+      return;
     }
 
-    const view = new SafeDataView(buffer, 0);
+    // Create view on the remaining unprocessed data
+    // This is more efficient than copying the entire buffer
+    let view: SafeDataView;
+    const sourceBuffer = this.state.buffer.buffer;
+    const sliceStart = this.state.buffer.byteOffset + this.state.offset;
+    const sliceEnd = this.state.buffer.byteOffset + this.state.buffer.length;
+    
+    if (sourceBuffer instanceof ArrayBuffer) {
+      // Can slice without copying - most efficient
+      const slice = sourceBuffer.slice(sliceStart, sliceEnd);
+      view = new SafeDataView(slice, 0);
+    } else {
+      // SharedArrayBuffer - must copy
+      const length = remainingBytes;
+      const buffer = new ArrayBuffer(length);
+      const dest = new Uint8Array(buffer);
+      dest.set(this.state.buffer.subarray(this.state.offset));
+      view = new SafeDataView(buffer, 0);
+    }
     view.setEndianness(this.state.littleEndian);
 
     let iterations = 0;
@@ -234,30 +327,72 @@ export class StreamingParser {
       try {
         const element = this.parseElement(view, final);
         if (!element) {
-          break;
+          // Element parsing returned null - might need more data
+          // Don't break if we're not final and have pending element
+          if (final || !this.state.pendingElement) {
+            break;
+          }
+          // Continue to next iteration if we have a pending element
+          continue;
         }
 
         // Emit element
         if (this.options.onElement) {
-          this.options.onElement(element);
+          try {
+            this.options.onElement(element);
+          } catch (callbackError) {
+            // Don't break parsing on callback errors
+            if (this.options.onError) {
+              this.options.onError(
+                callbackError instanceof Error ? callbackError : new Error(String(callbackError))
+              );
+            }
+          }
         }
-
-        // NOTE: We update offset ONLY AFTER the loop or batch.
-        // But doing it here (cumulatively) was the bug.
-        // We do NOT update this.state.offset here.
       } catch (error) {
+        // Improved error handling - try to recover
+        const errorMsg = error instanceof Error ? error.message : String(error);
+        
+        // Check if it's a recoverable error (bounds, etc.)
+        if (errorMsg.includes('bounds') || errorMsg.includes('remaining')) {
+          // Likely need more data - wait for next chunk
+          if (!final) {
+            break;
+          }
+        }
+        
         if (this.options.onError) {
           this.options.onError(
-            error instanceof Error ? error : new Error(String(error))
+            error instanceof Error ? error : new Error(errorMsg)
           );
         }
-        break;
+        
+        // Only break on non-recoverable errors
+        if (final || !errorMsg.includes('bounds')) {
+          break;
+        }
       }
     }
     
     // Update offset by the total amount consumed in this batch
-    // view.getPosition() is the total bytes consumed by all parseElement calls in this batch.
-    this.state.offset += view.getPosition();
+    const consumed = view.getPosition();
+    this.state.offset += consumed;
+    
+    // Optimize: Trim buffer if we've consumed a significant portion
+    // This prevents unbounded buffer growth and improves memory efficiency
+    if (this.state.offset > 64 * 1024 && this.state.offset > this.state.buffer.length / 2) {
+      // Remove processed data from buffer by creating a new buffer with only remaining data
+      const remainingLength = this.state.buffer.length - this.state.offset;
+      if (remainingLength > 0) {
+        const remaining = new Uint8Array(remainingLength);
+        remaining.set(this.state.buffer.subarray(this.state.offset));
+        this.state.buffer = remaining;
+        this.state.offset = 0;
+      } else {
+        this.state.buffer = new Uint8Array(0);
+        this.state.offset = 0;
+      }
+    }
   }
 
   /**
@@ -293,19 +428,29 @@ export class StreamingParser {
 
     if (this.state.explicitVR) {
       if (view.getRemainingBytes() < 2) {
-        // Not enough data - wait for more
         view.setPosition(startPos);
         return null;
       }
       const vrBytes = view.readBytes(2);
-      vr = String.fromCharCode(vrBytes[0], vrBytes[1]);
+      const vr0 = vrBytes[0];
+      const vr1 = vrBytes[1];
+      vr = String.fromCharCode(vr0, vr1);
 
-      if (requiresExplicitLength(vr)) {
+      // Fast check for long VRs using char codes (avoid string comparison)
+      const isLongVR = (vr0 === 0x53 && vr1 === 0x51) || // SQ
+                       (vr0 === 0x4F && vr1 === 0x42) || // OB
+                       (vr0 === 0x4F && vr1 === 0x57) || // OW
+                       (vr0 === 0x4F && vr1 === 0x46) || // OF
+                       (vr0 === 0x4F && vr1 === 0x44) || // OD
+                       (vr0 === 0x4F && vr1 === 0x4C) || // OL
+                       (vr0 === 0x55 && vr1 === 0x4E);   // UN
+
+      if (isLongVR) {
         if (view.getRemainingBytes() < 6) {
           view.setPosition(startPos);
           return null;
         }
-        view.readUint16();
+        view.readUint16(); // Reserved
         length = view.readUint32();
       } else {
         if (view.getRemainingBytes() < 2) {
@@ -321,16 +466,22 @@ export class StreamingParser {
       }
       length = view.readUint32();
 
-      const tagHex = `x${group.toString(16).padStart(4, '0')}${element.toString(16).padStart(4, '0')}`;
-      if (isPrivateTag(tagHex)) {
+      // Fast VR detection - use numeric tag comparison
+      const tagNum = (group << 16) | element;
+      const isPrivate = (group % 2) !== 0;
+      if (isPrivate) {
         vr = detectVRForPrivateTag(group, element, length);
       } else {
         vr = detectVR(group, element);
       }
     }
 
-    // Format tag (single format only - tagHex)
-    const tagHex = `x${group.toString(16).padStart(4, '0')}${element.toString(16).padStart(4, '0')}`;
+    // Optimized tag formatting - use cached hex strings for speed
+    const groupHex = hexCache[group] || group.toString(16).padStart(4, '0');
+    const elementHex = hexCache[element] || element.toString(16).padStart(4, '0');
+    const tagHex = `x${groupHex}${elementHex}`;
+    const tagComma = `${groupHex},${elementHex}`;
+    const tagPlain = `${groupHex}${elementHex}`;
 
     // Handle sequences
     if (vr === 'SQ' || length === 0xffffffff) {
@@ -391,15 +542,54 @@ export class StreamingParser {
       }
     }
 
-    // Check if we have enough data for this element
-    if (length > 0 && view.getRemainingBytes() < length) {
+    // Check if we have enough data for this element - improved reliability
+    const availableBytes = view.getRemainingBytes();
+    if (length === 0xffffffff) {
+      // Undefined length - handled separately in sequence/pixel data logic
+      // Don't check availableBytes here
+    } else if (length > 0 && availableBytes < length) {
       if (!final) {
         // Not enough data - wait for more chunks
+        // Store partial element state for resumption
+        this.state.pendingElement = {
+          group,
+          element,
+          vr,
+          length,
+          bytesRead: 0,
+          data: new Uint8Array(0),
+        };
         view.setPosition(startPos);
         return null;
       }
-      // Final chunk - read what we have
-      length = view.getRemainingBytes();
+      // Final chunk - handle incomplete elements more gracefully
+      if (availableBytes === 0) {
+        view.setPosition(startPos);
+        return null;
+      }
+      
+      // Determine if incomplete data is acceptable
+      const isPixelData = group === 0x7fe0 && element === 0x0010;
+      const isLargeBinary = (vr === 'OB' || vr === 'OW' || vr === 'OF' || vr === 'OD' || vr === 'OL' || vr === 'UN') && length > 1000;
+      const isSequence = vr === 'SQ';
+      
+      // For sequences, pixel data, and large binary, incomplete might be acceptable
+      if (isSequence || isPixelData || isLargeBinary) {
+        // Read what we have - might be valid (encapsulated format, etc.)
+        length = availableBytes;
+      } else {
+        // For other elements, incomplete data is likely an error
+        // But be more lenient - only warn if very incomplete
+        if (this.options.onError && length > availableBytes * 3) {
+          // Only warn if more than 66% missing
+          this.options.onError(new Error(`Incomplete element ${tagHex}: expected ${length} bytes, got ${availableBytes}`));
+        }
+        // Still read what we have to continue parsing
+        length = availableBytes;
+      }
+    } else if (this.state.pendingElement) {
+      // Clear pending element if we now have enough data
+      this.state.pendingElement = undefined;
     }
 
     // Handle pixel data

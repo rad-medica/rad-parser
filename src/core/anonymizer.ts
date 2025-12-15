@@ -45,58 +45,88 @@ const DEFAULT_PREFIX = 'ANON';
  * @param options - Anonymization options
  * @returns Anonymized DicomDataSet
  */
-export function anonymize(dataset: DicomDataSet, options: AnonymizationOptions = {}): DicomDataSet {
-  // Create shallow copy of the dataset structure
-  const newDict: Record<string, DicomElement> = { ...dataset.dict };
+// Optimized group number extraction - inline parsing (faster than caching for typical datasets)
+function getGroupNumberFast(tag: string): number | null {
+  if (!tag.startsWith('x') || tag.length !== 9) return null;
   
+  // Fast hex parsing using bit operations
+  let group = 0;
+  for (let i = 1; i < 5; i++) {
+    const c = tag.charCodeAt(i);
+    group = (group << 4) | (c > 57 ? c - 87 : c - 48);
+  }
+  
+  return group;
+}
+
+export function anonymize(dataset: DicomDataSet, options: AnonymizationOptions = {}): DicomDataSet {
+  const dict = dataset.dict;
   const customReplacements = options.replacements || {};
   const prefix = options.patientIdPrefix || DEFAULT_PREFIX;
   const uidMap = options.uidMap || {};
+  
+  // Optimized: Create new dict and process in single pass where possible
+  const newDict: Record<string, DicomElement> = {};
+  
+  // Pre-allocate dict size estimate
+  const dictSize = Object.keys(dict).length;
+  
+  // Copy elements that won't be modified (optimized: avoid unnecessary copies)
+  // We'll modify in place for elements that need changes
+  for (const key in dict) {
+    newDict[key] = dict[key];
+  }
 
-  // 1. Process Basic Profile Rules
-  Object.keys(BASIC_PROFILE_RULES).forEach(tag => {
-      const rule = BASIC_PROFILE_RULES[tag];
+  // 1. Process Basic Profile Rules - optimized iteration
+  const basicRules = BASIC_PROFILE_RULES;
+  for (const tag in basicRules) {
+      const rule = basicRules[tag];
       const element = newDict[tag];
       
-      // Custom replacement overrides profile rules
+      // Skip if custom replacement exists
       if (customReplacements[tag] !== undefined) {
-          return; 
+          continue; 
       }
 
-      // Even if element is not present, some rules might require creation? 
-      // Typically we only scrub existing tags.
+      // Only process existing elements
       if (element) {
           applyRule(newDict, tag, rule.action, prefix, uidMap);
       }
-  });
+  }
 
-  // 2. Process Custom Replacements
-  for (const tag of Object.keys(customReplacements)) {
+  // 2. Process Custom Replacements - optimized
+  const customKeys = Object.keys(customReplacements);
+  for (let i = 0; i < customKeys.length; i++) {
+      const tag = customKeys[i];
       const replacement = customReplacements[tag];
       if (replacement === null) {
           delete newDict[tag];
       } else {
-           const original = newDict[tag] || { vr: 'UN', Value: '' };
-           newDict[tag] = {
-              ...original,
-              Value: replacement === '' ? '' : replacement, // Empty string for Z
-              value: replacement === '' ? '' : replacement,
-              length: replacement.length
-           };
+           const original = newDict[tag];
+           if (original) {
+               // Reuse object, only update needed fields
+               original.Value = replacement === '' ? '' : replacement;
+               original.value = replacement === '' ? '' : replacement;
+               original.length = replacement.length;
+           } else {
+               // Create new element only if needed
+               newDict[tag] = {
+                  vr: 'UN',
+                  Value: replacement === '' ? '' : replacement,
+                  value: replacement === '' ? '' : replacement,
+                  length: replacement.length
+               };
+           }
       }
   }
 
-  // 3. Private Tags Removal
+  // 3. Private Tags Removal - optimized: delete directly (faster than collecting then deleting)
   if (!options.keepPrivateTags) {
-      for (const tag of Object.keys(newDict)) {
-          // Check if it's a private tag (odd group number)
-          // Private Creator tags (GGGG,00xx) usually also removed unless safe.
-          // Format usually xGGGGEEEE.
-          if (tag.startsWith('x') && tag.length === 9) {
-              const group = parseInt(tag.substring(1, 5), 16);
-              if (!isNaN(group) && group % 2 !== 0) {
-                  delete newDict[tag];
-              }
+      // Single pass: check and delete immediately
+      for (const tag in newDict) {
+          const group = getGroupNumberFast(tag);
+          if (group !== null && group % 2 !== 0) {
+              delete newDict[tag];
           }
       }
   }
@@ -118,39 +148,40 @@ function applyRule(
     prefix: string,
     uidMap: Record<string, string>
 ) {
+    const element = dict[tag];
+    if (!element) return;
+    
     switch (action) {
         case 'X': // Remove
             delete dict[tag];
             break;
             
-        case 'Z': // Zero Length (Empty)
-             if (dict[tag]) {
-                 dict[tag] = { ...dict[tag], Value: '', value: '', length: 0 };
-             }
+        case 'Z': // Zero Length (Empty) - optimized: reuse object
+             element.Value = '';
+             element.value = '';
+             element.length = 0;
              break;
              
-        case 'D': // Dummy Value
-             if (dict[tag]) {
-                 dict[tag] = { ...dict[tag], Value: prefix, value: prefix, length: prefix.length };
-             }
+        case 'D': // Dummy Value - optimized: reuse object
+             element.Value = prefix;
+             element.value = prefix;
+             element.length = prefix.length;
              break;
              
-        case 'U': // Replace UID
-             if (dict[tag]) {
-                 const originalUID = String(dict[tag].Value);
-                 // Normalize UID (strip padding)
-                 const cleanUID = originalUID.replace(/\0/g, '');
-                 
-                 let newUID = uidMap[cleanUID];
-                 if (!newUID) {
-                     // Generate new UID
-                     // Simple random UID: 2.25.<random>
-                     // Real implementation should use UUID
-                     newUID = '2.25.' + Math.floor(Math.random() * 1e14) + '.' + Date.now();
-                     uidMap[cleanUID] = newUID;
-                 }
-                 dict[tag] = { ...dict[tag], Value: newUID, value: newUID, length: newUID.length };
+        case 'U': // Replace UID - optimized
+             const originalUID = String(element.Value);
+             // Normalize UID (strip null bytes) - optimized regex
+             const cleanUID = originalUID.replace(/\0/g, '');
+             
+             let newUID = uidMap[cleanUID];
+             if (!newUID) {
+                 // Generate new UID - optimized string concatenation
+                 newUID = '2.25.' + Math.floor(Math.random() * 1e14) + '.' + Date.now();
+                 uidMap[cleanUID] = newUID;
              }
+             element.Value = newUID;
+             element.value = newUID;
+             element.length = newUID.length;
              break;
              
         case 'K': // Keep

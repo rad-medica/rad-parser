@@ -4,6 +4,7 @@
 
 ### parse(buffer, options)
 
+<<<<<<< HEAD
 Parse a DICOM file buffer into a dataset.
 
 **Parameters:**
@@ -11,6 +12,43 @@ Parse a DICOM file buffer into a dataset.
 -   `buffer: Uint8Array | Buffer` - DICOM file data
 -   `options?: ParseOptions`
     -   `type?: 'full' | 'shallow' | 'light' | 'lazy'` - Parsing mode (default: 'full')
+=======
+`rad-parser` is a lightweight, performant, and self-contained DICOM parser for JavaScript and TypeScript environments. It's designed with two core principles:
+
+1.  **Zero Dependencies:** The core parsing logic has no external dependencies, making it robust and suitable for a wide range of environments, from Node.js servers to web browsers.
+2.  **Modular & Extensible:** Complex features like compressed pixel data decoding are handled through a clean, extensible codec system. The library provides adapters for common formats, and you can easily inject your own decoders (e.g., from a WebAssembly library).
+
+## Installation
+
+```bash
+npm install rad-parser
+```
+
+---
+
+## Core API
+
+These are the primary functions you'll use for most DICOM parsing tasks.
+
+### `parse()`
+
+Main entry point for parsing a DICOM file buffer. Configure parsing depth via `options.type`.
+
+```typescript
+parse(byteArray: Uint8Array, options?: UnifiedParseOptions): DicomDataSet | ShallowDicomDataSet
+```
+
+**Parameters:**
+
+- `byteArray`: `Uint8Array` with raw DICOM bytes.
+- `options` (optional):
+  - `type`:
+    - `'fast'`: Ultra-fast header scan (minimal metadata, no values; safe skipping for undefined-length data).
+    - `'shallow'`: Tag metadata only (offset/length/VR), no values.
+    - `'light'` (aka medium): Full metadata, skips pixel data value (best for metadata/anonymization).
+    - `'full'` (default): Full parse including pixel data.
+    - `'lazy'`: Returns a proxy that reads values on demand (built atop shallow scan).
+>>>>>>> 0abe5b2af341db379da260e9559e0adaf3c4af83
 
 **Returns:** `DicomDataSet` or `ShallowDicomDataSet`
 
@@ -304,12 +342,45 @@ interface DicomElement {
 
 ## Tag Formats
 
+<<<<<<< HEAD
 All accessors support multiple tag formats:
 
 ```typescript
 dataset.string("x00100010"); // x-prefixed hex
 dataset.string("0010,0010"); // comma-separated
 dataset.string("00100010"); // plain hex
+=======
+For large files or network streams, the `StreamingParser` allows you to process DICOM data incrementally.
+
+### `StreamingParser`
+
+Consumes chunks of a DICOM file and fires callbacks as elements are parsed.
+
+**Constructor options:**
+- `onElement?: (el) => void`
+- `onError?: (err: Error) => void`
+- `maxBufferSize?: number` (default 10MB)
+- `maxIterations?: number` (default 1000)
+
+#### **Example: Streaming from a File (Node.js)**
+
+```typescript
+import * as fs from 'fs';
+import { StreamingParser } from 'rad-parser';
+
+const parser = new StreamingParser({
+  onElement: (el) => {
+    // el.dict contains parsed element(s) for this chunk
+  },
+  onError: (err) => console.error('Streaming error:', err),
+  maxBufferSize: 50 * 1024 * 1024, // optional
+  maxIterations: 500,              // optional
+});
+
+const readStream = fs.createReadStream('large.dcm');
+readStream.on('data', (chunk) => parser.processChunk(new Uint8Array(chunk)));
+readStream.on('end', () => parser.finalize());
+>>>>>>> 0abe5b2af341db379da260e9559e0adaf3c4af83
 ```
 
 ---

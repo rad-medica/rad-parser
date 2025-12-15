@@ -795,7 +795,8 @@ function parseElement(
 export interface UnifiedParseOptions {
     /**
      * Parsing strategy:
-     * - 'shallow': (Default) Structured scan only (offsets/lengths). Very fast.
+     * - 'fast': Ultra-fast scan (minimal metadata only). Fastest mode.
+     * - 'shallow': Structured scan only (offsets/lengths). Very fast.
      * - 'full': Eagerly decodes all values.
      * - 'light': Full parse but skips reading Pixel Data value (saves memory).
      * - 'lazy': Returns object that reads values from buffer on demand.
@@ -803,7 +804,7 @@ export interface UnifiedParseOptions {
      * Note: 'custom' is no longer a distinct type. Use `tags` option with any type
      * to restrict parsing/scanning to specific tags.
      */
-    type?: "shallow" | "full" | "light" | "lazy";
+    type?: "fast" | "shallow" | "full" | "light" | "lazy";
 
     /**
      * Tags to include in the result.
@@ -851,6 +852,9 @@ export function parse(
     // Best to call parseWithMetadata/shallowParse directly for maximum control in this unified function.
 
     switch (mode) {
+        case "fast":
+            return fastParse(byteArray, filterTags);
+
         case "full":
         case "light":
             const parseOpts: ParseOptions = {
@@ -1005,6 +1009,223 @@ function createLazyDataSet(
             return typeof v === "number" ? v : undefined;
         },
     };
+}
+
+/**
+ * Ultra-fast parsing mode - optimized for maximum speed
+ * Minimal overhead: skips most validations, uses numeric tag comparison
+ * Only creates string keys when storing tags
+ * 
+ * @param byteArray - The DICOM file as a Uint8Array
+ * @param filterTags - Optional array of tags to include
+ * @returns A ShallowDicomDataSet map
+ */
+function fastParse(
+    byteArray: Uint8Array,
+    filterTags?: string[],
+): ShallowDicomDataSet {
+    let buffer: ArrayBuffer;
+    let byteOffset = 0;
+    if (byteArray.buffer instanceof ArrayBuffer) {
+        buffer = byteArray.buffer;
+        byteOffset = byteArray.byteOffset;
+    } else {
+        buffer = new ArrayBuffer(byteArray.byteLength);
+        const newView = new Uint8Array(buffer);
+        newView.set(byteArray);
+    }
+
+    const view = new SafeDataView(buffer, byteOffset, byteArray.byteLength);
+
+    // Minimal format detection - reuse shallowParse's detection
+    let detection: FormatDetection;
+    try {
+        detection = detectDicomFormat(view, buffer);
+    } catch {
+        detection = {
+            offset: 0,
+            isDicomPart10: false,
+            transferSyntax: TRANSFER_SYNTAX_IMPLICIT_VR_LITTLE_ENDIAN,
+            explicitVR: false,
+            littleEndian: true,
+            characterSet: "ISO_IR 192",
+        };
+    }
+
+    view.setEndianness(detection.littleEndian);
+    view.setPosition(detection.offset);
+
+    const result: ShallowDicomDataSet = {};
+    const maxIterations = 50000;
+    let iterations = 0;
+    const explicitVR = detection.explicitVR;
+
+    // Pre-compute filter tag set for numeric comparison (faster)
+    let filterSet: Set<number> | null = null;
+    if (filterTags) {
+        filterSet = new Set();
+        for (const tag of filterTags) {
+            const normalized = normalizeTag(tag);
+            if (normalized.startsWith('x') && normalized.length === 9) {
+                const group = parseInt(normalized.substring(1, 5), 16);
+                const element = parseInt(normalized.substring(5, 9), 16);
+                filterSet.add((group << 16) | element);
+            }
+        }
+    }
+
+    // Hex digit lookup table for fast tag string generation
+    const hexDigits = '0123456789abcdef';
+    const hexCache: string[] = [];
+    for (let i = 0; i < 65536; i++) {
+        hexCache[i] = i.toString(16).padStart(4, '0');
+    }
+
+    while (view.getRemainingBytes() >= 8 && iterations < maxIterations) {
+        iterations++;
+
+        const elementStart = view.getPosition();
+        
+        // Read tag
+        const group = view.readUint16();
+        const element = view.readUint16();
+        const tagNum = (group << 16) | element;
+
+        // Fast delimiter check
+        if (group === 0xfffe) {
+            if (element === 0xe0dd || element === 0xe00d || element === 0xe000) {
+                view.readUint32();
+                continue;
+            }
+        }
+
+        // Read VR and Length (optimized)
+        let length: number;
+        let headerLength: number;
+        let vr = "UN";
+
+        if (explicitVR && view.getRemainingBytes() >= 2) {
+            const vrBytes = view.readBytes(2);
+            const vr0 = vrBytes[0];
+            const vr1 = vrBytes[1];
+            vr = String.fromCharCode(vr0, vr1);
+            
+            // Fast check for long VRs using char codes (avoid string comparison)
+            if ((vr0 === 0x53 && vr1 === 0x51) || // SQ
+                (vr0 === 0x4F && vr1 === 0x42) || // OB
+                (vr0 === 0x4F && vr1 === 0x57) || // OW
+                (vr0 === 0x4F && vr1 === 0x46) || // OF
+                (vr0 === 0x4F && vr1 === 0x44) || // OD
+                (vr0 === 0x4F && vr1 === 0x4C) || // OL
+                (vr0 === 0x55 && vr1 === 0x4E)) { // UN
+                view.readUint16(); // Reserved
+                length = view.readUint32();
+                headerLength = 12;
+            } else {
+                length = view.readUint16();
+                headerLength = 8;
+            }
+        } else {
+            length = view.readUint32();
+            headerLength = 8;
+        }
+
+        // Fast filter check - only include if in filter set or no filter
+        const shouldInclude = !filterSet || filterSet.has(tagNum);
+
+        if (!shouldInclude) {
+            // Skip element (fast path)
+            if (length === 0xffffffff) {
+                // Undefined length - attempt to skip safely
+                while (view.getRemainingBytes() >= 8) {
+                    const loopStart = view.getPosition();
+                    const g = view.readUint16();
+                    const e = view.readUint16();
+                    if (g === 0xfffe && e === 0xe0dd) {
+                        view.readUint32();
+                        break;
+                    }
+                    if (g === 0xfffe && e === 0xe000) {
+                        // Item start - read length and skip
+                        if (view.getRemainingBytes() >= 4) {
+                            const itemLength = view.readUint32();
+                            const skip = Math.min(itemLength, view.getRemainingBytes());
+                            view.setPosition(view.getPosition() + skip);
+                        }
+                    } else {
+                        // Unknown block - advance by 2 bytes to avoid infinite loop
+                        if (view.getRemainingBytes() >= 2) {
+                            view.setPosition(view.getPosition() + 2);
+                        } else {
+                            break;
+                        }
+                    }
+                    // Ensure progress
+                    if (view.getPosition() <= loopStart) {
+                        break;
+                    }
+                }
+            } else {
+                const newPos = view.getPosition() + length;
+                if (newPos <= view.byteLength) {
+                    view.setPosition(newPos);
+                } else {
+                    break;
+                }
+            }
+            continue;
+        }
+
+        // Store tag (use cached hex strings for speed)
+        const tagKey = `x${hexCache[group]}${hexCache[element]}`;
+        result[tagKey] = {
+            tag: tagKey,
+            vr,
+            length,
+            dataOffset: elementStart + headerLength,
+        };
+
+        // Advance past value
+        if (length === 0xffffffff) {
+            // Undefined length - fast skip with progress checks
+            while (view.getRemainingBytes() >= 8) {
+                const loopStart = view.getPosition();
+                const g = view.readUint16();
+                const e = view.readUint16();
+                if (g === 0xfffe && e === 0xe0dd) {
+                    view.readUint32();
+                    break;
+                }
+                if (g === 0xfffe && e === 0xe000) {
+                    // Item start - skip declared length
+                    if (view.getRemainingBytes() >= 4) {
+                        const itemLength = view.readUint32();
+                        const skip = Math.min(itemLength, view.getRemainingBytes());
+                        view.setPosition(view.getPosition() + skip);
+                    }
+                } else {
+                    // Unknown - advance minimally to avoid hang
+                    if (view.getRemainingBytes() >= 2) {
+                        view.setPosition(view.getPosition() + 2);
+                    } else {
+                        break;
+                    }
+                }
+                if (view.getPosition() <= loopStart) {
+                    break;
+                }
+            }
+        } else {
+            const newPos = view.getPosition() + length;
+            if (newPos <= view.byteLength) {
+                view.setPosition(newPos);
+            } else {
+                break;
+            }
+        }
+    }
+
+    return result;
 }
 
 /**

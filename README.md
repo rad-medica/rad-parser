@@ -10,13 +10,18 @@ It is designed for safety, efficiency, and reliability in medical imaging applic
 
 ## Features
 
--   ✅ **Zero Dependencies**: Pure TypeScript/JavaScript implementation.
--   ✅ **Extensive Format Support**: Handles Explicit/Implicit VR, Big/Little Endian, and all standard VR types.
--   ✅ **Automatic Codec Loading**: Compressed images (RLE, JPEG, JPEG 2000, etc.) are decoded on-demand with no extra setup.
--   ✅ **Extensible Codec System**: "Adapter" classes allow you to integrate your own decoders (e.g., from a WebAssembly library like OpenJPEG or CharLS).
--   ✅ **DICOM Manipulation**: Includes utilities to `anonymize` datasets and `write` them back to a file buffer.
--   ✅ **Powerful CLI**: A built-in command-line interface for common DICOM operations.
--   ✅ **Safe & Performant**: Designed for efficient binary parsing with strict bounds checking.
+- ✅ **Zero Dependencies**: Pure TypeScript/JavaScript implementation.
+- ✅ **Extensive Format Support**: Handles Explicit/Implicit VR, Big/Little Endian, and all standard VR types.
+- ✅ **Automatic Codec Loading**: Compressed images (RLE, JPEG, JPEG 2000, etc.) are decoded on-demand with no extra setup.
+- ✅ **Extensible Codec System**: “Adapter” classes allow you to integrate your own decoders (e.g., from a WebAssembly library like OpenJPEG or CharLS).
+- ✅ **DICOM Manipulation**: Utilities to `anonymize` datasets and `write` them back to a file buffer.
+- ✅ **Streaming Parser**: Incremental parsing with backpressure-friendly callbacks.
+- ✅ **Multiple Parse Depths**: Fast/shallow/light/full/streaming modes to match your workload.
+- ✅ **Safe & Performant**: Designed for efficient binary parsing with strict bounds checking.
+
+More docs:
+- [API Reference](./docs/api.md)
+- [Codec Integration Tutorial](./docs/codec-integration-tutorial.md)
 
 ## Installation
 
@@ -71,11 +76,39 @@ npx rad-parser extract-image "compressed_image.dcm" "image_out.png"
 
 ---
 
+## Benchmarks (TEST/SOLO + TEST/SUBF, 254 files)
+
+| Parser               | Success | Avg Time  | Avg Elements |
+|----------------------|---------|-----------|--------------|
+| rad-parser-fast      | 100%    | 2.04 ms   | 37           |
+| rad-parser           | 100%    | 7.47 ms   | 280          |
+| rad-parser-medium    | 100%    | 7.57 ms   | 280          |
+| rad-parser-shallow   | 100%    | 7.42 ms   | 69           |
+| rad-parser-streaming | 100%    | 15.49 ms  | 414          |
+| efferent-dicom       | 99.6%   | 0.76 ms   | 71           |
+| dcmjs                | 89%     | 1.11 ms   | 76           |
+| dicom-parser         | 88%     | 0.10 ms   | 84           |
+
+Notes:
+- Dataset: 254 DICOM files from `test_data/TEST/SOLO` and `test_data/TEST/SUBF`.
+- Fast mode now includes safeguards for undefined-length elements (no hangs).
+- Streaming parses more elements per file (fragments included) by design.
+
+---
+
 ## Library Usage
+
+### Parse Modes
+
+- `fast`: Ultra-fast header scan (minimal metadata; new fast-mode safeguards applied).
+- `shallow`: Tag-level scan (offsets/lengths; no values).
+- `light` / `medium`: Full metadata, skips pixel data value (best for metadata + anonymization).
+- `full`: Full dataset including pixel data.
+- `streaming`: Incremental parsing via callbacks on chunks/streams.
 
 ### **Example 1: Basic Parsing (Metadata Only)**
 
-Use the `light` parse type to quickly read all tags without loading the bulky pixel data.
+Use the `light` (medium) parse type to quickly read all tags without loading the bulky pixel data.
 
 ```typescript
 import * as fs from "fs";
@@ -114,7 +147,27 @@ async function getRawPixels(filePath: string) {
 }
 ```
 
-### **Example 3: Manual Codec Integration (Advanced)**
+### **Example 3: Streaming (Node.js)**
+
+```typescript
+import * as fs from 'fs';
+import { StreamingParser } from 'rad-parser';
+
+const parser = new StreamingParser({
+  onElement: (el) => {
+    // el.dict contains the parsed element(s) for this chunk
+  },
+  onError: (err) => console.error('Streaming error:', err),
+  maxBufferSize: 50 * 1024 * 1024, // optional
+  maxIterations: 500,              // optional
+});
+
+const readStream = fs.createReadStream('large.dcm');
+readStream.on('data', (chunk) => parser.processChunk(new Uint8Array(chunk)));
+readStream.on('end', () => parser.finalize());
+```
+
+### **Example 4: Manual Codec Integration (Advanced)**
 
 For custom decoders (e.g., a proprietary compression format or a specific WASM library), you can register a configured codec.
 

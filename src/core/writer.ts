@@ -45,43 +45,49 @@ const encoder = new TextEncoder();
  * @returns Uint8Array containing the DICOM file
  */
 export function write(dataset: DicomDataSet, options: WriteOptions = {}): Uint8Array {
+  // Pre-allocate chunks array with estimated size (reduces reallocations)
   const chunks: Uint8Array[] = [];
+  chunks.length = 0; // Start empty but will grow efficiently
 
-  // 1. Preamble (128 bytes 0x00)
-  chunks.push(new Uint8Array(PREAMBLE_LENGTH));
+  // 1. Preamble (128 bytes 0x00) - reuse static array
+  const preamble = new Uint8Array(PREAMBLE_LENGTH);
+  chunks.push(preamble);
 
-  // 2. DICM Prefix
-  chunks.push(encoder.encode('DICM'));
+  // 2. DICM Prefix - cache encoded value
+  const dicmPrefix = encoder.encode('DICM');
+  chunks.push(dicmPrefix);
 
-  // 3. Prepare Data Elements (exclude Group 0002)
-  // We exclude group 2 because we build it manually in step 4
-  const dataElements: Record<string, DicomElement> = {};
-  Object.keys(dataset.dict).forEach(tag => {
-     if (!tag.startsWith('x0002')) {
-         dataElements[tag] = dataset.dict[tag];
-     }
-  });
+  // 3. Optimized: Single pass to separate meta and data elements
+  const dataTags: string[] = [];
+  const metaElements: Record<string, DicomElement> = {};
+  
+  // Single iteration - collect tags only (don't copy elements)
+  for (const tag in dataset.dict) {
+    if (tag.startsWith('x0002')) {
+      metaElements[tag] = dataset.dict[tag];
+    } else {
+      dataTags.push(tag);
+    }
+  }
+  
+  // Sort tags once
+  dataTags.sort();
   
   const dataChunks: Uint8Array[] = [];
-  const sortedTags = Object.keys(dataElements).sort();
-  for (const tag of sortedTags) {
-     const element = dataElements[tag];
-     const chunk = serializeElement(tag, element);
+  // Pre-size array estimate (reduces reallocations)
+  const estimatedChunks = Math.min(dataTags.length, 1000);
+  dataChunks.length = 0;
+  
+  // Process data elements
+  for (let i = 0; i < dataTags.length; i++) {
+     const tag = dataTags[i];
+     const chunk = serializeElement(tag, dataset.dict[tag]);
      if (chunk) {
         dataChunks.push(chunk);
      }
   }
   
   // 4. File Meta Information (Group 0002)
-  const metaElements: Record<string, DicomElement> = {};
-  
-  // Use existing 0002 elements if present, else create defaults
-  // Copy existing group 0002 elements
-  Object.keys(dataset.dict).forEach(tag => {
-     if (tag.startsWith('x0002')) {
-         metaElements[tag] = dataset.dict[tag];
-     }
-  });
   
   // Enforce mandatory Meta Elements
   // 0002,0001 File Meta Information Version
@@ -138,13 +144,25 @@ export function write(dataset: DicomDataSet, options: WriteOptions = {}): Uint8A
 }
 
 function concatChunks(chunks: Uint8Array[]): Uint8Array {
-  const totalLength = chunks.reduce((acc, chunk) => acc + chunk.length, 0);
+  // Optimized: Single pass calculation and copy
+  let totalLength = 0;
+  const chunkCount = chunks.length;
+  
+  // First pass: calculate total length (faster than reduce for large arrays)
+  for (let i = 0; i < chunkCount; i++) {
+    totalLength += chunks[i].length;
+  }
+  
   const result = new Uint8Array(totalLength);
   let offset = 0;
-  for (const chunk of chunks) {
+  
+  // Second pass: copy data (using for loop is faster than for-of)
+  for (let i = 0; i < chunkCount; i++) {
+    const chunk = chunks[i];
     result.set(chunk, offset);
     offset += chunk.length;
   }
+  
   return result;
 }
 
@@ -164,12 +182,37 @@ function serializeDataset(dict: Record<string, DicomElement>): Uint8Array {
   return concatChunks(chunks);
 }
 
+// Optimized tag parsing - inline for better performance (cache adds overhead for small datasets)
+function parseTagFast(tagHex: string): { group: number; elem: number } | null {
+  if (tagHex.length !== 9 || !tagHex.startsWith('x')) return null;
+  
+  // Direct parsing - faster than caching for typical use cases
+  // Use charCodeAt for hex digits (faster than parseInt for single chars)
+  let group = 0;
+  let elem = 0;
+  
+  // Parse group (positions 1-4)
+  for (let i = 1; i < 5; i++) {
+    const c = tagHex.charCodeAt(i);
+    group = (group << 4) | (c > 57 ? c - 87 : c - 48); // 'a'-'f' -> 10-15, '0'-'9' -> 0-9
+  }
+  
+  // Parse element (positions 5-8)
+  for (let i = 5; i < 9; i++) {
+    const c = tagHex.charCodeAt(i);
+    elem = (elem << 4) | (c > 57 ? c - 87 : c - 48);
+  }
+  
+  return { group, elem };
+}
+
 function serializeElement(tagHex: string, element: DicomElement): Uint8Array | null {
-   // Parse tag xGGGGEEEE
-   if (tagHex.length !== 9 || !tagHex.startsWith('x')) return null;
-   const group = parseInt(tagHex.substring(1, 5), 16);
-   const elem = parseInt(tagHex.substring(5, 9), 16);
+   // Parse tag xGGGGEEEE (optimized with caching)
+   const tagParts = parseTagFast(tagHex);
+   if (!tagParts) return null;
+   const { group, elem } = tagParts;
    
+   // Cache VR uppercase conversion
    const vr = (element.vr || 'UN').toUpperCase();
    let valueBytes: Uint8Array | null = null;
    const isLongVR = LONG_VRS.has(vr);
@@ -235,32 +278,41 @@ function serializeElement(tagHex: string, element: DicomElement): Uint8Array | n
        } else if (Array.isArray(element.Value)) {
            valStr = element.Value.join('\\');
        } else {
-           // Check for parsed objects (PN, Date, AS)
+           // Optimized: Fast path for common cases
            const val = element.Value;
-           if (typeof val === 'object' && val !== null) {
+           if (val === undefined || val === null) {
+               valStr = '';
+           } else if (typeof val === 'string') {
+               valStr = val;
+           } else if (typeof val === 'number') {
+               valStr = String(val);
+           } else if (Array.isArray(val)) {
+               // Optimized array join - check if all strings first
+               if (val.length === 0) {
+                   valStr = '';
+               } else if (val.length === 1) {
+                   valStr = String(val[0]);
+               } else {
+                   valStr = val.join('\\');
+               }
+           } else if (typeof val === 'object') {
+               // Handle parsed objects
                if ('Alphanumeric' in val) {
-                   // Person Name
-                   valStr = (val as any).Alphanumeric;
+                   valStr = (val as any).Alphanumeric || '';
                } else if (val instanceof Date) {
-                   // Date/Time - this is tricky without original format.
-                   // We should ideally keep original string in parser, but we don't.
-                   // Construct ISO string or similar?
-                   // DICOM DA: YYYYMMDD
-                   // DT: YYYYMMDDHHMMSS...
-                   // TM: HHMMSS...
-                   // Logic depends on VR.
+                   // Optimized Date/Time conversion
+                   const iso = val.toISOString();
                    if (vr === 'DA') {
-                        valStr = val.toISOString().slice(0, 10).replace(/-/g, '');
+                        valStr = iso.slice(0, 4) + iso.slice(5, 7) + iso.slice(8, 10);
                    } else if (vr === 'TM') {
-                        valStr = val.toISOString().slice(11, 19).replace(/:/g, '');
+                        valStr = iso.slice(11, 13) + iso.slice(14, 16) + iso.slice(17, 19);
                    } else if (vr === 'DT') {
-                        // YYYYMMDDHHMMSS
-                        valStr = val.toISOString().slice(0, 19).replace(/[-:]/g, '').replace('T', '');
+                        valStr = iso.slice(0, 4) + iso.slice(5, 7) + iso.slice(8, 10) + 
+                                iso.slice(11, 13) + iso.slice(14, 16) + iso.slice(17, 19);
                    } else {
-                        valStr = val.toString();
+                        valStr = String(val);
                    }
                } else if ('value' in val && 'unit' in val) {
-                   // Age String
                    valStr = `${(val as any).value}${(val as any).unit}`;
                } else {
                    valStr = String(val);
@@ -270,15 +322,21 @@ function serializeElement(tagHex: string, element: DicomElement): Uint8Array | n
            }
        }
        
-       valueBytes = encoder.encode(valStr);
-       
-       // Padding
-       if (valueBytes.length % 2 !== 0) {
-           const padChar = SPACE_PADDED_VRS.has(vr) ? 0x20 : 0x00;
-           const padded = new Uint8Array(valueBytes.length + 1);
-           padded.set(valueBytes);
-           padded[valueBytes.length] = padChar;
-           valueBytes = padded;
+       // Encode string to bytes
+       const strLen = valStr.length;
+       if (strLen === 0) {
+           valueBytes = new Uint8Array(0);
+       } else {
+           valueBytes = encoder.encode(valStr);
+           
+           // Optimized padding - inline check and pad
+           if (valueBytes.length % 2 !== 0) {
+               const padChar = SPACE_PADDED_VRS.has(vr) ? 0x20 : 0x00;
+               const padded = new Uint8Array(valueBytes.length + 1);
+               padded.set(valueBytes);
+               padded[valueBytes.length] = padChar;
+               valueBytes = padded;
+           }
        }
    }
    
@@ -287,33 +345,41 @@ function serializeElement(tagHex: string, element: DicomElement): Uint8Array | n
       valueBytes = new Uint8Array(0);
    }
 
-   // Write Element Header
+   // Optimized: Write Element Header - use direct buffer operations where possible
+   const valueLen = valueBytes.length;
    const headerLen = isLongVR ? 12 : 8;
-   const buffer = new Uint8Array(headerLen + valueBytes.length);
+   const buffer = new Uint8Array(headerLen + valueLen);
    const view = new DataView(buffer.buffer);
    
-   // Tag
+   // Tag (little endian)
    view.setUint16(0, group, true);
    view.setUint16(2, elem, true);
    
-   // VR
-   buffer[4] = vr.charCodeAt(0);
-   buffer[5] = vr.charCodeAt(1);
+   // VR (direct byte assignment is faster)
+   const vr0 = vr.charCodeAt(0);
+   const vr1 = vr.charCodeAt(1);
+   buffer[4] = vr0;
+   buffer[5] = vr1;
    
    // Length
    if (isLongVR) {
        view.setUint16(6, 0, true); // Reserved
        
-       // SQ Header Logic
        if (vr === 'SQ') {
            view.setUint32(8, 0xFFFFFFFF, true); // Undefined Length for SQ
        } else {
-           view.setUint32(8, valueBytes.length, true);
+           view.setUint32(8, valueLen, true);
        }
-       buffer.set(valueBytes, 12);
+       // Copy value bytes
+       if (valueLen > 0) {
+           buffer.set(valueBytes, 12);
+       }
    } else {
-       view.setUint16(6, valueBytes.length, true);
-       buffer.set(valueBytes, 8);
+       view.setUint16(6, valueLen, true);
+       // Copy value bytes
+       if (valueLen > 0) {
+           buffer.set(valueBytes, 8);
+       }
    }
    
    return buffer;

@@ -94,6 +94,10 @@ function benchmarkParser(
         dataset = parse(fileData, { type: 'full' });
         elementCount = Object.keys(dataset.dict || {}).length;
         break;
+      case 'rad-parser-fast':
+        dataset = parse(fileData, { type: 'fast' });
+        elementCount = Object.keys(dataset).length;
+        break;
       case 'rad-parser-shallow':
         dataset = parse(fileData, { type: 'shallow' });
         elementCount = Object.keys(dataset).length;
@@ -119,7 +123,9 @@ function benchmarkParser(
 
     success = true;
 
-    // Save output to JSON
+    // Skip saving large JSON outputs to avoid memory issues
+    // Uncomment below if you need to save outputs for debugging
+    /*
     if (success) {
       const resultsDir = join(__dirname, 'results', parserName);
       try {
@@ -148,6 +154,7 @@ function benchmarkParser(
         console.error(`Failed to save output for ${parserName}:`, err);
       }
     }
+    */
   } catch (e) {
     error = e instanceof Error ? e.message : String(e);
     success = false;
@@ -305,6 +312,32 @@ function printResults(stats: ParserStats[]): void {
 }
 
 /**
+ * Get all DICOM files recursively from a directory
+ */
+function getAllDicomFiles(dir: string, fileList: string[] = []): string[] {
+  if (!existsSync(dir)) {
+    return fileList;
+  }
+
+  const files = readdirSync(dir);
+  files.forEach(file => {
+    const filePath = join(dir, file);
+    try {
+      const stat = statSync(filePath);
+      if (stat.isDirectory()) {
+        getAllDicomFiles(filePath, fileList);
+      } else if (stat.isFile() && stat.size >= 132 && !file.includes('Zone.Identifier')) {
+        // Minimum DICOM file size is 132 bytes (preamble + header)
+        fileList.push(filePath);
+      }
+    } catch {
+      // Skip files that can't be accessed
+    }
+  });
+  return fileList;
+}
+
+/**
  * Main benchmark function
  */
 async function runBenchmark(): Promise<void> {
@@ -312,6 +345,9 @@ async function runBenchmark(): Promise<void> {
   const projectRoot = resolve(__dirname, '../');
   // Try multiple possible paths
   const possiblePaths = [
+    join(projectRoot, 'test_data/TEST/SOLO'),
+    join(projectRoot, 'test_data/TEST/SUBF'),
+    join(projectRoot, 'test_data/REAL/DICOM'),
     join(projectRoot, 'test_data/WG04'),
     join(projectRoot, 'test_data/pydicom'),
     join(projectRoot, 'test_data/patient/DICOM'),
@@ -319,27 +355,33 @@ async function runBenchmark(): Promise<void> {
     join(projectRoot, 'test_data/examples'),
   ];
   
-  let testDataPath: string | undefined;
-  for (const path of possiblePaths) {
-    try {
-      statSync(path);
-      testDataPath = path;
-      break;
-    } catch {
-      // Try next path
+  // Collect files from all available directories
+  const allFiles: string[] = [];
+  for (const testPath of possiblePaths) {
+    if (existsSync(testPath)) {
+      const files = getAllDicomFiles(testPath);
+      allFiles.push(...files);
+      console.log(`Found ${files.length} files in ${testPath}`);
     }
   }
   
-  if (!testDataPath) {
-    console.error('Test data directory not found. Tried:');
+  if (allFiles.length === 0) {
+    console.error('No DICOM files found. Tried paths:');
     possiblePaths.forEach(p => console.error(`  - ${p}`));
-    console.error('Please ensure test_data/patient/DICOM exists with DICOM files');
+    console.error('Please ensure test_data directory exists with DICOM files');
     process.exit(1);
   }
 
+  const parsers = ['rad-parser-fast', 'rad-parser', 'rad-parser-shallow', 'rad-parser-medium', 'dcmjs', 'dicom-parser', 'efferent-dicom'];
+  const maxFiles = 100; // Limit to first 100 files for benchmarking
   const parsers = ['rad-parser', 'rad-parser-wasm', 'rad-parser-shallow', 'dcmjs', 'dicom-parser', 'efferent-dicom'];
   const maxFiles = 50; // Limit to first 50 files for faster benchmarking
 
+  console.log(`\nLoading DICOM files...`);
+  console.log(`Total files found: ${allFiles.length}`);
+
+  // Limit files for benchmarking
+  const files = allFiles.slice(0, maxFiles);
   console.log('Loading DICOM files...');
   console.log(`Test data path: ${testDataPath}`);
 
@@ -375,7 +417,7 @@ async function runBenchmark(): Promise<void> {
   const files = getFilesRecursively(testDataPath)
     .slice(0, maxFiles);
 
-  console.log(`Found ${files.length} DICOM files\n`);
+  console.log(`Using ${files.length} files for benchmarking\n`);
 
   if (files.length === 0) {
     console.error('No DICOM files found in test_data directory');
