@@ -1,0 +1,17 @@
+[package]
+name = "rad-parser-wasm-codecs"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+wasm-bindgen = "0.2"
+flate2 = "1.0"
+crc32fast = "1.3"
+byteorder = "1.4"
+image = { version = "0.24", default-features = false, features = ["jpeg", "png"] }
+jpeg-decoder = "0.3"
+hayro-jpeg2000 = "0.1"
+charls = "0.4.2"

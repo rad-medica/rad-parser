@@ -3,8 +3,8 @@
  * GPGPU style decoding using WebGL 2.0
  */
 
-import { CodecInfo, PixelDataCodec } from "./codecs";
-import { concatFragments } from "../utils/pixelData";
+import { CodecInfo, PixelDataCodec } from "../core/registry";
+import { concatFragments } from "../utils/bufferUtils";
 
 export class WebGlDecoder implements PixelDataCodec {
     name = "webgl-fallback";

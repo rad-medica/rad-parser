@@ -11,6 +11,24 @@
       "import": "./dist/index.js",
       "require": "./dist/index.cjs",
       "default": "./dist/index.js"
+    },
+    "./core": {
+        "types": "./dist/index-core.d.ts",
+        "import": "./dist/index-core.js",
+        "require": "./dist/index-core.cjs",
+        "default": "./dist/index-core.js"
+    },
+    "./codecs": {
+        "types": "./dist/index-codecs.d.ts",
+        "import": "./dist/index-codecs.js",
+        "require": "./dist/index-codecs.cjs",
+        "default": "./dist/index-codecs.js"
+    },
+    "./dictionary": {
+        "types": "./dist/dictionary.d.ts",
+        "import": "./dist/dictionary.js",
+        "require": "./dist/dictionary.cjs",
+        "default": "./dist/dictionary.js"
     }
   },
   "bin": {
@@ -42,23 +60,37 @@
   "homepage": "https://github.com/AjRoAs/rad-parse#readme",
   "files": [
     "dist/**/*",
+    "docs/**/*.md",
+    "src/wasm-core-build/*.wasm",
+    "src/wasm-codecs-build/*.wasm",
     "README.md",
     "LICENSE",
-    "package.json"
+    "package.json",
+    "bin/**/*"
   ],
   "scripts": {
     "build": "tsc && npm run build:cjs",
-    "build:cjs": "esbuild src/index.ts --bundle --format=cjs --platform=node --target=node16 --outfile=dist/index.cjs --log-level=info",
-    "bundle:full": "esbuild src/index.ts --bundle --format=esm --target=es2020 --platform=neutral --outfile=dist/rad-parser.js --sourcemap --log-level=info && esbuild src/index.ts --bundle --format=esm --target=es2020 --platform=neutral --outfile=dist/rad-parser.min.js --minify --log-level=info",
-    "bundle:lite": "esbuild src/index-lite.ts --bundle --format=esm --target=es2020 --platform=neutral --outfile=dist/rad-parser-nodict.js --sourcemap --log-level=info && esbuild src/index-lite.ts --bundle --format=esm --target=es2020 --platform=neutral --outfile=dist/rad-parser-nodict.min.js --minify --log-level=info",
-    "bundle:dictionary": "esbuild src/dictionary-entry.ts --bundle --format=esm --target=es2020 --platform=neutral --outfile=dist/rad-parser-dictionary.js --sourcemap --log-level=info",
-    "bundle": "npm run bundle:full && npm run bundle:lite && npm run bundle:dictionary",
-    "release": "npm run build && npm run bundle",
+    "build:cjs": "esbuild src/index.ts --bundle --format=cjs --platform=node --target=node16 --outfile=dist/index.cjs --log-level=info && esbuild src/index-core.ts --bundle --format=cjs --platform=node --target=node16 --outfile=dist/index-core.cjs --log-level=info && esbuild src/index-codecs.ts --bundle --format=cjs --platform=node --target=node16 --outfile=dist/index-codecs.cjs --log-level=info",
+    "build:wasm:core": "cd src/wasm-core && wasm-pack build --target web --out-dir ../wasm-core-build --release",
+    "build:wasm:codecs": "cd src/wasm-codecs && wasm-pack build --target web --out-dir ../wasm-codecs-build --release",
+    "build:wasm": "npm run build:wasm:core && npm run build:wasm:codecs",
+    "bundle:full": "esbuild src/index.ts --bundle --format=esm --target=es2020 --platform=neutral --outfile=dist/rad-parser.js --sourcemap --log-level=info --external:env && esbuild src/index.ts --bundle --format=esm --target=es2020 --platform=neutral --outfile=dist/rad-parser.min.js --minify --log-level=info --external:env",
+    "bundle:core": "esbuild src/index-core.ts --bundle --format=esm --target=es2020 --platform=neutral --outfile=dist/index-core.js --sourcemap --log-level=info",
+    "bundle:codecs": "esbuild src/index-codecs.ts --bundle --format=esm --target=es2020 --platform=neutral --outfile=dist/index-codecs.js --sourcemap --log-level=info --external:env",
+    "bundle:dictionary": "esbuild src/dictionary-entry.ts --bundle --format=esm --target=es2020 --platform=neutral --outfile=dist/dictionary.js --sourcemap --log-level=info",
+    "bundle:lite": "npm run bundle:core",
+    "copy:wasm": "copy src\\wasm-core-build\\*.wasm dist\\ && copy src\\wasm-codecs-build\\*.wasm dist\\",
+    "bundle": "npm run bundle:full && npm run bundle:core && npm run bundle:codecs && npm run bundle:lite && npm run bundle:dictionary && npm run copy:wasm",
+    "release": "npm run build:wasm && npm run build && npm run bundle",
     "type-check": "tsc --noEmit",
     "test": "vitest run",
-    "benchmark": "tsx --tsconfig tsconfig.json benchmark.ts",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "benchmark": "tsx --tsconfig tsconfig.json scripts/benchmark.ts",
+    "benchmark:streaming": "npx tsx scripts/benchmark-streaming.ts",
     "lint": "eslint . --ext .ts",
     "format": "prettier --write \"**/*.ts\"",
+    "docs:check": "echo 'Checking documentation...' && test -f docs/API.md && test -f docs/CODEC_TUTORIAL.md && test -f docs/UTILITIES.md && echo 'All docs present!'",
     "prepublishOnly": "npm run release"
   },
   "engines": {

@@ -8,7 +8,7 @@
 import { readFileSync, readdirSync, statSync, writeFileSync, mkdirSync, existsSync } from 'fs';
 import { join, dirname, resolve } from 'path';
 import { fileURLToPath } from 'url';
-import { parse } from '../src/index.js';
+import { parse, initCoreWasm } from '../src/index.js';
 import dcmjs from 'dcmjs';
 import dicomParser from 'dicom-parser';
 import efferentDicom from 'efferent-dicom';
@@ -90,6 +90,7 @@ function benchmarkParser(
     let dataset;
     switch (parserName) {
       case 'rad-parser':
+      case 'rad-parser-wasm':
         dataset = parse(fileData, { type: 'full' });
         elementCount = Object.keys(dataset.dict || {}).length;
         break;
@@ -311,6 +312,8 @@ async function runBenchmark(): Promise<void> {
   const projectRoot = resolve(__dirname, '../');
   // Try multiple possible paths
   const possiblePaths = [
+    join(projectRoot, 'test_data/WG04'),
+    join(projectRoot, 'test_data/pydicom'),
     join(projectRoot, 'test_data/patient/DICOM'),
     join(projectRoot, 'test_data/21197522-9_20251130013123Examenes/DICOM'),
     join(projectRoot, 'test_data/examples'),
@@ -334,7 +337,7 @@ async function runBenchmark(): Promise<void> {
     process.exit(1);
   }
 
-  const parsers = ['rad-parser', 'rad-parser-shallow', 'rad-parser-medium', 'dcmjs', 'dicom-parser', 'efferent-dicom'];
+  const parsers = ['rad-parser', 'rad-parser-wasm', 'rad-parser-shallow', 'dcmjs', 'dicom-parser', 'efferent-dicom'];
   const maxFiles = 50; // Limit to first 50 files for faster benchmarking
 
   console.log('Loading DICOM files...');
@@ -349,19 +352,28 @@ async function runBenchmark(): Promise<void> {
     process.exit(1);
   }
 
-  // Get list of DICOM files
-  const files = readdirSync(testDataPath)
-    .filter(f => {
-      const fullPath = join(testDataPath, f);
+  // Get list of DICOM files recursively
+  const getFilesRecursively = (dir: string): string[] => {
+    let results: string[] = [];
+    const list = readdirSync(dir);
+    list.forEach((file) => {
+      const fullPath = join(dir, file);
       try {
         const stat = statSync(fullPath);
-        return stat.isFile() && stat.size >= 132 && !f.includes('Zone.Identifier');
-      } catch {
-        return false;
+        if (stat.isDirectory()) {
+          results = results.concat(getFilesRecursively(fullPath));
+        } else if (stat.isFile() && stat.size >= 132 && !file.includes('Zone.Identifier')) {
+          results.push(fullPath);
+        }
+      } catch (e) {
+        // Ignore errors
       }
-    })
-    .slice(0, maxFiles)
-    .map(f => join(testDataPath, f));
+    });
+    return results;
+  };
+
+  const files = getFilesRecursively(testDataPath)
+    .slice(0, maxFiles);
 
   console.log(`Found ${files.length} DICOM files\n`);
 
@@ -374,6 +386,14 @@ async function runBenchmark(): Promise<void> {
 
   // Run benchmarks
   for (const parser of parsers) {
+    if (parser === 'rad-parser-wasm') {
+        console.log('Initializing Wasm for rad-parser-wasm...');
+        try {
+            await initCoreWasm();
+        } catch (e) {
+            console.error('Failed to init Wasm:', e);
+        }
+    }
     console.log(`Benchmarking ${parser}...`);
     let processed = 0;
 

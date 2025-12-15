@@ -8,12 +8,13 @@ dist/
 build/
 *.tsbuildinfo
 
-# Wasm builds
-src/wasm/target/
-src/wasm-build/
+# Wasm builds (Rust compilation artifacts)
+src/wasm-core/target/
+src/wasm-codecs/target/
 src/wasm-core-build/
 src/wasm-codecs-build/
 *.wasm
+Cargo.lock
 
 # IDE
 .vscode/
@@ -48,9 +49,7 @@ benchmark-results.json
 scripts/results/benchmark-summary.json
 
 # Test data (ignore contents but keep folder structure)
-test_data/*
-!test_data/.gitkeep
-!test_data/WG04/
+test_data/
 
 # Results
 results/*

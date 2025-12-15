@@ -1,6 +1,6 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { WebGpuDecoder } from '../src/plugins/webgpu';
+import { WebGpuDecoder } from '../src/codecs/webgpu';
 
 describe('WebGpuDecoder', () => {
   let originalNavigator: any;

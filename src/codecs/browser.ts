@@ -2,7 +2,7 @@
  * Browser Image Codec Plugin
  * Uses WebCodecs (ImageDecoder) for decoding and Canvas/OffscreenCanvas for encoding.
  */
-import { CodecInfo, PixelDataCodec } from "./codecs";
+import { CodecInfo, PixelDataCodec } from "../core/registry";
 
 export class BrowserImageCodec implements PixelDataCodec {
     name = "browser-webcodecs";

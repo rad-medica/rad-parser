@@ -1,6 +1,6 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { WebGlDecoder } from '../src/plugins/webgl';
+import { WebGlDecoder } from '../src/codecs/webgl';
 
 describe('WebGlDecoder', () => {
   let originalDocument: any;

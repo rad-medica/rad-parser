@@ -12,10 +12,11 @@
  * - dictionary: Tag dictionary and lookup
  */
 
-import { registry } from "../plugins/codecs";
+import { registry } from "./registry";
 import { createParseError, DicomParseError } from "./errors";
 import { isPrivateTag } from "../utils/dictionary";
 import { extractPixelDataFromView } from "../utils/pixelData";
+import { parseDSWasm, parseISWasm, parsePNWasm } from "./wasm-opt";
 import { SafeDataView } from "../utils/SafeDataView";
 import { parseSequence } from "../utils/sequenceParser";
 import { formatTagWithComma, normalizeTag } from "../utils/tagUtils";
@@ -38,6 +39,22 @@ import {
 const TRANSFER_SYNTAX_IMPLICIT_VR_LITTLE_ENDIAN = "1.2.840.10008.1.2";
 const TRANSFER_SYNTAX_EXPLICIT_VR_LITTLE_ENDIAN = "1.2.840.10008.1.2.1";
 const TRANSFER_SYNTAX_EXPLICIT_VR_BIG_ENDIAN = "1.2.840.10008.1.2.2";
+
+/**
+ * Pre-computed hex string lookup table (0x0000 to 0xFFFF)
+ * Eliminates toString(16).padStart() overhead in hot paths
+ */
+const HEX_TABLE: string[] = new Array(65536);
+for (let i = 0; i < 65536; i++) {
+    HEX_TABLE[i] = i.toString(16).padStart(4, "0");
+}
+
+/**
+ * Fast tag formatting using pre-computed hex table
+ */
+function formatTag(group: number, element: number): string {
+    return `x${HEX_TABLE[group]}${HEX_TABLE[element]}`;
+}
 
 /**
  * Parse result with metadata
@@ -228,13 +245,11 @@ export function parseWithMetadata(
     };
 
     let dict: Record<string, DicomElement>;
-    let normalizedElements: Record<string, DicomElement>;
     let detectedCharacterSet: string | undefined;
 
     try {
         const parseResult = parseDataElements(view, parseContext);
         dict = parseResult.dict;
-        normalizedElements = parseResult.normalizedElements;
         detectedCharacterSet = parseResult.detectedCharacterSet;
     } catch (error) {
         // If it's already a DicomParseError, it usually has tag/offset context
@@ -257,7 +272,7 @@ export function parseWithMetadata(
     }
 
     // Create accessor methods
-    const dataset = createDataSet(dict, normalizedElements);
+    const dataset = createDataSet(dict);
 
     if (
         !dataset ||
@@ -474,11 +489,9 @@ function parseDataElements(
     context: ParseContext,
 ): {
     dict: Record<string, DicomElement>;
-    normalizedElements: Record<string, DicomElement>;
     detectedCharacterSet?: string;
 } {
     const dict: Record<string, DicomElement> = {};
-    const normalizedElements: Record<string, DicomElement> = {};
     let detectedCharacterSet: string | undefined;
     const maxIterations = 10000;
     let iterations = 0;
@@ -523,19 +536,16 @@ function parseDataElements(
                 }
             }
 
-            // Store in all tag formats for compatibility
+            // Store in dict
             for (const tag in element.dict) {
                 dict[tag] = element.dict[tag];
-            }
-            for (const tag in element.normalizedElements) {
-                normalizedElements[tag] = element.normalizedElements[tag];
             }
         } catch {
             break;
         }
     }
 
-    return { dict, normalizedElements, detectedCharacterSet };
+    return { dict, detectedCharacterSet };
 }
 
 /**
@@ -546,7 +556,6 @@ function parseElement(
     context: ParseContext,
 ): {
     dict: Record<string, DicomElement>;
-    normalizedElements: Record<string, DicomElement>;
 } | null {
     if (view.getRemainingBytes() < 8) {
         return null;
@@ -555,7 +564,7 @@ function parseElement(
     // Read tag
     const group = view.readUint16();
     const element = view.readUint16();
-    const tagHex = `x${group.toString(16).padStart(4, "0")}${element.toString(16).padStart(4, "0")}`;
+    const tagHex = formatTag(group, element);
 
     // Check for sequence delimiter or end of data
     if (group === 0xfffe && (element === 0xe0dd || element === 0xe00d)) {
@@ -615,12 +624,8 @@ function parseElement(
             }
         }
         // Return empty dict to signal skip
-        return { dict: {}, normalizedElements: {} };
+        return { dict: {} };
     }
-
-    // Format tag in multiple formats for compatibility
-    const tagComma = `${group.toString(16).padStart(4, "0")},${element.toString(16).padStart(4, "0")}`;
-    const tagPlain = `${group.toString(16).padStart(4, "0")}${element.toString(16).padStart(4, "0")}`;
 
     // Handle sequences
     if (vr === "SQ" || length === 0xffffffff) {
@@ -653,13 +658,6 @@ function parseElement(
         return {
             dict: {
                 [tagHex]: elementData,
-                [tagComma]: elementData,
-                [tagPlain]: elementData,
-            },
-            normalizedElements: {
-                [tagHex]: elementData,
-                [tagComma]: elementData,
-                [tagPlain]: elementData,
             },
         };
     }
@@ -673,6 +671,8 @@ function parseElement(
         | Record<string, unknown>
         | Uint8Array
         | Array<Uint8Array>
+        | Float64Array
+        | Int32Array
         | undefined = undefined;
 
     if (isPixelData) {
@@ -781,13 +781,6 @@ function parseElement(
     return {
         dict: {
             [tagHex]: elementData,
-            [tagComma]: elementData,
-            [tagPlain]: elementData,
-        },
-        normalizedElements: {
-            [tagHex]: elementData,
-            [tagComma]: elementData,
-            [tagPlain]: elementData,
         },
     };
 }
@@ -1078,11 +1071,9 @@ function shallowParse(
         // Read tag
         const group = view.readUint16();
         const element = view.readUint16();
-        const tagKey = `x${group.toString(16).padStart(4, "0")}${element.toString(16).padStart(4, "0")}`;
 
-        // Check for delimiters
+        // Check for delimiters early (before any string ops)
         if (group === 0xfffe) {
-            // ... existing skip logic ... (omitted for brevity in prompt thought, but added in replacement)
             if (
                 element === 0xe0dd ||
                 element === 0xe00d ||
@@ -1093,12 +1084,8 @@ function shallowParse(
             }
         }
 
-        // Checking filter EARLY:
-        // If we have a filter and this tag is NOT in it, we still need to parse length to skip!
-        // So we proceed to read VR/Length.
-
         // Read VR and Length
-        let vr = "UN";
+        let vr: string | undefined;
         let length: number;
         let headerLength = 0;
 
@@ -1117,17 +1104,18 @@ function shallowParse(
         } else {
             length = view.readUint32();
             headerLength = 8;
-            // Implicit VR detection
-            vr = detectVR(group, element) || "UN";
+            // Defer VR detection until after filter check
         }
 
-        // Now decide to store or skip
+        // Format tag ONLY if we need to check filter or store result
+        const tagKey = formatTag(group, element);
+
+        // Filter check
         if (allowedTags && !allowedTags.has(tagKey)) {
-            // Skip
+            // Skip without VR detection
             if (length === 0xffffffff) {
-                // ... skip undefined ...
-                // Reuse logic from scan
-                if (vr === "SQ" || (group === 0x7fe0 && element === 0x0010)) {
+                // Skip undefined length
+                if (group === 0x7fe0 && element === 0x0010) {
                     let skipped = 0;
                     while (
                         view.getRemainingBytes() >= 8 &&
@@ -1150,21 +1138,25 @@ function shallowParse(
                     break;
                 }
             }
-            continue; // DONE with this element (skipped)
+            continue;
         }
 
-        // If we are here, we want this tag
+        // Detect VR only for implicit VR when we're storing this tag
+        if (!explicitVR && !vr) {
+            vr = detectVR(group, element) || "UN";
+        }
+
+        // Store result
         const dataOffset = elementStart + headerLength;
         result[tagKey] = {
-            tag: tagKey,
-            vr,
+            vr: vr!,
             length,
             dataOffset,
         };
 
-        // Advance past value (same logic as above)
+        // Advance past value
         if (length === 0xffffffff) {
-            if (vr === "SQ" || (group === 0x7fe0 && element === 0x0010)) {
+            if (group === 0x7fe0 && element === 0x0010) {
                 let skipped = 0;
                 while (view.getRemainingBytes() >= 8 && skipped < 50000000) {
                     const g = view.readUint16();
@@ -1363,7 +1355,13 @@ function parseElementValue(
     | number
     | Array<string | number>
     | Record<string, unknown>
-    | Uint8Array {
+    | string
+    | number
+    | Array<string | number>
+    | Record<string, unknown>
+    | Uint8Array
+    | Float64Array
+    | Int32Array {
     if (
         vr === "OB" ||
         vr === "OW" ||
@@ -1433,25 +1431,15 @@ function parseElementValue(
         return vals;
     }
 
-    // String-based VR
-    const str = view.readString(length, characterSet);
-
-    // Parse based on VR type
-    if (vr === "IS") {
-        // Numeric types
-        const parts = str.split("\\").filter((p) => p.trim());
-        if (parts.length === 1) {
-            const num = parseFloat(parts[0]);
-            return isNaN(num) ? str : Math.floor(num);
-        }
-        return parts.map((p) => {
-            const num = parseFloat(p.trim());
-            return isNaN(num) ? p.trim() : num;
-        });
-    }
-
+    // Numeric String VRs (DS, IS) - Optimize with Wasm
     if (vr === "DS") {
-        // Floating point types
+        const bytes = view.readBytes(length);
+        const wasmResult = parseDSWasm(bytes);
+        if (wasmResult) {
+            return wasmResult;
+        }
+        // Fallback: Decode as ASCII/UTF-8 and parse in JS
+        const str = new TextDecoder().decode(bytes);
         const parts = str.split("\\").filter((p) => p.trim());
         if (parts.length === 1) {
             const num = parseFloat(parts[0]);
@@ -1463,34 +1451,32 @@ function parseElementValue(
         });
     }
 
-    // Use specialized parsers for special VR types
-    if (
-        vr === "PN" ||
-        vr === "DA" ||
-        vr === "TM" ||
-        vr === "DT" ||
-        vr === "AS"
-    ) {
-        const parsed = parseValueByVR(vr, str);
-        // Ensure return type matches
-        if (
-            typeof parsed === "string" ||
-            typeof parsed === "number" ||
-            Array.isArray(parsed) ||
-            (typeof parsed === "object" && parsed !== null)
-        ) {
-            return parsed as
-                | string
-                | number
-                | Array<string | number>
-                | Record<string, unknown>;
+    if (vr === "IS") {
+        const bytes = view.readBytes(length);
+        const wasmResult = parseISWasm(bytes);
+        if (wasmResult) {
+            return wasmResult;
         }
-        return str;
+         // Fallback
+        const str = new TextDecoder().decode(bytes);
+        const parts = str.split("\\").filter((p) => p.trim());
+         if (parts.length === 1) {
+             const num = parseFloat(parts[0]);
+             return isNaN(num) ? str : Math.floor(num);
+         }
+         return parts.map((p) => {
+             const num = parseFloat(p.trim());
+             return isNaN(num) ? p.trim() : num;
+         });
     }
 
-    // String types
-    const parts = str.split("\\");
-    return parts.length === 1 ? parts[0] : parts;
+    // String-based VR
+    const str = view.readString(length, characterSet);
+
+    // Return raw string - parsing deferred to accessor methods
+    // This eliminates expensive PN/DA/TM/DT/AS parsing and string splitting
+    // Accessors (dataset.string, etc.) will parse on-demand if needed
+    return str;
 }
 
 /**
@@ -1499,28 +1485,16 @@ function parseElementValue(
 
 function createDataSet(
     dict: Record<string, DicomElement>,
-    normalizedElements: Record<string, DicomElement>,
 ): DicomDataSet {
     const getElement = (tag: string): DicomElement | undefined => {
-        // Try multiple tag format variations for maximum compatibility
+        // Try direct lookup first (most common case)
         const normalized = normalizeTag(tag);
+        if (dict[normalized]) return dict[normalized];
+        
+        // Fallback: try other tag format variations for compatibility
         const comma = formatTagWithComma(tag);
-        const plain = tag.replace(/^x/i, "").replace(/,/g, "").toUpperCase();
-        const plainLower = plain.toLowerCase();
-
-        // Try all variations in order of preference
-        return (
-            dict[tag] ||
-            dict[normalized] ||
-            dict[comma] ||
-            dict[plain] ||
-            dict[plainLower] ||
-            normalizedElements[tag] ||
-            normalizedElements[normalized] ||
-            normalizedElements[comma] ||
-            normalizedElements[plain] ||
-            normalizedElements[plainLower]
-        );
+        const plain = tag.replace(/^x/i, "").replace(/,/g, "");
+        return dict[tag] || dict[comma] || dict[plain];
     };
 
     const dataset = {
@@ -1528,29 +1502,56 @@ function createDataSet(
             const elem = getElement(tag);
             if (!elem) return undefined;
             const val = elem.Value ?? elem.value;
-            if (typeof val === "string") return val;
+            
+            // Handle already-parsed TypedArrays from Wasm
             if (
-                Array.isArray(val) &&
-                val.length > 0 &&
-                typeof val[0] === "string"
-            ) {
-                return val[0];
-            }
-            if (
-                typeof val === "object" &&
-                val !== null &&
-                "Alphanumeric" in val
-            ) {
-                return (val as { Alphanumeric?: string }).Alphanumeric;
-            }
-            if (typeof val === "number") return String(val);
-            if (
-                Array.isArray(val) &&
-                val.length > 0 &&
-                typeof val[0] === "number"
+                (val instanceof Float64Array || val instanceof Int32Array || val instanceof Float32Array) &&
+                val.length > 0
             ) {
                 return String(val[0]);
             }
+            
+            // Handle string values (may need lazy parsing)
+            if (typeof val === "string") {
+                // Check if needs special parsing based on VR
+                const vr = elem.vr || elem.VR;
+                if (vr === 'PN') {
+                    // Try Wasm PN parsing first
+                    const wasmParsed = parsePNWasm(val);
+                    if (wasmParsed && typeof wasmParsed === 'object' && 'Alphanumeric' in wasmParsed) {
+                        // Cache the parsed result to avoid re-parsing
+                        elem.Value = wasmParsed;
+                        return wasmParsed.Alphanumeric;
+                    }
+                    // Fallback to JS parsing
+                    const parsed = parseValueByVR(vr, val);
+                    if (typeof parsed === 'object' && parsed !== null && 'Alphanumeric' in parsed) {
+                        // Cache the parsed result
+                        elem.Value = parsed;
+                        return (parsed as { Alphanumeric?: string }).Alphanumeric;
+                    }
+                }
+                // Multi-value strings: split and return first value
+                if (val.includes('\\')) {
+                    return val.split('\\')[0];
+                }
+                return val;
+            }
+            
+            // Handle arrays
+            if (Array.isArray(val) && val.length > 0) {
+                if (typeof val[0] === "string") return val[0];
+                if (typeof val[0] === "number") return String(val[0]);
+            }
+            
+            // Handle already-parsed PN objects
+            if (typeof val === "object" && val !== null && "Alphanumeric" in val) {
+                return (val as { Alphanumeric?: string }).Alphanumeric;
+            }
+            
+            // Handle numbers
+            if (typeof val === "number") return String(val);
+            
             return undefined;
         },
         uint16: (tag: string) => {
@@ -1568,6 +1569,12 @@ function createDataSet(
             if (typeof val === "string") {
                 const num = parseInt(val, 10);
                 return isNaN(num) ? undefined : num & 0xffff;
+            }
+            if (
+                (val instanceof Float64Array || val instanceof Int32Array || val instanceof Float32Array) &&
+                val.length > 0
+            ) {
+                return Math.floor(val[0]) & 0xffff;
             }
             return undefined;
         },
@@ -1593,6 +1600,13 @@ function createDataSet(
                     ? undefined
                     : num;
             }
+            if (
+                (val instanceof Float64Array || val instanceof Int32Array || val instanceof Float32Array) &&
+                val.length > 0
+            ) {
+                const num = Math.floor(val[0]);
+                return num >= -32768 && num <= 32767 ? num : undefined;
+            }
             return undefined;
         },
         floatString: (tag: string) => {
@@ -1610,6 +1624,12 @@ function createDataSet(
             if (typeof val === "string") {
                 const num = parseFloat(val);
                 return isNaN(num) ? undefined : num;
+            }
+            if (
+                (val instanceof Float64Array || val instanceof Int32Array || val instanceof Float32Array) &&
+                val.length > 0
+            ) {
+                 return val[0];
             }
             return undefined;
         },
@@ -1629,15 +1649,21 @@ function createDataSet(
                 const num = parseInt(val, 10);
                 return isNaN(num) ? undefined : Math.floor(num);
             }
+            if (
+                (val instanceof Float64Array || val instanceof Int32Array || val instanceof Float32Array) &&
+                val.length > 0
+            ) {
+                 return Math.floor(val[0]);
+            }
             return undefined;
         },
-        dict,
-        elements: normalizedElements,
+        dict: dict,
+        elements: dict,
     };
 
     // Make 'elements' non-enumerable to prevent duplication in JSON output
     Object.defineProperty(dataset, "elements", {
-        value: normalizedElements,
+        value: dict,
         enumerable: false, // Hidden from JSON.stringify
         writable: true,
         configurable: true,

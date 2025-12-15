@@ -1,38 +1,53 @@
-# Source files (only dist should be published)
-*.ts
-!*.d.ts
+# NPM Ignore - Files to exclude from npm package
+
+# Source files (only dist is published)
+src/
+tests/
+scripts/
+
+# Config files
+tsconfig*.json
+.eslintrc*
+.prettierrc*
+vitest.config.ts
 
 # Development files
-tsconfig.json
-.gitignore
-.npmignore
-.npmrc
-
-# IDE
 .vscode/
 .idea/
+.git/
+.github/
+.gitignore
+.npmignore
 
-# OS
-.DS_Store
-Thumbs.db
-
-# Logs
-*.log
-
-# Testing
-*.test.ts
-coverage/
-
-# Benchmark files
-benchmark-results.json
-benchmark.ts
-
-# Docs and auxiliary assets (we only publish from `files`)
-core/
-docs/
-tests/
-results/
+# Test data
 test_data/
+
+# Documentation source (keep only compiled docs)
+*.todo
+*.draft
+
+# Rust/Wasm source (keep only built .wasm files)
+src/wasm-core/
+src/wasm-codecs/
+Cargo.toml
+Cargo.lock
+
+# Build artifacts
+*.tsbuildinfo
+.cache/
+
+# Logs and temp
+*.log
+*.tmp
+
+# Gemini artifacts
+.gemini/
+
+# Results
+results/
 scripts/results/
-# Environment
-.env
+benchmark-results.json
+
+# Coverage
+coverage/
+.nyc_output/

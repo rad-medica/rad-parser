@@ -32,35 +32,39 @@ npm install rad-parser
 
 ### **Commands**
 
-| Command                        | Description                                                  |
-| :----------------------------- | :----------------------------------------------------------- |
-| `dump <file>`                  | Parse and print all tags from a DICOM file.                  |
-| `get <file> <tag>`             | Get the value of a single DICOM tag.                         |
-| `anonymize <in> [out]`         | Anonymize a DICOM file.                                      |
-| `convert <in> <out>`           | Convert a DICOM file to an uncompressed format.              |
-| `extract-image <in> <out.png>` | Decode pixel data and save it as a PNG image.                |
-| `help`                         | Show the help message.                                       |
+| Command                        | Description                                     |
+| :----------------------------- | :---------------------------------------------- |
+| `dump <file>`                  | Parse and print all tags from a DICOM file.     |
+| `get <file> <tag>`             | Get the value of a single DICOM tag.            |
+| `anonymize <in> [out]`         | Anonymize a DICOM file.                         |
+| `convert <in> <out>`           | Convert a DICOM file to an uncompressed format. |
+| `extract-image <in> <out.png>` | Decode pixel data and save it as a PNG image.   |
+| `help`                         | Show the help message.                          |
 
 ### **CLI Examples**
 
 **1. Dump all tags from a file:**
+
 ```bash
 npx rad-parser dump "path/to/your/file.dcm"
 ```
 
 **2. Get a specific tag's value (e.g., Patient's Name):**
+
 ```bash
 npx rad-parser get "path/to/your/file.dcm" "0010,0010"
 # Output: Doe^John
 ```
 
 **3. Anonymize a file:**
+
 ```bash
 # Output will be saved to 'original_anon.dcm'
 npx rad-parser anonymize "original.dcm"
 ```
 
 **4. Extract the embedded image as a PNG:**
+
 ```bash
 npx rad-parser extract-image "compressed_image.dcm" "image_out.png"
 ```
@@ -74,16 +78,16 @@ npx rad-parser extract-image "compressed_image.dcm" "image_out.png"
 Use the `light` parse type to quickly read all tags without loading the bulky pixel data.
 
 ```typescript
-import * as fs from 'fs';
-import { parse } from 'rad-parser';
+import * as fs from "fs";
+import { parse } from "rad-parser";
 
-const dicomBytes = new Uint8Array(fs.readFileSync('test.dcm'));
+const dicomBytes = new Uint8Array(fs.readFileSync("test.dcm"));
 
 // Use { type: 'light' } to skip pixel data value
-const dataset = parse(dicomBytes, { type: 'light' });
+const dataset = parse(dicomBytes, { type: "light" });
 
-const patientName = dataset.string('x00100010'); // Patient's Name
-const studyDate = dataset.string('x00080020');   // Study Date
+const patientName = dataset.string("x00100010"); // Patient's Name
+const studyDate = dataset.string("x00080020"); // Study Date
 
 console.log(`Patient: ${patientName}, Study Date: ${studyDate}`);
 ```
@@ -93,8 +97,8 @@ console.log(`Patient: ${patientName}, Study Date: ${studyDate}`);
 Use the `parseAndDecode()` helper to automatically parse a file and decompress the pixel data.
 
 ```typescript
-import * as fs from 'fs';
-import { parseAndDecode } from 'rad-parser';
+import * as fs from "fs";
+import { parseAndDecode } from "rad-parser";
 
 async function getRawPixels(filePath: string) {
     const dicomBytes = new Uint8Array(fs.readFileSync(filePath));
@@ -102,7 +106,7 @@ async function getRawPixels(filePath: string) {
     // This function parses the file AND decodes the pixel data
     const dataset = await parseAndDecode(dicomBytes);
 
-    const pixelDataElement = dataset.elements['x7fe00010'];
+    const pixelDataElement = dataset.elements["x7fe00010"];
     const rawPixelData = pixelDataElement.Value as Uint8Array;
 
     console.log(`Decoded pixel data size: ${rawPixelData.length} bytes`);
@@ -115,8 +119,8 @@ async function getRawPixels(filePath: string) {
 For custom decoders (e.g., a proprietary compression format or a specific WASM library), you can register a configured codec.
 
 ```typescript
-import { registry, Jpeg2000Decoder, parseAndDecode } from 'rad-parser';
-import myCustomJ2kDecoder from './my-custom-j2k-decoder';
+import { registry, Jpeg2000Decoder, parseAndDecode } from "rad-parser";
+import myCustomJ2kDecoder from "./my-custom-j2k-decoder";
 
 // 1. Instantiate the adapter with your external decode function
 const customCodec = new Jpeg2000Decoder(myCustomJ2kDecoder);
@@ -135,7 +139,8 @@ A head-to-head comparison of capabilities, ecosystem, and performance.
 | Feature                  |      rad-parser      |     dcmjs     |  dicom-parser  | efferent-dicom |
 | :----------------------- | :------------------: | :-----------: | :------------: | :------------: |
 | **Dependencies**         |     ✅ **Zero**      |  ❌ Multiple  |    ✅ Zero     |  ⚠️ Multiple   |
-| **Bundle Size**          |     ✅ **~50KB**     |  ⚠️ ~500KB+   |    ✅ ~30KB    |   ⚠️ ~300KB+   |
+| **Bundle Size**          |    ✅ **~390KB**     |  ⚠️ ~500KB+   |    ✅ ~30KB    |   ⚠️ ~300KB+   |
+| **Core Size**            |    ✅ **~100KB**     |      N/A      |      N/A       |      N/A       |
 | **Self-Contained**       |      ✅ **Yes**      |     ❌ No     |     ✅ Yes     |     ❌ No      |
 | **Part 10 Support**      |      ✅ **Yes**      |    ✅ Yes     |     ✅ Yes     |     ✅ Yes     |
 | **Transfer Syntax Det.** |      ✅ **Yes**      |    ✅ Yes     |     ✅ Yes     |     ✅ Yes     |
@@ -165,17 +170,33 @@ A head-to-head comparison of capabilities, ecosystem, and performance.
 
 Results from parsing 50 DICOM files (Medical Imaging Dataset):
 
-| Parser                   | Operation        | Avg Time    | Throughput       | vs dicom-parser |
-| ------------------------ | ---------------- | ----------- | ---------------- | --------------- |
-| **rad-parser (Shallow)** | **Scan / Route** | **1.01 ms** | **~990 files/s** | **1.2x Faster** |
-| **dicom-parser**         | Scan Only        | 1.21 ms     | ~826 files/s     | 1.0x (Baseline) |
-| **rad-parser (Full)**    | Full Parse       | 3.54 ms     | ~282 files/s     | 0.3x            |
-| **dcmjs**                | Full Object      | 3.06 ms     | ~326 files/s     | 0.4x            |
-| **efferent-dicom**       | Full Object      | 7.20 ms     | ~138 files/s     | 0.2x            |
+| Parser                     | Avg Time    | Throughput       | Notes                            |
+| :------------------------- | :---------- | :--------------- | :------------------------------- |
+| **rad-parser (Shallow)**   | **4.87 ms** | **~205 files/s** | Fast metadata scanning with VR   |
+| **rad-parser (Full)**      | **127 ms**  | **~7.8 files/s** | Deep parsing - 3x faster than v1 |
+| **rad-parser-wasm (Full)** | **130 ms**  | **~7.7 files/s** | Wasm-optimized numeric arrays    |
+| **dicom-parser**           | 1.44 ms     | ~694 files/s     | Fastest (offset-only scan)       |
+| **dcmjs**                  | 4.90 ms     | ~204 files/s     | Lightweight object creation      |
+| **efferent-dicom**         | 3.05 ms     | ~328 files/s     | Fast baseline parser             |
 
-_Note: `rad-parser-shallow` is optimized for rapid indexing, routing, and header extraction scenarios._
+_Benchmarked on 50 DICOM files (73MB total, mixed formats). Wasm optimization benefits large numeric arrays (Spectroscopy, RT Dose)._
 
 ## Full Documentation
+
+-   **[API Reference](docs/API.md)** - Complete API documentation for all functions and types
+-   **[Codec Tutorial](docs/CODEC_TUTORIAL.md)** - Image compression/decompression guide with examples
+-   **[GitHub Repository](https://github.com/rad-medica/rad-parser)** - Source code and issues
+
+### Quick Links
+
+-   [Parse DICOM files](docs/API.md#parsebuffe r-options)
+-   [Extract pixel data](docs/API.md#extractrescaledpixeldatadataset)
+-   [Streaming large files](docs/API.md#streaming-api)
+-   [Image decoding examples](docs/CODEC_TUTORIAL.md#basic-image-decoding)
+-   [Wasm optimization](docs/CODEC_TUTORIAL.md#wasm-optimization)
+
+---
+
 For a deep dive into the library's features, including advanced codec registration, encoding examples, and handling encapsulated data like PDFs and ECGs, please see our **[Full API Documentation](./docs/api.md)**.
 
 ---

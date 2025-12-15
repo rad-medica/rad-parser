@@ -20,8 +20,8 @@ export interface SequenceItem {
 export interface DicomElement {
   vr?: string;
   VR?: string;
-  Value?: string | number | Array<string | number> | Record<string, unknown> | Uint8Array | Array<Uint8Array> | ArrayBuffer;
-  value?: string | number | Array<string | number> | Record<string, unknown> | Uint8Array | Array<Uint8Array> | ArrayBuffer;
+  Value?: string | number | Array<string | number> | Record<string, unknown> | Uint8Array | Array<Uint8Array> | ArrayBuffer | Float64Array | Int32Array;
+  value?: string | number | Array<string | number> | Record<string, unknown> | Uint8Array | Array<Uint8Array> | ArrayBuffer | Float64Array | Int32Array;
   length?: number;
   Length?: number;
   items?: unknown[];
@@ -58,7 +58,7 @@ export interface DicomDataSet {
  * Contains only location information, no values
  */
 export interface ShallowDicomElement {
-  tag: string;
+  tag?: string;  // Optional: redundant with dict key
   vr: string;
   length: number;
   dataOffset: number;

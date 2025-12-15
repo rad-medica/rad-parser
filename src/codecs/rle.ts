@@ -2,8 +2,8 @@
  * RLE Codec Plugin
  * Supports RLE Lossless (1.2.840.10008.1.2.5) decoding and encoding.
  */
-import { CodecInfo, PixelDataCodec } from "./codecs";
-import { concatFragments } from "../utils/pixelData";
+import { CodecInfo, PixelDataCodec } from "../core/registry";
+import { concatFragments } from "../utils/bufferUtils";
 
 export class RleCodec implements PixelDataCodec {
     name = "rle-typescript";
@@ -11,6 +11,31 @@ export class RleCodec implements PixelDataCodec {
     codecInfo: CodecInfo = {
         multiFrame: true,
     };
+
+    isWasmInitialized = false;
+    wasmModule: any = null;
+
+    constructor() {
+        this.initWasm();
+    }
+
+    async initWasm() {
+        try {
+            // Dynamic import to avoid hard dependency
+            // @ts-ignore - Build artifact
+            this.wasmModule = await import(
+                "../../src/wasm-codecs-build/rad_parser_wasm_codecs.js"
+            );
+            await this.wasmModule.default(); // Initialize WASM
+            this.isWasmInitialized = true;
+            console.log("RLE WASM module initialized");
+        } catch (e) {
+            console.warn(
+                "Failed to load RLE WASM module, falling back to JS",
+                e
+            );
+        }
+    }
 
     isSupported(): boolean {
         return true;
@@ -48,7 +73,7 @@ export class RleCodec implements PixelDataCodec {
         const view = new DataView(
             buffer.buffer,
             buffer.byteOffset,
-            buffer.byteLength,
+            buffer.byteLength
         );
 
         if (view.byteLength < 64) {
@@ -81,7 +106,17 @@ export class RleCodec implements PixelDataCodec {
             }
         }
 
-        const decodedSegments = segments.map((s) => this.decompressRle(s));
+        const decodedSegments = segments.map((s) => {
+            if (this.isWasmInitialized && this.wasmModule) {
+                try {
+                    return this.wasmModule.rle_decode(s);
+                } catch (e) {
+                    console.warn("Wasm decode failed, fallback to JS", e);
+                    return this.decompressRle(s);
+                }
+            }
+            return this.decompressRle(s);
+        });
 
         if (decodedSegments.length === 0) return new Uint8Array(0);
         if (decodedSegments.length === 1) return decodedSegments[0];
@@ -161,7 +196,7 @@ export class RleCodec implements PixelDataCodec {
         width: number,
         height: number,
         samples: number,
-        bits: number,
+        bits: number
     ): Promise<Uint8Array[]> {
         // Split into segments
         // Inverse of processFrame.
@@ -204,7 +239,17 @@ export class RleCodec implements PixelDataCodec {
         }
 
         // Compress segments
-        const encodedSegments = segments.map((s) => this.packBits(s));
+        const encodedSegments = segments.map((s) => {
+            if (this.isWasmInitialized && this.wasmModule) {
+                try {
+                    return this.wasmModule.rle_encode(s);
+                } catch (e) {
+                    console.warn("Wasm encode failed, fallback to JS", e);
+                    return this.packBits(s);
+                }
+            }
+            return this.packBits(s);
+        });
 
         // Build Header
         // 16 offsets (64 bytes).
@@ -288,3 +333,4 @@ export class RleCodec implements PixelDataCodec {
         return new Uint8Array(out);
     }
 }
+

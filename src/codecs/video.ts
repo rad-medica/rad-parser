@@ -8,8 +8,8 @@
  * Supports MPEG-2, MPEG-4 AVC/H.264
  */
 
-import { CodecInfo, PixelDataCodec } from "./codecs";
-import { concatFragments } from "../utils/pixelData";
+import { CodecInfo, PixelDataCodec } from "../core/registry";
+import { concatFragments } from "../utils/bufferUtils";
 
 export class VideoDecoder implements PixelDataCodec {
     name = "video-adapter";

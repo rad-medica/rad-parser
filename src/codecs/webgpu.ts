@@ -3,8 +3,8 @@
  * Infrastructure for Compute Shader based decoding.
  */
 
-import { CodecInfo, PixelDataCodec } from "./codecs";
-import { concatFragments } from "../utils/pixelData";
+import { CodecInfo, PixelDataCodec } from "../core/registry";
+import { concatFragments } from "../utils/bufferUtils";
 
 export class WebGpuDecoder implements PixelDataCodec {
     name = "webgpu";

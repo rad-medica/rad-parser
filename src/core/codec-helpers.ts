@@ -3,11 +3,8 @@
  * with the codec system externally.
  */
 
-import { registry } from '../plugins/codecs';
+import { registry } from './registry';
 import { DicomDataSet } from './types';
-import { Jpeg2000Decoder } from '../plugins/jpeg2000';
-import { JpegLsDecoder } from '../plugins/jpegls';
-
 /**
  * Decodes a compressed pixel data buffer using the rad-parser codec registry.
  *
@@ -33,16 +30,6 @@ export async function decodePixelData(
         );
     }
 
-    // This is a simplified example; a real implementation may need to handle
-    // injecting external decoders more robustly here.
-    if (decoder.name === 'jpeg2000-adapter' && decodeOptions?.getJpeg2000Decoder) {
-        const j2k = new Jpeg2000Decoder(decodeOptions.getJpeg2000Decoder());
-        return j2k.decode(fragments, decodeOptions);
-    }
-    if (decoder.name === 'jpegls-adapter' && decodeOptions?.getJpegLsDecoder) {
-        const jls = new JpegLsDecoder(decodeOptions.getJpegLsDecoder());
-        return jls.decode(fragments, decodeOptions);
-    }
 
     return decoder.decode(fragments, decodeOptions);
 }

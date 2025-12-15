@@ -329,10 +329,8 @@ export class StreamingParser {
       }
     }
 
-    // Format tag in multiple formats for compatibility
+    // Format tag (single format only - tagHex)
     const tagHex = `x${group.toString(16).padStart(4, '0')}${element.toString(16).padStart(4, '0')}`;
-    const tagComma = `${group.toString(16).padStart(4, '0')},${element.toString(16).padStart(4, '0')}`;
-    const tagPlain = `${group.toString(16).padStart(4, '0')}${element.toString(16).padStart(4, '0')}`;
 
     // Handle sequences
     if (vr === 'SQ' || length === 0xffffffff) {
@@ -359,8 +357,8 @@ export class StreamingParser {
         };
 
         return {
-          dict: { [tagHex]: elementData, [tagComma]: elementData, [tagPlain]: elementData },
-          normalizedElements: { [tagHex]: elementData, [tagComma]: elementData, [tagPlain]: elementData },
+          dict: { [tagHex]: elementData },
+          normalizedElements: { [tagHex]: elementData },
         };
       } else if (view.getRemainingBytes() >= length) {
         const sequence = parseSequence(
@@ -383,8 +381,8 @@ export class StreamingParser {
         };
 
         return {
-          dict: { [tagHex]: elementData, [tagComma]: elementData, [tagPlain]: elementData },
-          normalizedElements: { [tagHex]: elementData, [tagComma]: elementData, [tagPlain]: elementData },
+          dict: { [tagHex]: elementData },
+          normalizedElements: { [tagHex]: elementData },
         };
       } else {
         // Not enough data - wait for more
@@ -464,8 +462,8 @@ export class StreamingParser {
     };
 
     return {
-      dict: { [tagHex]: elementData, [tagComma]: elementData, [tagPlain]: elementData },
-      normalizedElements: { [tagHex]: elementData, [tagComma]: elementData, [tagPlain]: elementData },
+      dict: { [tagHex]: elementData },
+      normalizedElements: { [tagHex]: elementData },
     };
   }
 
@@ -520,16 +518,8 @@ export class StreamingParser {
       });
     }
 
+    // Lazy parsing for PN/DA/TM/DT/AS - return raw string
     if (vr === 'PN' || vr === 'DA' || vr === 'TM' || vr === 'DT' || vr === 'AS') {
-      const parsed = parseValueByVR(vr, str);
-      if (
-        typeof parsed === 'string' ||
-        typeof parsed === 'number' ||
-        Array.isArray(parsed) ||
-        (typeof parsed === 'object' && parsed !== null)
-      ) {
-        return parsed as string | number | Array<string | number> | Record<string, unknown>;
-      }
       return str;
     }
 

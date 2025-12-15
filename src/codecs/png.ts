@@ -3,7 +3,7 @@
  * Uses Node's 'zlib' module for DEFLATE compression.
  * No external dependencies (uses built-ins).
  */
-import { CodecInfo, PixelDataCodec } from "./codecs";
+import { CodecInfo, PixelDataCodec } from "../core/registry";
 
 export class NodePngEncoder implements PixelDataCodec {
     name = "png-node";
@@ -12,13 +12,29 @@ export class NodePngEncoder implements PixelDataCodec {
         multiFrame: false, // Not applicable for an encoder, but required by interface
     };
 
+    isWasmInitialized = false;
+    wasmModule: any = null;
+
+    constructor() {
+        this.initWasm();
+    }
+
+    async initWasm() {
+        try {
+            // @ts-ignore - Build artifact
+            this.wasmModule = await import("../../src/wasm-codecs-build/rad_parser_wasm_codecs.js");
+            await this.wasmModule.default();
+            this.isWasmInitialized = true;
+            console.log("PNG WASM module initialized");
+        } catch (e) {
+            console.warn("Failed to load PNG WASM module", e);
+        }
+    }
+
     isSupported(): boolean {
-        // Only supported in Node.js environment
-        return (
-            typeof process !== "undefined" &&
-            process.versions != null &&
-            process.versions.node != null
-        );
+        // Supported if Node (for fallback) or if Wasm loaded
+        const isNode = typeof process !== "undefined" && process.versions != null && process.versions.node != null;
+        return isNode || this.isWasmInitialized;
     }
 
     canDecode(ts: string): boolean {
@@ -41,6 +57,17 @@ export class NodePngEncoder implements PixelDataCodec {
         samples: number,
         bits: number,
     ): Promise<Uint8Array[]> {
+
+        if (this.isWasmInitialized && this.wasmModule) {
+            try {
+                const result = this.wasmModule.png_encode(pixelData, width, height, bits, samples);
+                return [result];
+            } catch (e) {
+                console.warn("Wasm PNG encode failed, falling back to Node.js implementation", e);
+            }
+        }
+        
+        // Fallback or Node-only path
         // Dynamic import to avoid bundling 'zlib' for browser builds
         let zlib;
         try {

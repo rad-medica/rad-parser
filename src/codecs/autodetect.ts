@@ -5,7 +5,7 @@
  * 2. If explicit match fails/missing, sniffs the bitstream magic bytes.
  * 3. Delegates to the appropriate codec.
  */
-import { CodecInfo, PixelDataCodec, registry } from "./codecs";
+import { CodecInfo, PixelDataCodec, registry } from "../core/registry";
 import { RleCodec } from "./rle";
 // import { NodePngEncoder } from './png'; // Unused and causes bundling issues
 // We import classes for instanceof checks or specific sniffing logic if needed,

@@ -1,207 +1,320 @@
-# Utility Functions API Reference
+# Rad-Parser: Utilities Reference
 
-This document provides detailed documentation for the low-level utility functions exported by `rad-parser`. These helpers are useful for advanced use cases, such as custom element processing, display formatting, and manual value parsing.
+## Pixel Data Utilities
+
+### extractRescaledPixelData(dataset)
+
+Extract and rescale pixel data to calibrated Float32Array.
+
+```typescript
+import { extractRescaledPixelData } from "rad-parser";
+
+const pixels = extractRescaledPixelData(dataset);
+// Returns: Float32Array with rescaled values
+```
+
+**What it does:**
+
+-   Extracts pixel data (auto-decodes compressed formats)
+-   Applies: `value = stored * slope + intercept`
+-   Returns consistent Float32Array
+
+**Use cases:**
+
+-   Get Hounsfield units from CT scans
+-   Extract calibrated MR signal intensities
+-   Prepare pixel data for ML/analysis
+
+---
+
+### extractPixelDataFromView(view, length, transferSyntax)
+
+Low-level pixel data extraction from buffer (used internally by parser).
+
+```typescript
+import { extractPixelDataFromView } from "rad-parser";
+
+const result = extractPixelDataFromView(view, length, "1.2.840.10008.1.2.1");
+// Returns: PixelDataResult with raw bytes
+```
+
+**Returns:** `PixelDataResult`
+
+-   `pixelData: Uint8Array` - Raw pixel bytes
+-   `isEncapsulated: boolean` - True if compressed
+-   `fragments?: Array<{offset, length}>` - Fragment info
+-   `fragmentArrays?: Uint8Array[]` - Fragment data
+
+---
+
+## Compression Utilities
+
+### decompressPixelData(data, transferSyntax, options)
+
+Decompress pixel data using appropriate codec.
+
+```typescript
+import { decompressPixelData } from "rad-parser";
+
+const decompressed = await decompressPixelData(
+    compressedData,
+    "1.2.840.10008.1.2.4.90", // JPEG 2000
+    { rows: 512, columns: 512 }
+);
+```
+
+### supportsImageDecoder()
+
+Check if browser supports ImageDecoder API.
+
+```typescript
+import { supportsImageDecoder } from "rad-parser";
+
+if (supportsImageDecoder()) {
+    // Use browser's native decoder
+}
+```
 
 ---
 
 ## Tag Utilities
 
-These functions help with the manipulation and display of DICOM tag strings.
+### formatTagWithComma(group, element)
 
-### `getTagName()`
-
-Retrieves the descriptive name for a given DICOM tag.
-
-**Signature:** `getTagName(tag: string): string | undefined`
-
-**Example:**
+Format tag as comma-separated hex.
 
 ```typescript
-import { getTagName } from 'rad-parser';
+import { formatTagWithComma } from "rad-parser";
 
-const patientNameTag = 'x00100010';
-const studyDateTag = 'x00080020';
-
-console.log(`${patientNameTag} => ${getTagName(patientNameTag)}`); // "PatientName"
-console.log(`${studyDateTag} => ${getTagName(studyDateTag)}`);     // "StudyDate"
+const tag = formatTagWithComma(0x0010, 0x0010);
+// Returns: "0010,0010"
 ```
 
-### `formatTagWithComma()`
+### normalizeTag(tag)
 
-Converts a tag string from the 'x' format (e.g., `'x00100010'`) to the standard comma-separated group/element format (e.g., `'(0010,0010)'`).
-
-**Signature:** `formatTagWithComma(tag: string): string`
-
-**Example:**
+Normalize tag to x-prefixed lowercase hex.
 
 ```typescript
-import { formatTagWithComma } from 'rad-parser';
+import { normalizeTag } from "rad-parser";
 
-const tag = 'x00100010';
-const formattedTag = formatTagWithComma(tag);
-
-console.log(formattedTag); // "(0010,0010)"
-```
-
-### `normalizeTag()`
-
-Converts a tag from various common formats (e.g., `(0010,0010)`, `'0010,0010'`) into the internal 'x' format (`'x00100010'`) used by the `DicomDataSet`.
-
-**Signature:** `normalizeTag(tag: string): string`
-
-**Example:**
-
-```typescript
-import { normalizeTag } from 'rad-parser';
-
-const normalized1 = normalizeTag('(0010,0010)');
-const normalized2 = normalizeTag('0008,0020');
-
-console.log(normalized1); // "x00100010"
-console.log(normalized2); // "x00080020"
-```
-
-### `isPrivateTag()`
-
-Checks if a given tag string (in 'x' format) falls within the private tag range.
-
-**Signature:** `isPrivateTag(tag: string): boolean`
-
-**Example:**
-
-```typescript
-import { isPrivateTag } from 'rad-parser';
-
-const publicTag = 'x00100010';
-const privateTag = 'x00190010'; // Odd group number indicates a private tag
-
-console.log(`Is ${publicTag} private? ${isPrivateTag(publicTag)}`); // false
-console.log(`Is ${privateTag} private? ${isPrivateTag(privateTag)}`);   // true
+normalizeTag("0010,0010"); // → 'x00100010'
+normalizeTag("00100010"); // → 'x00100010'
+normalizeTag("x00100010"); // → 'x00100010'
 ```
 
 ---
 
-## Value Parsers
+## Dictionary Utilities
 
-These functions are used internally to parse the raw string values of DICOM elements into more useful JavaScript types. They are exposed for cases where you might need to parse a value manually.
+### getTagName(tag)
 
-### `parseDate()`
-
-Parses a DICOM date string (DA VR) in the format `YYYYMMDD` into a JavaScript `Date` object.
-
-**Signature:** `parseDate(dateString: string): Date | null`
-
-**Example:**
+Get human-readable tag name from dictionary.
 
 ```typescript
-import { parseDate } from 'rad-parser';
+import { getTagName } from "rad-parser";
 
-const dicomDate = '20231026';
-const jsDate = parseDate(dicomDate);
-
-console.log(jsDate?.toUTCString()); // "Thu, 26 Oct 2023 00:00:00 GMT"
+getTagName("x00100010"); // → "Patient's Name"
+getTagName("0010,0020"); // → "Patient ID"
 ```
 
-### `parseTime()`
+### isPrivateTag(tag)
 
-Parses a DICOM time string (TM VR) in formats like `HHMMSS.FFFFFF` into an object containing hours, minutes, seconds, and fractional seconds.
-
-**Signature:** `parseTime(timeString: string): { hours: number, minutes: number, seconds: number, fractional: number } | null`
-
-**Example:**
+Check if tag is a private tag.
 
 ```typescript
-import { parseTime } from 'rad-parser';
+import { isPrivateTag } from "rad-parser";
 
-const dicomTime = '235958.123456';
-const parsedTime = parseTime(dicomTime);
-
-console.log(parsedTime);
-// { hours: 23, minutes: 59, seconds: 58, fractional: 0.123456 }
+isPrivateTag("x00100010"); // → false (standard)
+isPrivateTag("x00091001"); // → true (private)
 ```
 
-### `parseDateTime()`
+---
 
-Parses a DICOM date-time string (DT VR) into a JavaScript `Date` object.
+## Value Parsing Utilities
 
-**Signature:** `parseDateTime(dtString: string): Date | null`
+### parsePersonName(value)
 
-**Example:**
-
-```typescript
-import { parseDateTime } from 'rad-parser';
-
-const dicomDateTime = '20231026235958';
-const jsDate = parseDateTime(dicomDateTime);
-
-console.log(jsDate?.toUTCString()); // "Thu, 26 Oct 2023 23:59:58 GMT"
-```
-
-### `parsePersonName()`
-
-Parses a DICOM person name string (PN VR), which can contain multiple components separated by `^`.
-
-**Signature:** `parsePersonName(nameString: string): { Alphabetic: string, ... }`
-
-**Example:**
+Parse DICOM Person Name (PN) value.
 
 ```typescript
-import { parsePersonName } from 'rad-parser';
+import { parsePersonName } from "rad-parser";
 
-const dicomName = 'Doe^John^Middle^^Dr.';
-const parsedName = parsePersonName(dicomName);
-
-console.log(parsedName);
-// {
-//   Alphabetic: 'Doe, John, Middle, Dr.',
-//   Family: 'Doe',
-//   Given: 'John',
-//   Middle: 'Middle',
-//   Prefix: '',
-//   Suffix: 'Dr.'
+const pn = parsePersonName("Doe^John^Middle^Dr.^Jr.");
+// Returns: {
+//   family: 'Doe',
+//   given: 'John',
+//   middle: 'Middle',
+//   prefix: 'Dr.',
+//   suffix: 'Jr.',
+//   Alphanumeric: 'Doe^John^Middle^Dr.^Jr.'
 // }
 ```
 
-### `parseAgeString()`
+### parseDate(value)
 
-Parses a DICOM age string (AS VR) like `'045Y'` into a number of days.
-
-**Signature:** `parseAgeString(ageString: string): number | null`
-
-**Example:**
+Parse DICOM Date (DA) value.
 
 ```typescript
-import { parseAgeString } from 'rad-parser';
+import { parseDate } from "rad-parser";
 
-const ageInYears = '045Y'; // 45 years
-const ageInMonths = '006M'; // 6 months
-const ageInWeeks = '002W'; // 2 weeks
-const ageInDays = '010D'; // 10 days
+parseDate("20231225");
+// Returns: Date object for December 25, 2023
+```
 
-console.log(`045Y => ${parseAgeString(ageInYears)} days`);     // 16425
-console.log(`006M => ${parseAgeString(ageInMonths)} days`);   // 180
-console.log(`002W => ${parseAgeString(ageInWeeks)} days`);     // 14
-console.log(`010D => ${parseAgeString(ageInDays)} days`);       // 10
+### parseTime(value)
+
+Parse DICOM Time (TM) value.
+
+```typescript
+import { parseTime } from "rad-parser";
+
+parseTime("143025.123456");
+// Returns: Date object with time 14:30:25.123456
+```
+
+### parseDateTime(value)
+
+Parse DICOM DateTime (DT) value.
+
+```typescript
+import { parseDateTime } from "rad-parser";
+
+parseDateTime("20231225143025");
+// Returns: Date object
+```
+
+### parseAgeString(value)
+
+Parse DICOM Age String (AS) value.
+
+```typescript
+import { parseAgeString } from "rad-parser";
+
+parseAgeString("050Y"); // → { value: 50, unit: 'Y' }
+parseAgeString("006M"); // → { value: 6, unit: 'M' }
+parseAgeString("120D"); // → { value: 120, unit: 'D' }
+```
+
+### parseValueByVR(vr, value)
+
+Parse value based on VR type.
+
+```typescript
+import { parseValueByVR } from "rad-parser";
+
+parseValueByVR("PN", "Doe^John"); // → Person Name object
+parseValueByVR("DA", "20231225"); // → Date
+parseValueByVR("DS", "1.5\\2.0"); // → [1.5, 2.0]
 ```
 
 ---
 
-## Other Utilities
+## VR Detection Utilities
 
-### `detectVR()`
+### detectVR(group, element)
 
-Infers the Value Representation (VR) of a tag based on the DICOM dictionary. This is primarily for files using Implicit VR transfer syntaxes.
-
-**Signature:** `detectVR(tag: string): string`
-
-**Example:**
+Detect VR for implicit VR transfer syntax.
 
 ```typescript
-import { detectVR } from 'rad-parser';
+import { detectVR } from "rad-parser";
 
-// PatientName is 'PN'
-console.log(`VR for x00100010 is ${detectVR('x00100010')}`); // "PN"
-
-// StudyDate is 'DA'
-console.log(`VR for x00080020 is ${detectVR('x00080020')}`); // "DA"
+detectVR(0x0010, 0x0010); // → 'PN'
+detectVR(0x0020, 0x000d); // → 'UI'
 ```
+
+### requiresExplicitLength(vr)
+
+Check if VR uses 4-byte length encoding.
+
+```typescript
+import { requiresExplicitLength } from "rad-parser";
+
+requiresExplicitLength("OB"); // → true (uses 4 bytes)
+requiresExplicitLength("US"); // → false (uses 2 bytes)
+```
+
+---
+
+## Buffer Utilities
+
+### SafeDataView
+
+Safe wrapper around DataView with bounds checking.
+
+```typescript
+import { SafeDataView } from "rad-parser";
+
+const view = new SafeDataView(buffer, 0);
+view.setEndianness(true); // Little endian
+
+const value = view.readUint16(); // Safe read with bounds check
+const bytes = view.readBytes(10); // Read 10 bytes
+const str = view.readString(20, "utf-8"); // Read string
+```
+
+**Methods:**
+
+-   `readUint8()`, `readUint16()`, `readUint32()`
+-   `readInt16()`, `readInt32()`
+-   `readFloat32()`, `readFloat64()`
+-   `readBytes(length)`
+-   `readString(length, charset)`
+-   `getRemainingBytes()`
+-   `getPosition()`, `setPosition(pos)`
+
+---
+
+## Transfer Syntax Utilities
+
+### extractTransferSyntax(dataset)
+
+Extract transfer syntax UID from dataset.
+
+```typescript
+import { extractTransferSyntax } from "rad-parser";
+
+const ts = extractTransferSyntax(dataset);
+// Returns: '1.2.840.10008.1.2.1' (Explicit VR Little Endian)
+```
+
+### isCompressedTransferSyntax(transferSyntax)
+
+Check if transfer syntax indicates compression.
+
+```typescript
+import { isCompressedTransferSyntax } from "rad-parser";
+
+isCompressedTransferSyntax("1.2.840.10008.1.2.4.90"); // → true (JPEG 2000)
+isCompressedTransferSyntax("1.2.840.10008.1.2.1"); // → false (uncompressed)
+```
+
+### TRANSFER_SYNTAX constants
+
+```typescript
+import { TRANSFER_SYNTAX } from "rad-parser";
+
+TRANSFER_SYNTAX.IMPLICIT_VR_LITTLE_ENDIAN; // '1.2.840.10008.1.2'
+TRANSFER_SYNTAX.EXPLICIT_VR_LITTLE_ENDIAN; // '1.2.840.10008.1.2.1'
+TRANSFER_SYNTAX.JPEG_BASELINE; // '1.2.840.10008.1.2.4.50'
+TRANSFER_SYNTAX.JPEG_2000_LOSSLESS; // '1.2.840.10008.1.2.4.90'
+TRANSFER_SYNTAX.RLE_LOSSLESS; // '1.2.840.10008.1.2.5'
+```
+
+---
+
+## Sequence Utilities
+
+### parseSequence(view, explicitVR, littleEndian, charset, undefinedLength)
+
+Parse DICOM sequence (SQ) elements.
+
+```typescript
+import { parseSequence } from "rad-parser";
+
+const items = parseSequence(view, true, true, "utf-8", false);
+// Returns: Array of sequence items
+```
+
+---
+
+_For complete examples, see [API.md](API.md) and [CODEC_TUTORIAL.md](CODEC_TUTORIAL.md)_

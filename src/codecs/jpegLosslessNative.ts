@@ -3,8 +3,8 @@
  * Demonstrates internal implementation of Frame Parsing and Huffman Table extraction.
  * Full Entropy Decoding and Predictor loop is omitted for brevity but feasible.
  */
-import { CodecInfo, PixelDataCodec } from "./codecs";
-import { concatFragments } from "../utils/pixelData";
+import { CodecInfo, PixelDataCodec } from "../core/registry";
+import { concatFragments } from "../utils/bufferUtils";
 
 export class JpegLosslessNativeDecoder implements PixelDataCodec {
     name = "jpeg-lossless-native-preview";

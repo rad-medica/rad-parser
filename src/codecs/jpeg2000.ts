@@ -8,8 +8,8 @@
  * Transfer Syntaxes: 1.2.840.10008.1.2.4.90 (Lossless), 1.2.840.10008.1.2.4.91 (Lossy)
  */
 
-import { concatFragments } from "../utils/pixelData";
-import { CodecInfo, PixelDataCodec } from "./codecs";
+import { concatFragments } from "../utils/bufferUtils";
+import { CodecInfo, PixelDataCodec } from "../core/registry";
 
 export class Jpeg2000Decoder implements PixelDataCodec {
     name = "jpeg2000-adapter";
@@ -18,7 +18,9 @@ export class Jpeg2000Decoder implements PixelDataCodec {
         multiFrame: false,
     };
 
-    // Optional: Allow injecting an external function (e.g. from openjpegwasm)
+    isWasmInitialized = false;
+    wasmModule: any = null;
+
     constructor(
         private externalDecoder?: (buffer: Uint8Array) => Promise<Uint8Array>,
         private externalEncoder?: (
@@ -29,7 +31,21 @@ export class Jpeg2000Decoder implements PixelDataCodec {
             s: number,
             b: number,
         ) => Promise<Uint8Array[]>,
-    ) {}
+    ) {
+        this.initWasm();
+    }
+
+    async initWasm() {
+        try {
+            // @ts-ignore
+            this.wasmModule = await import("../../src/wasm-codecs-build/rad_parser_wasm_codecs.js");
+            await this.wasmModule.default();
+            this.isWasmInitialized = true;
+            console.log("JPEG 2000 WASM module initialized (Stub)");
+        } catch (e) {
+            console.warn("Failed to load WASM module", e);
+        }
+    }
 
     canEncode(transferSyntax: string): boolean {
         return !!this.externalEncoder && this.canDecode(transferSyntax);
@@ -70,15 +86,24 @@ export class Jpeg2000Decoder implements PixelDataCodec {
     }
 
     async decode(encodedBuffer: Uint8Array[], info: any): Promise<Uint8Array> {
+        const combined = concatFragments(encodedBuffer);
+
+        // 1. Try Wasm (Stub/Future Impl)
+        if (this.isWasmInitialized && this.wasmModule) {
+            try {
+                return this.wasmModule.jpeg2000_decode(combined);
+            } catch (e) {
+                // Expected failure for stub
+                // console.debug("Wasm J2K decode failed/stubbed, falling back", e);
+            }
+        }
+
+        // 2. Fallback to external decoder
         if (!this.externalDecoder) {
             throw new Error(
                 "JPEG 2000 decoder not configured. Please inject a decoder (e.g. OpenJPEG).",
             );
         }
-
-        // For JPEG 2000, the entire codestream for a frame may be split across multiple fragments.
-        // These need to be concatenated before decoding.
-        const combined = concatFragments(encodedBuffer);
 
         return this.externalDecoder(combined);
     }

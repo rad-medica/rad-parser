@@ -1,22 +1,20 @@
 /**
- * RAD-Parser: In-House DICOM Parser Implementation
+ * RAD-Parser Core: DICOM Parser without Codecs
  *
- * A lightweight, performant, self-contained DICOM parser with no external dependencies.
- * Designed for safety and efficiency in medical imaging workloads.
- *
- * @module rad-parser
+ * This entry point exports only the parser logic, tag utilities, and interfaces.
+ * Consumers must register their own codecs or use the 'rad-parser/codecs' package.
  */
 
-/** Compression helpers exposed by the package. */
+// Global Compression Utils
 export {
     decompressJPEG,
     decompressPixelData,
     supportsImageDecoder,
 } from "./utils/compression";
-/** Dictionary and tag utilities */
+
+// Dictionary (Optional but usually part of core)
 export { dicomDictionary, getTagName, isPrivateTag } from "./utils/dictionary";
 export { DicomParseError, createParseError } from "./core/errors";
-/** Core parser entry points */
 
 export {
     canParse,
@@ -28,21 +26,25 @@ export {
     type UnifiedParseOptions,
     extractPixelData,
 } from "./core/parser";
+
 export { initCoreWasm } from "./core/wasm-opt";
+
 export { write, type WriteOptions } from "./core/writer";
 export { anonymize, type AnonymizationOptions } from "./core/anonymizer";
+
 export {
     extractTransferSyntax,
     TRANSFER_SYNTAX,
 } from "./utils/extractTransferSyntax";
-/** Pixel data utilities */
+
 export {
     isCompressedTransferSyntax,
     type PixelDataResult,
 } from "./utils/pixelData";
-/** Safe byte readers and sequence helpers */
+
 export { SafeDataView } from "./utils/SafeDataView";
 export { parseSequence } from "./utils/sequenceParser";
+
 export {
     StreamingParser,
     parseFromAsyncIterator,
@@ -50,7 +52,9 @@ export {
     type ElementCallback,
     type StreamingOptions,
 } from "./core/streaming";
+
 export { formatTagWithComma, normalizeTag } from "./utils/tagUtils";
+
 export type {
     DicomDataSet,
     DicomElement,
@@ -58,6 +62,7 @@ export type {
     ShallowDicomElement,
     PixelDataInfo,
 } from "./core/types";
+
 export {
     parseAgeString,
     parseDate,
@@ -66,38 +71,21 @@ export {
     parseTime,
     parseValueByVR,
 } from "./utils/valueParsers";
+
 export {
     detectVR,
     detectVRForPrivateTag,
     requiresExplicitLength,
 } from "./utils/vrDetection";
-// Codecs & Plugins
+
+// Codec Registry (Core Logic)
 export {
     registry,
     type PixelDataCodec,
     type FunctionalCodecConfig,
+    CodecRegistry,
+    type CodecInfo,
 } from "./core/registry";
-export { RleCodec } from "./codecs/rle";
-export { BrowserImageCodec } from "./codecs/browser";
-export { WebGpuDecoder } from "./codecs/webgpu";
-export { WebGlDecoder } from "./codecs/webgl";
-export { Jpeg2000Decoder } from "./codecs/jpeg2000";
-export { JpegLsDecoder } from "./codecs/jpegls";
-export { JpegLosslessDecoder } from "./codecs/jpegLossless";
-export { VideoDecoder } from "./codecs/video";
-export { NodePngEncoder } from "./codecs/png";
-export { JpegLosslessNativeDecoder } from "./codecs/jpegLosslessNative";
-export { AutoDetectCodec } from "./codecs/autodetect";
 
-// New helper functions
+// Helpers
 export { decodePixelData, encodePixelData } from "./core/codec-helpers";
-export { extractRescaledPixelData } from "./utils/pixelDataExtractor";
-
-
-// Initialize dynamic codec registration
-import "./codecs/auto-register";
-
-// Register Dictionary
-import { dicomDictionary as data } from "./utils/dictionary-data";
-import { registerDictionary } from "./utils/dictionary";
-registerDictionary(data);

@@ -1,7 +1,7 @@
 // This file configures the dynamic loading for all standard codecs.
 // It maps Transfer Syntax UIDs to the corresponding codec implementation.
 
-import { registry } from './codecs';
+import { registry } from '../core/registry';
 
 // RLE Lossless
 registry.registerDynamic('1.2.840.10008.1.2.5', () => import('./rle'));

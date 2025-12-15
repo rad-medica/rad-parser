@@ -62,21 +62,8 @@ function extractNativePixelData(
     }
 }
 
-/**
- * Concatenate multiple Uint8Array fragments into a single Uint8Array.
- * @param fragments - An array of Uint8Array fragments.
- * @returns A single Uint8Array containing all the data from the fragments.
- */
-export function concatFragments(fragments: Uint8Array[]): Uint8Array {
-    const totalLength = fragments.reduce((acc, curr) => acc + curr.length, 0);
-    const combined = new Uint8Array(totalLength);
-    let offset = 0;
-    for (const arr of fragments) {
-        combined.set(arr, offset);
-        offset += arr.length;
-    }
-    return combined;
-}
+import { concatFragments } from "./bufferUtils";
+export { concatFragments };
 
 /**
  * Extract encapsulated (compressed) pixel data
