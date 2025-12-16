@@ -9,6 +9,14 @@ import { SafeDataView } from "./SafeDataView";
 import { detectVR, requiresExplicitLength } from "./vrDetection";
 import { parseValueByVR } from "./valueParsers";
 import { createParseError } from "../core/errors";
+import {
+
+    parseDAWasm,
+    parseDSWasm,
+    parseISWasm,
+    parsePNWasm,
+    parseTMWasm,
+} from "../core/wasm-opt";
 
 /**
  * Parse a sequence item
@@ -19,6 +27,7 @@ function parseSequenceItem(
     littleEndian: boolean,
     characterSet: string,
     expected: boolean = true,
+    enableWasm?: boolean,
 ): SequenceItem | null {
     const startPos = view.getPosition();
 
@@ -52,7 +61,9 @@ function parseSequenceItem(
             view,
             explicitVR,
             littleEndian,
+
             characterSet,
+            enableWasm,
         );
     }
 
@@ -76,6 +87,7 @@ function parseSequenceItem(
         littleEndian,
         characterSet,
         itemEnd,
+        enableWasm,
     );
 }
 
@@ -87,6 +99,8 @@ function parseUndefinedLengthItem(
     explicitVR: boolean,
     littleEndian: boolean,
     characterSet: string,
+
+    enableWasm?: boolean,
 ): SequenceItem {
     const elements: Record<string, DicomElement> = {};
     const normalizedElements: Record<string, DicomElement> = {};
@@ -114,6 +128,7 @@ function parseUndefinedLengthItem(
             explicitVR,
             littleEndian,
             characterSet,
+            enableWasm,
         );
         if (!element) {
             // If we can't parse an element inside an undefined length item, and didn't find delimiter: error
@@ -145,6 +160,7 @@ function parseItemElements(
     littleEndian: boolean,
     characterSet: string,
     endPos: number,
+    enableWasm?: boolean,
 ): SequenceItem {
     const elements: Record<string, DicomElement> = {};
     const normalizedElements: Record<string, DicomElement> = {};
@@ -155,6 +171,7 @@ function parseItemElements(
             explicitVR,
             littleEndian,
             characterSet,
+            enableWasm,
         );
         if (!element) {
             break;
@@ -180,6 +197,7 @@ function parseElement(
     explicitVR: boolean,
     littleEndian: boolean,
     characterSet: string,
+    enableWasm?: boolean,
 ): {
     dict: Record<string, DicomElement>;
     normalizedElements: Record<string, DicomElement>;
@@ -232,7 +250,9 @@ function parseElement(
             explicitVR,
             littleEndian,
             characterSet,
+
             length === 0xffffffff,
+            enableWasm,
         );
         const tagHex = `x${group.toString(16).padStart(4, "0")}${element.toString(16).padStart(4, "0")}`;
         const tagComma = `${group.toString(16).padStart(4, "0")},${element.toString(16).padStart(4, "0")}`;
@@ -278,7 +298,13 @@ function parseElement(
         }
 
         try {
-            value = parseElementValue(view, vr, length, characterSet);
+            value = parseElementValue(
+                view,
+                vr,
+                length,
+                characterSet,
+                enableWasm,
+            );
         } catch {
             view.readBytes(length);
             return null;
@@ -337,6 +363,8 @@ function parseElementValue(
     vr: string,
     length: number,
     characterSet: string,
+
+    enableWasm?: boolean,
 ): unknown {
     if (
         vr === "OB" ||
@@ -364,6 +392,58 @@ function parseElementValue(
     }
 
     // String-based VR
+    if (enableWasm) {
+        if (vr === "PN") {
+            const str = view.readString(length, characterSet);
+            const res = parsePNWasm(str);
+            if (res) return res;
+            return str;
+        }
+        if (vr === "DA") {
+            const str = view.readString(length, characterSet);
+            const res = parseDAWasm(str);
+            if (res) return res;
+            return str;
+        }
+        if (vr === "TM") {
+            const str = view.readString(length, characterSet);
+            const res = parseTMWasm(str);
+            if (res) return res;
+            return str;
+        }
+        if (vr === "DS") {
+            const bytes = view.readBytes(length);
+            const res = parseDSWasm(bytes);
+            if (res) return res;
+            // Fallback to JS
+            const str = new TextDecoder().decode(bytes);
+            const parts = str.split("\\").filter((p) => p.trim());
+            if (parts.length === 1) {
+                const num = parseFloat(parts[0]);
+                return isNaN(num) ? str : num;
+            }
+            return parts.map((p) => {
+                const num = parseFloat(p.trim());
+                return isNaN(num) ? p.trim() : num;
+            });
+        }
+        if (vr === "IS") {
+            const bytes = view.readBytes(length);
+            const res = parseISWasm(bytes);
+            if (res) return res;
+            // Fallback to JS
+            const str = new TextDecoder().decode(bytes);
+            const parts = str.split("\\").filter((p) => p.trim());
+            if (parts.length === 1) {
+                const num = parseFloat(parts[0]);
+                return isNaN(num) ? str : Math.floor(num);
+            }
+            return parts.map((p) => {
+                const num = parseFloat(p.trim());
+                return isNaN(num) ? p.trim() : num;
+            });
+        }
+    }
     const str = view.readString(length, characterSet);
 
     // Parse based on VR type
@@ -428,11 +508,14 @@ export function parseSequence(
     littleEndian: boolean,
     characterSet: string,
     undefinedLength: boolean,
+    enableWasm?: boolean,
 ): SequenceItem[] {
     const items: SequenceItem[] = [];
 
     if (undefinedLength) {
         // Parse until sequence delimiter
+
+
         while (view.getRemainingBytes() >= 8) {
             const pos = view.getPosition();
 
@@ -455,7 +538,10 @@ export function parseSequence(
                 view,
                 explicitVR,
                 littleEndian,
+
                 characterSet,
+                true,
+                enableWasm,
             );
             if (!item) {
                 break;
@@ -473,6 +559,8 @@ export function parseSequence(
                 explicitVR,
                 littleEndian,
                 characterSet,
+                true,
+                enableWasm,
             );
             if (!item) {
                 break;

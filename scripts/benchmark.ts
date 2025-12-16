@@ -15,9 +15,14 @@ import {
 } from "fs";
 import { join, dirname, resolve } from "path";
 import { fileURLToPath } from "url";
-import { parse, initCoreWasm } from "../src/index.js";
+import { parse } from "../src/core/parser";
+// @ts-ignore
+import { initCoreWasm } from "../src/core/wasm-opt";
+// @ts-ignore
 import dcmjs from "dcmjs";
+// @ts-ignore
 import dicomParser from "dicom-parser";
+// @ts-ignore
 import efferentDicom from "efferent-dicom";
 
 function parseWithDcmjs(data: Uint8Array) {
@@ -107,8 +112,11 @@ function benchmarkParser(
         let dataset;
         switch (parserName) {
             case "rad-parser":
+                dataset = parse(fileData, { type: "full", enableWasm: false });
+                elementCount = Object.keys(dataset.dict || {}).length;
+                break;
             case "rad-parser-wasm":
-                dataset = parse(fileData, { type: "full" });
+                dataset = parse(fileData, { type: "full", enableWasm: true });
                 elementCount = Object.keys(dataset.dict || {}).length;
                 break;
             case "rad-parser-fast":
@@ -388,6 +396,16 @@ async function runBenchmark(): Promise<void> {
         join(projectRoot, "test_data/examples"),
     ];
 
+    // Initialize Wasm
+    try {
+        const wasmPath = join(projectRoot, "src/wasm-core-build/rad_parser_wasm_core_bg.wasm");
+        const wasmBuffer = readFileSync(wasmPath);
+        await initCoreWasm(wasmBuffer as any);
+        console.log("Wasm initialized for benchmarking");
+    } catch (e) {
+        console.warn("Failed to initialize Wasm:", e);
+    }
+
     // Collect files from all available directories
     const allFiles: string[] = [];
     for (const testPath of possiblePaths) {
@@ -407,20 +425,13 @@ async function runBenchmark(): Promise<void> {
         process.exit(1);
     }
 
-    const parsers = [
-        "rad-parser-fast",
-        "rad-parser",
-        "rad-parser-shallow",
-        "rad-parser-medium",
-        "dcmjs",
-        "dicom-parser",
-        "efferent-dicom",
-    ];
-    const maxFiles = 100; // Limit to first 100 files for benchmarking
+
     const parsers = [
         "rad-parser",
         "rad-parser-wasm",
+        "rad-parser-fast",
         "rad-parser-shallow",
+        "rad-parser-medium",
         "dcmjs",
         "dicom-parser",
         "efferent-dicom",
@@ -432,52 +443,7 @@ async function runBenchmark(): Promise<void> {
 
     // Limit files for benchmarking
     const files = allFiles.slice(0, maxFiles);
-    console.log("Loading DICOM files...");
-    console.log(`Test data path: ${testDataPath}`);
 
-    // Check if directory exists
-    try {
-        statSync(testDataPath);
-    } catch (error) {
-        console.error(`Test data directory not found: ${testDataPath}`);
-        console.error(
-            "Please ensure test_data/patient/DICOM exists with DICOM files",
-        );
-        process.exit(1);
-    }
-
-    // Get list of DICOM files recursively
-    const getFilesRecursively = (dir: string): string[] => {
-        let results: string[] = [];
-        const list = readdirSync(dir);
-        list.forEach((file) => {
-            const fullPath = join(dir, file);
-            try {
-                const stat = statSync(fullPath);
-                if (stat.isDirectory()) {
-                    results = results.concat(getFilesRecursively(fullPath));
-                } else if (
-                    stat.isFile() &&
-                    stat.size >= 132 &&
-                    !file.includes("Zone.Identifier")
-                ) {
-                    results.push(fullPath);
-                }
-            } catch (e) {
-                // Ignore errors
-            }
-        });
-        return results;
-    };
-
-    const files = getFilesRecursively(testDataPath).slice(0, maxFiles);
-
-    console.log(`Using ${files.length} files for benchmarking\n`);
-
-    if (files.length === 0) {
-        console.error("No DICOM files found in test_data directory");
-        process.exit(1);
-    }
 
     const results: BenchmarkResult[] = [];
 

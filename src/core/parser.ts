@@ -20,6 +20,8 @@ import {
     parseDSWasm,
     parseISWasm,
     parsePNWasm,
+    parseDAWasm,
+    parseTMWasm,
     findSequenceDelimiterWasm,
 } from "./wasm-opt";
 import { SafeDataView } from "../utils/SafeDataView";
@@ -165,6 +167,12 @@ export interface ParseOptions {
         element: DicomElement,
         transferSyntax: string,
     ) => unknown;
+    /**
+     * Enable Wasm-accelerated parsing for supported VRs (PN, DA, TM) and sequence scanning.
+     * Wasm core must be initialized via `initCoreWasm()` for this to have effect.
+     * Defaults to false.
+     */
+    enableWasm?: boolean;
 }
 
 /**
@@ -221,15 +229,20 @@ export function parseWithMetadata(
 
     // Parse all data elements
     let characterSet = detection.characterSet;
+
+
+    const normalizedFilterTags = options.filterTags
+        ? new Set(options.filterTags.map((t) => normalizeTag(t)))
+        : undefined;
+
     const parseContext: ParseContext = {
         explicitVR: detection.explicitVR,
         littleEndian: detection.littleEndian,
         characterSet: characterSet,
         transferSyntax: detection.transferSyntax,
         skipPixelData: options.skipPixelData,
-        filterTags: options.filterTags
-            ? new Set(options.filterTags.map((t) => normalizeTag(t)))
-            : undefined,
+        filterTags: normalizedFilterTags,
+        enableWasm: options.enableWasm,
         pixelDataPlugin: options.pixelDataPlugin,
     };
 
@@ -461,6 +474,7 @@ interface ParseContext {
     transferSyntax?: string;
     skipPixelData?: boolean;
     filterTags?: Set<string>;
+    enableWasm?: boolean; // Added enableWasm to ParseContext
     pixelDataPlugin?: (
         element: DicomElement,
         transferSyntax: string,
@@ -590,6 +604,22 @@ function parseElement(
         if (length === 0xffffffff) {
             // Skip undefined length (rudimentary skip for speed)
             if (vr === "SQ" || (group === 0x7fe0 && element === 0x0010)) {
+                // Try Wasm optimization if enabled
+                if (context.enableWasm) {
+                    const buffer = new Uint8Array(
+                        view["view"].buffer,
+                        view["view"].byteOffset + view.getPosition(),
+                        view.getRemainingBytes(),
+                    );
+                    const offset = findSequenceDelimiterWasm(buffer);
+                    if (offset !== null) {
+                        view.setPosition(view.getPosition() + offset + 8);
+                        // Return empty dict to signal skip
+                        return { dict: {} };
+                    }
+                }
+
+                // Fallback to JS loop
                 let skipped = 0;
                 while (view.getRemainingBytes() >= 8 && skipped < 50000000) {
                     const g = view.readUint16();
@@ -621,6 +651,7 @@ function parseElement(
             context.littleEndian,
             context.characterSet,
             length === 0xffffffff,
+            context.enableWasm, // Pass enableWasm to parseSequence
         );
 
         const elementLength = length === 0xffffffff ? undefined : length;
@@ -724,7 +755,13 @@ function parseElement(
             return null;
         }
         try {
-            value = parseElementValue(view, vr, length, context.characterSet);
+            value = parseElementValue(
+                view,
+                vr,
+                length,
+                context.characterSet,
+                context.enableWasm, // Pass enableWasm to parseElementValue
+            );
         } catch {
             view.readBytes(length);
             return null;
@@ -800,6 +837,13 @@ export interface UnifiedParseOptions {
     tags?: string | string[];
 
     /**
+     * Enable Wasm-accelerated parsing for supported VRs (PN, DA, TM) and sequence scanning.
+     * Wasm core must be initialized via `initCoreWasm()` for this to have effect.
+     * Defaults to false.
+     */
+    enableWasm?: boolean;
+
+    /**
      * Custom plugin to decode pixel data.
      */
     pixelDataPlugin?: (
@@ -847,6 +891,7 @@ export function parse(
                 skipPixelData: mode === "light",
                 filterTags: filterTags, // We need to add this to ParseOptions!
                 pixelDataPlugin: options.pixelDataPlugin,
+                enableWasm: options.enableWasm, // Pass enableWasm
             };
             // We can call parseWithMetadata directly
             const res = parseWithMetadata(byteArray, parseOpts);
@@ -856,10 +901,10 @@ export function parse(
             return res.dataset;
 
         case "shallow":
-            return shallowParse(byteArray, filterTags);
+            return shallowParse(byteArray, filterTags, options.enableWasm); // Pass enableWasm
 
         case "lazy":
-            return createLazyDataSet(byteArray, filterTags);
+            return createLazyDataSet(byteArray, filterTags, options.enableWasm);
 
         default:
             throw new Error(`Unknown parse type: ${mode}`);
@@ -869,9 +914,10 @@ export function parse(
 function createLazyDataSet(
     byteArray: Uint8Array,
     filterTags?: string[],
+    enableWasm?: boolean,
 ): DicomDataSet {
     // 1. Perform shallow parse to get offsets
-    const shallow = shallowParse(byteArray, filterTags);
+    const shallow = shallowParse(byteArray, filterTags, enableWasm); // Pass enableWasm
 
     // Normalize filter tags if present
     const validTags = filterTags
@@ -910,6 +956,7 @@ function createLazyDataSet(
     const context = {
         view,
         characterSet: detection.characterSet,
+        enableWasm,
     };
 
     // Helper to read a tag value given shallow element
@@ -928,7 +975,13 @@ function createLazyDataSet(
         if (length === 0xffffffff) return undefined; // Lazy doesn't support encapsulated/undefined length values well yet
 
         try {
-            return parseElementValue(view, vr, length, context.characterSet);
+            return parseElementValue(
+                view,
+                vr,
+                length,
+                context.characterSet,
+                context.enableWasm,
+            );
         } catch (e) {
             return undefined;
         }
@@ -1009,6 +1062,7 @@ function createLazyDataSet(
 function fastParse(
     byteArray: Uint8Array,
     filterTags?: string[],
+    enableWasm?: boolean,
 ): ShallowDicomDataSet {
     let buffer: ArrayBuffer;
     let byteOffset = 0;
@@ -1130,6 +1184,20 @@ function fastParse(
             // Skip element (fast path)
             if (length === 0xffffffff) {
                 // Undefined length - attempt to skip safely
+                if (enableWasm && (group === 0x7fe0 && element === 0x0010)) {
+                    // Try Wasm optimization for Pixel Data
+                    const buffer = new Uint8Array(
+                        view["view"].buffer,
+                        view["view"].byteOffset + view.getPosition(),
+                        view.getRemainingBytes(),
+                    );
+                    const offset = findSequenceDelimiterWasm(buffer);
+                    if (offset !== null) {
+                        view.setPosition(view.getPosition() + offset + 8);
+                        continue;
+                    }
+                }
+
                 while (view.getRemainingBytes() >= 8) {
                     const loopStart = view.getPosition();
                     const g = view.readUint16();
@@ -1239,6 +1307,7 @@ function fastParse(
 function shallowParse(
     byteArray: Uint8Array,
     filterTags?: string[],
+    enableWasm?: boolean,
 ): ShallowDicomDataSet {
     let buffer: ArrayBuffer;
     let byteOffset = 0;
@@ -1334,8 +1403,21 @@ function shallowParse(
         if (allowedTags && !allowedTags.has(tagKey)) {
             // Skip without VR detection
             if (length === 0xffffffff) {
-                // Skip undefined length
+                // Undefined length - attempt to skip safely
                 if (group === 0x7fe0 && element === 0x0010) {
+                    if (enableWasm) {
+                         const buffer = new Uint8Array(
+                            view["view"].buffer,
+                            view["view"].byteOffset + view.getPosition(),
+                            view.getRemainingBytes(),
+                        );
+                        const offset = findSequenceDelimiterWasm(buffer);
+                        if (offset !== null) {
+                            view.setPosition(view.getPosition() + offset + 8);
+                            continue;
+                        }
+                    }
+
                     let skipped = 0;
                     while (
                         view.getRemainingBytes() >= 8 &&
@@ -1377,6 +1459,20 @@ function shallowParse(
         // Advance past value
         if (length === 0xffffffff) {
             if (group === 0x7fe0 && element === 0x0010) {
+                // Try Wasm optimization if enabled
+                if (enableWasm) {
+                    const buffer = new Uint8Array(
+                        view["view"].buffer,
+                        view["view"].byteOffset + view.getPosition(),
+                        view.getRemainingBytes(),
+                    );
+                    const offset = findSequenceDelimiterWasm(buffer);
+                    if (offset !== null) {
+                        view.setPosition(view.getPosition() + offset + 8);
+                        continue;
+                    }
+                }
+
                 let skipped = 0;
                 while (view.getRemainingBytes() >= 8 && skipped < 50000000) {
                     const g = view.readUint16();
@@ -1571,6 +1667,7 @@ function parseElementValue(
     vr: string,
     length: number,
     characterSet: string,
+    enableWasm?: boolean,
 ):
     | string
     | number
@@ -1689,6 +1786,28 @@ function parseElementValue(
             const num = parseFloat(p.trim());
             return isNaN(num) ? p.trim() : num;
         });
+    }
+
+    // New Wasm Optimizations - Optional
+    if (enableWasm) {
+        if (vr === "PN") {
+            const str = view.readString(length, characterSet);
+            const wasmResult = parsePNWasm(str);
+            if (wasmResult) return wasmResult;
+            return str;
+        }
+        if (vr === "DA") {
+            const str = view.readString(length, characterSet);
+            const wasmResult = parseDAWasm(str);
+            if (wasmResult) return wasmResult;
+            return str;
+        }
+        if (vr === "TM") {
+            const str = view.readString(length, characterSet);
+            const wasmResult = parseTMWasm(str);
+            if (wasmResult) return wasmResult;
+            return str;
+        }
     }
 
     // String-based VR
