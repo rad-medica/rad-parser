@@ -70,11 +70,11 @@ pub fn build(b: *std.Build) void {
     lib_j2k.addCSourceFile(.{ .file = b.path("src/jpeg2000.cpp"), .flags = &.{ "-std=c++11", "-O3", "-DNDEBUG" } });
 
     lib_j2k.addIncludePath(b.path("deps/openjpeg/src/lib/openjp2"));
-    lib_j2k.root_module.addCMacro("OPJ_STATIC", "");
+    // lib_j2k.root_module.addCMacro("OPJ_STATIC", ""); // Defined in opj_config.h
     lib_j2k.addCSourceFile(.{ .file = b.path("src/overrides/opj_clock.c"), .flags = &.{ "-O3", "-DNDEBUG" } });
 
     addSources(b, lib_j2k, "deps/openjpeg/src/lib/openjp2", &.{".c"}, &.{ "test", "bench", "opj_clock.c", "cidx_manager.c", "phix_manager.c", "ppix_manager.c", "thix_manager.c", "tpix_manager.c" }) catch |err| std.debug.print("Error adding OPJ sources: {}\n", .{err});
-    lib_j2k.addCSourceFile(.{ .file = b.path("src/opj_dummy.c"), .flags = &.{} });
+    // lib_j2k.addCSourceFile(.{ .file = b.path("src/opj_dummy.c"), .flags = &.{} });
 
     lib_j2k.linkLibC();
     lib_j2k.linkLibCpp();

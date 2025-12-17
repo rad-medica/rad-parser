@@ -34,9 +34,11 @@
 #ifdef _WIN32
 #include <windows.h>
 #else
+#ifndef __wasi__
 #include <sys/time.h>
 #include <sys/resource.h>
 #include <sys/times.h>
+#endif
 #endif /* _WIN32 */
 
 OPJ_FLOAT64 opj_clock(void)
