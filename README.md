@@ -73,14 +73,14 @@ npx rad-parser image "scan.dcm" "output.png" --frame 0
 
 | Parser               | Success | Avg Time | Avg Elements |
 | -------------------- | ------- | -------- | ------------ |
-| rad-parser-fast      | 100%    | 2.04 ms  | 37           |
-| rad-parser           | 100%    | 7.47 ms  | 280          |
-| rad-parser-medium    | 100%    | 7.57 ms  | 280          |
-| rad-parser-shallow   | 100%    | 7.42 ms  | 69           |
-| rad-parser-streaming | 100%    | 15.49 ms | 414          |
-| efferent-dicom       | 99.6%   | 0.76 ms  | 71           |
-| dcmjs                | 89%     | 1.11 ms  | 76           |
-| dicom-parser         | 88%     | 0.10 ms  | 84           |
+| rad-parser-fast      | 100%    | 5.92 ms  | 25           |
+| rad-parser (full)    | 100%    | 0.81 ms  | 99           |
+| rad-parser-medium    | 100%    | 0.61 ms  | 99           |
+| rad-parser-shallow   | 100%    | 0.12 ms  | 99           |
+| rad-parser-streaming | 100%    | 4.52 ms  | 99           |
+| dicom-parser         | 88%     | 0.14 ms  | 99           |
+| efferent-dicom       | 99.6%   | 9.10 ms  | 98           |
+| dcmjs                | 89%     | 3.33 ms  | 92           |
 
 Notes:
 
@@ -205,7 +205,7 @@ A head-to-head comparison of capabilities, ecosystem, and performance.
 | **Modular**              |      ✅ **Yes**      | ❌ Monolithic | ❌ Monolithic  | ❌ Monolithic  |
 | **TypeScript**           |  ✅ **Full Types**   |  ⚠️ Partial   |   ⚠️ Partial   |   ⚠️ Partial   |
 | **Reliability**          |     ✅ **100%**      |    ❌ ~89%    |    ❌ ~88%     |   ✅ ~99.6%    |
-| **Performance (Scan)**   |    🚀 **~2.3 ms**    |    ~1.5 ms    |    ~0.1 ms     |    ~1.2 ms     |
+| **Performance (Scan)**   |    🚀 **~122 μs**    |    ~3.3 ms    |    ~147 μs     |    ~9.1 ms     |
 | **Memory Usage**         | ✅ **Configurable**  |    ⚠️ High    |     ✅ Low     |   ⚠️ Medium    |
 | **Pixel Data**           |  ✅ **Full Plugin**  |    ✅ Full    |  ❌ Raw Only   |  ❌ Raw Only   |
 | **Native Codecs**        |   ✅ **RLE, PNG**    |    ❌ None    |    ❌ None     |   ⚠️ Limited   |
@@ -334,47 +334,6 @@ bun run format:check
 ---
 
 For a deep dive into the library's features, including advanced codec registration, encoding examples, and handling encapsulated data like PDFs and ECGs, please see our **[Full API Documentation](./docs/api.md)**.
-
----
-
-## AI Agent Integration
-
-This project includes comprehensive configurations and rules for AI coding assistants to ensure consistent, high-quality code generation:
-
-### Cursor AI Editor
-
-- **Configuration**: `.cursorrules`
-- **Features**: Project context, coding standards, architecture guidelines, development workflow
-- **Integration**: Automatic context awareness for intelligent code suggestions
-
-### GitHub Copilot
-
-- **Configuration**: `.github/copilot-instructions.md`
-- **Features**: Project overview, code standards, TypeScript guidelines, performance considerations
-- **Integration**: GitHub Copilot reads these instructions for better code completion
-
-### Antigravity AI Assistant
-
-- **Configuration**: `.antigravity/rules.md` and `.antigravity/config.json`
-- **Features**: Comprehensive coding patterns, error handling, memory management, quality gates
-- **Integration**: Context-aware code generation with project-specific standards
-
-### VS Code Integration
-
-- **Configuration**: `.vscode/` directory with optimized settings, tasks, and debugging
-- **Features**: Bun runtime integration, TypeScript support, Zig development, testing workflows
-- **Documentation**: `.vscode/README.md` with setup and usage instructions
-
-**[📖 Complete AI Agents Guide](AGENTS.md)** - Comprehensive documentation of all AI agent configurations, behavioral guidelines, and integration details.
-
-All AI agents are configured to:
-
-- Maintain TypeScript strict mode and type safety
-- Follow the established architecture (core parser, codec system, utilities)
-- Ensure cross-platform compatibility (Node.js, Bun, Deno, browsers)
-- Prioritize performance and memory efficiency
-- Include comprehensive error handling and validation
-- Generate code that passes all quality gates (linting, formatting, testing)
 
 ---
 
