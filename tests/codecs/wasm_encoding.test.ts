@@ -11,16 +11,20 @@ describe("Wasm Encoding", () => {
 
     beforeAll(async () => {
         // Initialize Wasm via dynamic import to avoid ESM/CJS interop issues in tests
-        const wasmModule = await import("../../src/wasm-codecs-build/rad_parser_wasm_codecs");
-        const init = wasmModule.default; 
-        
+        const wasmModule =
+            await import("../../src/wasm-codecs-build/rad_parser_wasm_codecs");
+        const init = wasmModule.default;
+
         const fs = await import("fs");
         const path = await import("path");
-        const wasmPath = path.resolve(__dirname, "../../src/wasm-codecs-build/rad_parser_wasm_codecs_bg.wasm");
+        const wasmPath = path.resolve(
+            __dirname,
+            "../../src/wasm-codecs-build/rad_parser_wasm_codecs_bg.wasm",
+        );
         const wasmBuffer = fs.readFileSync(wasmPath);
-        
+
         await init(wasmBuffer);
-        
+
         rleCodec = new RleCodec();
         jpegCodec = new JpegNativeCodec();
 

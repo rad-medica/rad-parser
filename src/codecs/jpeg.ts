@@ -1,63 +1,60 @@
 /**
- * Standard JPEG Decoder Plugin via Wasm
+ * Standard JPEG Decoder Plugin via Zig WASM
  * Transfer Syntaxes:
  *  - 1.2.840.10008.1.2.4.50 (JPEG Baseline)
- *  - 1.2.840.10008.1.2.4.51 (JPEG Extended 12-bit - Note: 'image' crate might map to 8-bit)
+ *  - 1.2.840.10008.1.2.4.51 (JPEG Extended 12-bit)
  */
 import { CodecInfo, PixelDataCodec, registry } from "../core/registry";
 import { concatFragments } from "../utils/bufferUtils";
+import { ZigCodecs } from "./zig-codecs";
 
 export class JpegDecoder implements PixelDataCodec {
     name = "jpeg-wasm";
-    priority = 30; // High priority (prefer Wasm over Browser if reliable)
+    priority = 30;
     codecInfo: CodecInfo = {
         multiFrame: false,
     };
 
-    isWasmInitialized = false;
-    wasmModule: any = null;
+    private zigCodecs: ZigCodecs;
+    private initPromise: Promise<void> | null = null;
 
     constructor() {
-        this.initWasm();
+        this.zigCodecs = new ZigCodecs();
+        this.initPromise = this.initWasm();
     }
 
-    async initWasm() {
+    private async initWasm(): Promise<void> {
         try {
-            // @ts-ignore
-            this.wasmModule =
-                await import("../../src/wasm-codecs-build/rad_parser_wasm_codecs.js");
-            await this.wasmModule.default();
-            this.isWasmInitialized = true;
-            console.log("JPEG WASM module initialized");
+            await this.zigCodecs.initCodec("jpeg");
         } catch (e) {
-            console.warn("Failed to load WASM module for JPEG", e);
+            console.warn("Failed to init JPEG Zig WASM codec", e);
         }
     }
 
     isSupported(): boolean {
-        // Fallback to ImageDecoder (Browser) if Wasm missing?
-        // Actually, for standard JPEG, Browser ImageDecoder is very fast.
-        // Wasm is mainly useful for Node.js or if stricter control needed.
         return true;
     }
 
     canDecode(ts: string): boolean {
         return [
             "1.2.840.10008.1.2.4.50", // Baseline
-            "1.2.840.10008.1.2.4.51", // Extended (Process 2 & 4)
+            "1.2.840.10008.1.2.4.51", // Extended
         ].includes(ts);
     }
 
     async decode(encodedBuffer: Uint8Array[], info: any): Promise<Uint8Array> {
         const combined = concatFragments(encodedBuffer);
 
-        // 1. Try Wasm
-        if (this.isWasmInitialized && this.wasmModule) {
-            try {
-                return this.wasmModule.jpeg_decode(combined);
-            } catch (e) {
-                console.warn("Wasm JPEG decode failed, fallback to Browser", e);
-            }
+        // Ensure WASM is initialized
+        if (this.initPromise) {
+            await this.initPromise;
+        }
+
+        // 1. Try Zig WASM
+        try {
+            return await this.zigCodecs.decodeJpeg(combined);
+        } catch (e) {
+            console.warn("Zig WASM JPEG decode failed, fallback to Browser", e);
         }
 
         // 2. Fallback to Browser Native
@@ -82,7 +79,7 @@ export class JpegDecoder implements PixelDataCodec {
         }
 
         throw new Error(
-            "No JPEG decoder available (Wasm failed and no ImageDecoder)",
+            "No JPEG decoder available (Zig WASM failed and no ImageDecoder)",
         );
     }
 }

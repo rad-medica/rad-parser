@@ -398,7 +398,10 @@ async function runBenchmark(): Promise<void> {
 
     // Initialize Wasm
     try {
-        const wasmPath = join(projectRoot, "src/wasm-core-build/rad_parser_wasm_core_bg.wasm");
+        const wasmPath = join(
+            projectRoot,
+            "src/wasm-core-build/rad_parser_wasm_core_bg.wasm",
+        );
         const wasmBuffer = readFileSync(wasmPath);
         await initCoreWasm(wasmBuffer as any);
         console.log("Wasm initialized for benchmarking");
@@ -425,7 +428,6 @@ async function runBenchmark(): Promise<void> {
         process.exit(1);
     }
 
-
     const parsers = [
         "rad-parser",
         "rad-parser-wasm",
@@ -443,7 +445,6 @@ async function runBenchmark(): Promise<void> {
 
     // Limit files for benchmarking
     const files = allFiles.slice(0, maxFiles);
-
 
     const results: BenchmarkResult[] = [];
 

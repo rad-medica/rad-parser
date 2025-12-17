@@ -124,7 +124,7 @@ export function extractRescaledPixelData(dataset: any): Float32Array {
     if (pixelData instanceof Uint8Array) {
         // We need to pass the raw bytes. If pixelData is derived from a buffer view (like Int16Array),
         // we might need the underlying buffer.
-        // However, the Wasm signature takes &[u8]. 
+        // However, the Wasm signature takes &[u8].
         // If we extracted `pixelData` as TypedArray, we can access `.buffer` but need careful offset handling.
 
         // Simpler approach: If bitsAllocated is 8, pixelData IS Uint8Array check above.
@@ -134,9 +134,13 @@ export function extractRescaledPixelData(dataset: any): Float32Array {
         if (pixelData instanceof Uint8Array) {
             rawBytes = pixelData;
         } else {
-             // TypedArray (U16/I16)
-             const typed = pixelData as Uint16Array | Int16Array;
-             rawBytes = new Uint8Array(typed.buffer, typed.byteOffset, typed.byteLength);
+            // TypedArray (U16/I16)
+            const typed = pixelData as Uint16Array | Int16Array;
+            rawBytes = new Uint8Array(
+                typed.buffer,
+                typed.byteOffset,
+                typed.byteLength,
+            );
         }
 
         const wasmResult = applyModalityLutWasm(
@@ -144,7 +148,7 @@ export function extractRescaledPixelData(dataset: any): Float32Array {
             slope,
             intercept,
             bitsAllocated,
-            pixelRepresentation
+            pixelRepresentation,
         );
 
         if (wasmResult) {

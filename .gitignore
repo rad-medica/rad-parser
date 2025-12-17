@@ -8,14 +8,15 @@ dist/
 build/
 *.tsbuildinfo
 
-# Wasm builds (Rust compilation artifacts)
-src/wasm-core/target/
-src/wasm-codecs/target/
-src/wasm-core-build/
-src/wasm-codecs-build/
+# Wasm builds
 *.wasm
 Cargo.lock
-src\zig-codecs\zig-out
+
+# Zig builds
+src/zig-codecs/zig-out/
+src/zig-codecs/.zig-cache/
+src/zig-core/zig-out/
+src/zig-core/.zig-cache/
 
 # IDE
 
@@ -62,4 +63,3 @@ scripts/results/*
 # Temporary files
 *.tmp
 .cache/
-src\zig-codecs\.zig-cache/

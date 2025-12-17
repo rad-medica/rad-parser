@@ -10,7 +10,6 @@ import { detectVR, requiresExplicitLength } from "./vrDetection";
 import { parseValueByVR } from "./valueParsers";
 import { createParseError } from "../core/errors";
 import {
-
     parseDAWasm,
     parseDSWasm,
     parseISWasm,
@@ -514,7 +513,6 @@ export function parseSequence(
 
     if (undefinedLength) {
         // Parse until sequence delimiter
-
 
         while (view.getRemainingBytes() >= 8) {
             const pos = view.getPosition();

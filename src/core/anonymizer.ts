@@ -144,6 +144,7 @@ export function anonymize(
         uint16: dataset.uint16,
         int16: dataset.int16,
         floatString: dataset.floatString,
+        intString: dataset.intString,
     };
 }
 

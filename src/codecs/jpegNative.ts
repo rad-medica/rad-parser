@@ -1,10 +1,11 @@
 /**
  * Native JPEG Codec Plugin
- * Uses Wasm (jpeg-encoder) for encoding and Wasm/JS for decoding.
+ * Uses Zig WASM for encoding and decoding.
  * Provides JPEG Baseline encoding support for Node.js environments.
  */
 import { CodecInfo, PixelDataCodec } from "../core/registry";
 import { concatFragments } from "../utils/bufferUtils";
+import { ZigCodecs } from "./zig-codecs";
 
 export class JpegNativeCodec implements PixelDataCodec {
     name = "jpeg-native";
@@ -13,23 +14,19 @@ export class JpegNativeCodec implements PixelDataCodec {
         multiFrame: false,
     };
 
-    isWasmInitialized = false;
-    wasmModule: any = null;
+    private zigCodecs: ZigCodecs;
+    private initPromise: Promise<void> | null = null;
 
     constructor() {
-        this.initWasm();
+        this.zigCodecs = new ZigCodecs();
+        this.initPromise = this.initWasm();
     }
 
-    async initWasm() {
+    private async initWasm(): Promise<void> {
         try {
-            // @ts-ignore
-            this.wasmModule =
-                await import("../../src/wasm-codecs-build/rad_parser_wasm_codecs.js");
-            await this.wasmModule.default();
-            this.isWasmInitialized = true;
-            console.log("JPEG Native WASM module initialized");
+            await this.zigCodecs.initCodec("jpeg");
         } catch (e) {
-            console.warn("Failed to load JPEG WASM module", e);
+            console.warn("Failed to init JPEG Native Zig WASM codec", e);
         }
     }
 
@@ -44,23 +41,17 @@ export class JpegNativeCodec implements PixelDataCodec {
     }
 
     canEncode(ts: string): boolean {
-        // Only Baseline (Process 1) supported by jpeg-encoder
         return ts === "1.2.840.10008.1.2.4.50";
     }
 
     async decode(encodedBuffer: Uint8Array[], info: any): Promise<Uint8Array> {
-        // Reuse existing decode logic or delegate to another codec if needed
-        // For now, simple Wasm decode
         const combined = concatFragments(encodedBuffer);
 
-        if (this.isWasmInitialized && this.wasmModule) {
-            try {
-                return this.wasmModule.jpeg_decode(combined);
-            } catch (e) {
-                console.warn("Wasm JPEG decode failed", e);
-            }
+        if (this.initPromise) {
+            await this.initPromise;
         }
-        throw new Error("JPEG decoder Wasm not initialized");
+
+        return await this.zigCodecs.decodeJpeg(combined);
     }
 
     async encode(
@@ -71,32 +62,18 @@ export class JpegNativeCodec implements PixelDataCodec {
         samples: number,
         bits: number,
     ): Promise<Uint8Array[]> {
-        if (!this.isWasmInitialized || !this.wasmModule) {
-            throw new Error("JPEG Wasm module not initialized");
+        if (this.initPromise) {
+            await this.initPromise;
         }
 
-        // Determine color type: 0 = Grayscale (Luma), 1 = RGB
-        let colorType = 0;
-        if (samples === 3) {
-            colorType = 1;
-        } else if (samples !== 1) {
-            throw new Error(`Unsupported JPEG sample count: ${samples}`);
-        }
-
-        try {
-            // Encode with quality 90 by default
-            const quality = 90;
-            const encoded = this.wasmModule.jpeg_encode(
-                pixelData,
-                width,
-                height,
-                quality,
-                colorType,
-            );
-            return [encoded];
-        } catch (e) {
-            console.error("JPEG Encoding failed:", e);
-            throw new Error("JPEG Encoding failed");
-        }
+        // Default quality 90
+        const quality = 90;
+        const encoded = await this.zigCodecs.encodeJpeg(
+            pixelData,
+            width,
+            height,
+            quality,
+        );
+        return [encoded];
     }
 }

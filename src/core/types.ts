@@ -57,7 +57,7 @@ export interface DicomDataSet {
     uint16: (tag: string) => number | undefined;
     int16: (tag: string) => number | undefined;
     floatString: (tag: string) => number | undefined;
-    intString?: (tag: string) => number | undefined;
+    intString: (tag: string) => number | undefined;
     // Native dict structure
     dict: Record<string, DicomElement>;
     // Elements accessor for backward compatibility (normalized tags)

@@ -230,7 +230,6 @@ export function parseWithMetadata(
     // Parse all data elements
     let characterSet = detection.characterSet;
 
-
     const normalizedFilterTags = options.filterTags
         ? new Set(options.filterTags.map((t) => normalizeTag(t)))
         : undefined;
@@ -1047,6 +1046,10 @@ function createLazyDataSet(
             const v = readValue(tag);
             return typeof v === "number" ? v : undefined;
         },
+        intString: (tag) => {
+            const v = readValue(tag);
+            return typeof v === "number" ? Math.floor(v) : undefined;
+        },
     };
 }
 
@@ -1184,7 +1187,7 @@ function fastParse(
             // Skip element (fast path)
             if (length === 0xffffffff) {
                 // Undefined length - attempt to skip safely
-                if (enableWasm && (group === 0x7fe0 && element === 0x0010)) {
+                if (enableWasm && group === 0x7fe0 && element === 0x0010) {
                     // Try Wasm optimization for Pixel Data
                     const buffer = new Uint8Array(
                         view["view"].buffer,
@@ -1406,7 +1409,7 @@ function shallowParse(
                 // Undefined length - attempt to skip safely
                 if (group === 0x7fe0 && element === 0x0010) {
                     if (enableWasm) {
-                         const buffer = new Uint8Array(
+                        const buffer = new Uint8Array(
                             view["view"].buffer,
                             view["view"].byteOffset + view.getPosition(),
                             view.getRemainingBytes(),
@@ -1622,29 +1625,29 @@ export function extractPixelData(byteArray: Uint8Array): PixelDataInfo | null {
             if (length === 0xffffffff) {
                 // Undefined length - skip until delimiter
                 // This applies to SQ, OB, OW, UN, etc. with undefined length
-                
+
                 // 1. Try Wasm optimization first
                 // We need to pass the slice from current position
                 let found = false;
                 const buffer = new Uint8Array(
-                    view["view"].buffer, 
-                    view["view"].byteOffset + view.getPosition(), 
-                    view.getRemainingBytes()
+                    view["view"].buffer,
+                    view["view"].byteOffset + view.getPosition(),
+                    view.getRemainingBytes(),
                 );
-                
+
                 // Only try Wasm if buffer is large enough to justify overhead
                 if (buffer.length > 1024) {
-                     const offset = findSequenceDelimiterWasm(buffer); // New import needed
-                     if (offset && offset > 0) {
-                         view.setPosition(view.getPosition() + offset);
-                         found = true;
-                     }
+                    const offset = findSequenceDelimiterWasm(buffer); // New import needed
+                    if (offset && offset > 0) {
+                        view.setPosition(view.getPosition() + offset);
+                        found = true;
+                    }
                 }
-                
+
                 // 2. Fallback to optimized JS scan
                 if (!found) {
-                     // Limit scan to 50MB to prevent hangs on corrupted files
-                     view.skipUndefinedLength(50000000);
+                    // Limit scan to 50MB to prevent hangs on corrupted files
+                    view.skipUndefinedLength(50000000);
                 }
             } else {
                 if (view.getRemainingBytes() >= length) {
@@ -1793,7 +1796,9 @@ function parseElementValue(
         if (vr === "PN") {
             const str = view.readString(length, characterSet);
             const wasmResult = parsePNWasm(str);
-            if (wasmResult) return wasmResult;
+            if (wasmResult && typeof wasmResult === "object") {
+                return wasmResult as Record<string, unknown>;
+            }
             return str;
         }
         if (vr === "DA") {
@@ -1836,7 +1841,7 @@ function createDataSet(dict: Record<string, DicomElement>): DicomDataSet {
     };
 
     const dataset = {
-        string: (tag: string) => {
+        string: (tag: string): string | undefined => {
             const elem = getElement(tag);
             if (!elem) return undefined;
             const val = elem.Value ?? elem.value;
@@ -1865,7 +1870,7 @@ function createDataSet(dict: Record<string, DicomElement>): DicomDataSet {
                     ) {
                         // Cache the parsed result to avoid re-parsing
                         elem.Value = wasmParsed;
-                        return wasmParsed.Alphanumeric;
+                        return (wasmParsed as { Alphanumeric?: string }).Alphanumeric;
                     }
                     // Fallback to JS parsing
                     const parsed = parseValueByVR(vr, val);

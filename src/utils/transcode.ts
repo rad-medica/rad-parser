@@ -37,7 +37,10 @@ export async function transcode(
         );
     }
 
-    if (targetCodec.canEncode && !targetCodec.canEncode(options.targetTransferSyntax)) {
+    if (
+        targetCodec.canEncode &&
+        !targetCodec.canEncode(options.targetTransferSyntax)
+    ) {
         throw new Error(
             `Codec ${targetCodec.name} implies support but cannot encode ${options.targetTransferSyntax}`,
         );
@@ -85,17 +88,15 @@ export async function transcode(
 
         // This decodes the ENTIRE pixel data blob into one flat buffer (usually)
         // or we need frame-by-frame access.
-        const fragments = pixelDataInfo.fragmentArrays || [pixelDataInfo.Value as Uint8Array];
-        const fullDecodedBuffer = await decodePixelData(
-            currentTS,
-            fragments,
-            {
-                rows,
-                columns,
-                samplesPerPixel: samples,
-                bitsAllocated: bits,
-            }
-        );
+        const fragments = pixelDataInfo.fragmentArrays || [
+            pixelDataInfo.Value as Uint8Array,
+        ];
+        const fullDecodedBuffer = await decodePixelData(currentTS, fragments, {
+            rows,
+            columns,
+            samplesPerPixel: samples,
+            bitsAllocated: bits,
+        });
 
         // Split back into frames
         const frameSize = rows * columns * samples * (bits / 8);

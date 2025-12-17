@@ -93,12 +93,12 @@ export async function dicomToImage(
     if (ww === undefined) ww = 256;
 
     let outputBuffer: Uint8Array | null = null;
-    
+
     // Try Wasm integration
     outputBuffer = applyVoiLutWasm(frameData, wc, ww);
 
     if (!outputBuffer) {
-         // JS Fallback
+        // JS Fallback
         outputBuffer = new Uint8Array(frameData.length);
         const halfWidth = ww / 2;
         const lower = wc - halfWidth;
@@ -135,8 +135,7 @@ export async function dicomToImage(
         });
     } else if (format === "image/jpeg") {
         const jpegCodec = new JpegNativeCodec();
-        // Ensure Wasm is init (might need awaiting if not static)
-        await jpegCodec.initWasm();
+        // Codec auto-initializes on first use
         const frags = await jpegCodec.encode!(
             outputBuffer,
             "1.2.840.10008.1.2.4.50",
