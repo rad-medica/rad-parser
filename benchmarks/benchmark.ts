@@ -6,14 +6,14 @@
  */
 
 import {
+    existsSync,
+    mkdirSync,
     readFileSync,
     readdirSync,
     statSync,
     writeFileSync,
-    mkdirSync,
-    existsSync,
 } from "fs";
-import { join, dirname, resolve } from "path";
+import { dirname, join, resolve } from "path";
 import { fileURLToPath } from "url";
 import { parse } from "../src/core/parser";
 // @ts-ignore
@@ -157,10 +157,10 @@ function benchmarkParser(
         if (!existsSync(resultsDir)) {
           mkdirSync(resultsDir, { recursive: true });
         }
-        
+
         const fileName = filePath.split(/[/\\]/).pop() + '.json';
         const outputPath = join(resultsDir, fileName);
-        
+
         // Custom replacer for BigInt and Binary data
         const replacer = (key: string, value: any) => {
           if (typeof value === 'bigint') {
@@ -489,11 +489,12 @@ async function runBenchmark(): Promise<void> {
     printResults(stats);
 
     // Save detailed results to JSON
-    const resultsDir = join(__dirname, "results");
+    const resultsDir = join(projectRoot, "output", "benchmarks");
     if (!existsSync(resultsDir)) {
         mkdirSync(resultsDir, { recursive: true });
     }
-    const outputPath = join(resultsDir, "benchmark-summary.json");
+    const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+    const outputPath = join(resultsDir, `benchmark-summary-${timestamp}.json`);
     writeFileSync(outputPath, JSON.stringify({ stats, results }, null, 2));
     console.log(`\nDetailed results saved to: ${outputPath}`);
 }

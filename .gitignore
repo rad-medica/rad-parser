@@ -82,6 +82,7 @@ coverage/
 # Benchmark output
 benchmark-results.json
 scripts/results/benchmark-summary.json
+benchmarks/results/benchmark-summary.json
 
 # Test data (ignore contents but keep folder structure)
 test_data/
@@ -89,6 +90,15 @@ test_data/
 # Results
 results/*
 scripts/results/*
+benchmarks/results/*
+
+# Local Output Folder (Centralized)
+output/*
+!output/.gitkeep
+# Allow sub-folder structures if needed, but normally ignore contents
+!output/benchmarks/.gitkeep
+!output/logs/.gitkeep
+!output/tests/.gitkeep
 
 # Documentation artifacts (local only)
 .gemini/

@@ -139,6 +139,14 @@ When suggesting code changes:
 
 ## Common Patterns
 
+### Documentation & Reporting Standards
+
+All generated reports and documentation must follow the strict guidelines in:
+- `docs/REPORTING_GUIDELINES.md` (Markdown standards, output locations)
+- `docs/AGENTS.md` (Agent Configuration Source of Truth)
+
+**Rule**: Always write artifacts to `output/` subdirectories.
+
 ### DICOM Tag Handling
 
 ```typescript

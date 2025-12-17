@@ -166,6 +166,16 @@ When suggesting code:
 5. **Testing**: Suggest appropriate test cases for new functionality
 6. **Documentation**: Add JSDoc comments for public APIs
 
+7. **Documentation**: Add JSDoc comments for public APIs
+
+## Documentation & Reporting Standards
+
+Refer to `docs/REPORTING_GUIDELINES.md` for strict formatting and output rules.
+
+- **Output**: Write to `output/` directory only.
+- **Format**: Follow standard Markdown headers and list styles.
+- **Context**: See `docs/AGENTS.md` for full agent configuration details.
+
 ## Common Anti-Patterns to Avoid
 
 - Using `any` type instead of proper interfaces

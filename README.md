@@ -36,7 +36,7 @@ npm install rad-parser
 
 `rad-parser` includes a powerful CLI for inspecting, transcoding, and converting DICOM files.
 
-> **[View Full CLI Documentation](./docs/CLI.md)**
+> **[View Full CLI Documentation](./docs/cli.md)**
 
 ### **Quick Command Summary**
 
@@ -217,7 +217,7 @@ A head-to-head comparison of capabilities, ecosystem, and performance.
 ## Full Documentation
 
 - **[API Reference](docs/api.md)** - Complete API documentation for all functions and types
-- **[Codec Tutorial](docs/CODEC_TUTORIAL.md)** - Image compression/decompression guide with examples
+- **[Codec Tutorial](docs/codec-tutorial.md)** - Image compression/decompression guide with examples
 - **[GitHub Repository](https://github.com/rad-medica/rad-parser)** - Source code and issues
 
 ### Quick Links
@@ -225,8 +225,8 @@ A head-to-head comparison of capabilities, ecosystem, and performance.
 - [Parse DICOM files](docs/api.md#parse-options)
 - [Extract pixel data](docs/api.md#extractrescaledpixeldatadataset)
 - [Streaming large files](docs/api.md#streaming-api)
-- [Image decoding examples](docs/CODEC_TUTORIAL.md#basic-image-decoding)
-- [Wasm optimization](docs/CODEC_TUTORIAL.md#wasm-optimization)
+- [Image decoding examples](docs/codec-tutorial.md#basic-image-decoding)
+- [Wasm optimization](docs/codec-tutorial.md#wasm-optimization)
 
 ## Building from Source
 

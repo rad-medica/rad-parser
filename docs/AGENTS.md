@@ -285,6 +285,14 @@ dist/               # Build outputs
 
 ---
 
+## 📝 Reporting & Output Standards
+
+To maintain a clean repository, all agents must strictly follow the output generation rules defined in `docs/REPORTING_GUIDELINES.md`.
+
+**Key Rule**: NEVER write generated files (benchmarks, logs, temporary test data) to the root directory. Always use the designated `output/` subdirectories.
+
+---
+
 ## 📞 Support & Resources
 
 ### Configuration Files

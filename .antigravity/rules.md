@@ -215,6 +215,17 @@ docs/               # Documentation
 dist/               # Build outputs
 ```
 
+dist/ # Build outputs
+
+```
+
+## Documentation & Reporting Standards
+
+- **Source of Truth**: `docs/AGENTS.md`
+- **Guidelines**: `docs/REPORTING_GUIDELINES.md`
+- **Output Location**: All generated artifacts must go to `output/`
+- **Markdown**: Follow h1/h2 hierarchy and Github alerts style.
+
 ## Performance Benchmarks
 
 - **Parse Speed**: Target < 10ms for typical DICOM files
@@ -230,3 +241,4 @@ dist/               # Build outputs
 - No execution of untrusted code paths
 
 Remember: This codebase handles medical imaging data where accuracy and performance are critical. All suggestions must maintain the highest standards of code quality and runtime compatibility.
+```
