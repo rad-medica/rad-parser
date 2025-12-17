@@ -1,0 +1,9 @@
+[submodule "src/zig-codecs/deps/libjpeg-turbo"]
+	path = src/zig-codecs/deps/libjpeg-turbo
+	url = https://github.com/libjpeg-turbo/libjpeg-turbo.git
+[submodule "src/zig-codecs/deps/openjpeg"]
+	path = src/zig-codecs/deps/openjpeg
+	url = https://github.com/uclouvain/openjpeg.git
+[submodule "src/zig-codecs/deps/charls"]
+	path = src/zig-codecs/deps/charls
+	url = https://github.com/team-charls/charls.git
