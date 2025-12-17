@@ -78,7 +78,6 @@
 
     // Bun-specific settings
     "npm.packageManager": "bun",
-    "bun.runtime": "bun",
     "bun.enable": true,
 
     // Zig language support (for WASM codecs)
@@ -121,8 +120,6 @@
     "git.confirmSync": false,
 
     // Terminal
-    "terminal.integrated.shell.windows": "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
-    "terminal.integrated.defaultProfile.windows": "PowerShell",
 
     // Extensions
     "extensions.ignoreRecommendations": false,
