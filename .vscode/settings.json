@@ -1,0 +1,130 @@
+{
+    // VS Code settings optimized for Bun development
+    "typescript.preferences.importModuleSpecifier": "relative",
+    "typescript.suggest.autoImports": true,
+    "typescript.updateImportsOnFileMove.enabled": "always",
+    "typescript.preferences.includePackageJsonAutoImports": "auto",
+    "typescript.preferences.preferTypeOnlyAutoImports": true,
+    "editor.formatOnSave": true,
+    "editor.codeActionsOnSave": {
+        "source.fixAll.eslint": "explicit",
+        "source.organizeImports": "explicit"
+    },
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
+    "editor.tabSize": 4,
+    "editor.insertSpaces": true,
+    "files.eol": "\n",
+    "files.trimTrailingWhitespace": true,
+    "files.insertFinalNewline": true,
+    "files.encoding": "utf8",
+
+    // Language-specific settings
+    "[typescript]": {
+        "editor.defaultFormatter": "esbenp.prettier-vscode",
+        "editor.tabSize": 2
+    },
+    "[javascript]": {
+        "editor.defaultFormatter": "esbenp.prettier-vscode",
+        "editor.tabSize": 2
+    },
+    "[json]": {
+        "editor.defaultFormatter": "esbenp.prettier-vscode",
+        "editor.tabSize": 2
+    },
+    "[jsonc]": {
+        "editor.defaultFormatter": "esbenp.prettier-vscode",
+        "editor.tabSize": 2
+    },
+    "[zig]": {
+        "editor.tabSize": 4,
+        "editor.insertSpaces": true
+    },
+    "[markdown]": {
+        "editor.wordWrap": "on",
+        "editor.quickSuggestions": {
+            "comments": "off",
+            "strings": "off",
+            "other": "off"
+        },
+        "editor.defaultFormatter": "esbenp.prettier-vscode"
+    },
+
+    // Markdown linting
+    "markdownlint.config": {
+        "default": true,
+        "MD003": { "style": "atx" },
+        "MD004": { "style": "dash" },
+        "MD007": { "indent": 4 },
+        "MD013": { "line_length": 100 },
+        "MD024": { "allow_different_nesting": true },
+        "MD025": { "level": 1 },
+        "MD026": { "punctuation": ".,;:!。？！" },
+        "MD029": { "style": "ordered" },
+        "MD030": {
+            "ul_single": 1,
+            "ol_single": 1,
+            "ul_multi": 1,
+            "ol_multi": 1
+        },
+        "MD033": {
+            "allowed_elements": ["br", "details", "summary", "kbd", "img"]
+        },
+        "MD036": false,
+        "MD040": false,
+        "MD041": false,
+        "MD046": { "style": "fenced" },
+        "MD048": { "style": "backtick" }
+    },
+
+    // Bun-specific settings
+    "npm.packageManager": "bun",
+    "bun.runtime": "bun",
+    "bun.enable": true,
+
+    // Zig language support (for WASM codecs)
+    "zig.initialSetupDone": true,
+    "zig.zls.checkForUpdate": false,
+
+    // Testing with Vitest
+    "vitest.enable": true,
+    "vitest.include": ["**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}"],
+
+    // File associations
+    "files.associations": {
+        "*.zig": "zig",
+        "*.wasm": "wasm",
+        "bun.lockb": "json"
+    },
+
+    // Search exclusions
+    "search.exclude": {
+        "**/node_modules": true,
+        "**/dist": true,
+        "**/.git": true,
+        "**/*.log": true,
+        "**/zig-out": true,
+        "**/zig-cache": true,
+        "**/.zig-cache": true
+    },
+
+    // File watching
+    "files.watcherExclude": {
+        "**/node_modules/**": true,
+        "**/dist/**": true,
+        "**/.git/**": true,
+        "**/zig-out/**": true,
+        "**/zig-cache/**": true
+    },
+
+    // Git
+    "git.autofetch": true,
+    "git.confirmSync": false,
+
+    // Terminal
+    "terminal.integrated.shell.windows": "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
+    "terminal.integrated.defaultProfile.windows": "PowerShell",
+
+    // Extensions
+    "extensions.ignoreRecommendations": false,
+    "zig.buildOnSaveProvider": false
+}

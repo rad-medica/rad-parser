@@ -22,8 +22,6 @@ zig-out/
 .zig-cache/
 
 # IDE and Editor files
-.vscode/settings.json
-.vscode/launch.json
 .idea/
 
 # Logs

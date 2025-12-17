@@ -1,0 +1,66 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Debug CLI with Bun",
+            "type": "node",
+            "request": "launch",
+            "runtimeExecutable": "bun",
+            "runtimeArgs": ["run"],
+            "args": [
+                "${workspaceFolder}/bin/rad-parser.js",
+                "dump",
+                "${workspaceFolder}/test_cli.dcm"
+            ],
+            "console": "integratedTerminal",
+            "internalConsoleOptions": "openOnSessionStart",
+            "skipFiles": ["<node_internals>/**", "**/node_modules/**"],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "name": "Debug TypeScript with Bun",
+            "type": "node",
+            "request": "launch",
+            "runtimeExecutable": "bun",
+            "runtimeArgs": ["--inspect", "--inspect-brk"],
+            "program": "${workspaceFolder}/src/cli.ts",
+            "args": ["dump", "${workspaceFolder}/test_cli.dcm"],
+            "console": "integratedTerminal",
+            "internalConsoleOptions": "openOnSessionStart",
+            "skipFiles": ["<node_internals>/**", "**/node_modules/**"],
+            "cwd": "${workspaceFolder}",
+            "env": {
+                "NODE_ENV": "development"
+            }
+        },
+        {
+            "name": "Debug Tests with Bun",
+            "type": "node",
+            "request": "launch",
+            "runtimeExecutable": "bun",
+            "runtimeArgs": ["run", "test"],
+            "console": "integratedTerminal",
+            "internalConsoleOptions": "openOnSessionStart",
+            "skipFiles": ["<node_internals>/**", "**/node_modules/**"],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "name": "Debug Benchmarks with Bun",
+            "type": "node",
+            "request": "launch",
+            "runtimeExecutable": "bun",
+            "runtimeArgs": ["run", "benchmark"],
+            "console": "integratedTerminal",
+            "internalConsoleOptions": "openOnSessionStart",
+            "skipFiles": ["<node_internals>/**", "**/node_modules/**"],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "name": "Attach to Bun Process",
+            "type": "node",
+            "request": "attach",
+            "port": 9229,
+            "skipFiles": ["<node_internals>/**", "**/node_modules/**"]
+        }
+    ]
+}
