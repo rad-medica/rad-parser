@@ -23,7 +23,7 @@ pub fn build(b: *std.Build) void {
         .flags = &.{ "-O3", "-DNDEBUG", "-fno-builtin" },
     });
 
-    lib_core.rdynamic = false;
+    lib_core.rdynamic = true;
     lib_core.entry = .disabled;
     lib_core.root_module.strip = true;
     lib_core.root_module.single_threaded = true;

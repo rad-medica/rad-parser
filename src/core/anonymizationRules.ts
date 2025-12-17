@@ -22,6 +22,13 @@ export interface AnonymizationRule {
 // In a real scenario this list would be 200+ tags.
 // Using x-prefix format.
 export const BASIC_PROFILE_RULES: Record<string, AnonymizationRule> = {
+    // Group 0002
+    x00020003: {
+        tag: "x00020003",
+        name: "MediaStorageSOPInstanceUID",
+        action: "U",
+    },
+
     // Group 0008
     x00080018: { tag: "x00080018", name: "SOPInstanceUID", action: "U" },
     x00080050: { tag: "x00080050", name: "AccessionNumber", action: "Z" },

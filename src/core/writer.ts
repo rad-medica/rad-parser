@@ -188,7 +188,7 @@ export function write(
     return concatChunks(chunks);
 }
 
-function concatChunks(chunks: Uint8Array[]): Uint8Array {
+export function concatChunks(chunks: Uint8Array[]): Uint8Array {
     // Optimized: Single pass calculation and copy
     let totalLength = 0;
     const chunkCount = chunks.length;
@@ -251,7 +251,7 @@ function parseTagFast(tagHex: string): { group: number; elem: number } | null {
     return { group, elem };
 }
 
-function serializeElement(
+export function serializeElement(
     tagHex: string,
     element: DicomElement
 ): Uint8Array | null {

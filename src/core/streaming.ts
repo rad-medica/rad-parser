@@ -5,17 +5,15 @@
  * of very large files.
  */
 
-import type { DicomElement } from "./types";
 import { SafeDataView } from "../utils/SafeDataView";
+import { extractPixelDataFromView } from "../utils/pixelData";
+import { parseSequence } from "../utils/sequenceParser";
 import {
     detectVR,
     detectVRForPrivateTag,
     requiresExplicitLength,
 } from "../utils/vrDetection";
-import { parseValueByVR } from "../utils/valueParsers";
-import { parseSequence } from "../utils/sequenceParser";
-import { extractPixelDataFromView } from "../utils/pixelData";
-import { isPrivateTag } from "../utils/dictionary";
+import type { DicomElement } from "./types";
 
 /**
  * Hex string cache for fast tag formatting (module-level for reuse)
@@ -180,14 +178,10 @@ export class StreamingParser {
 
         // Optimized buffer growth strategy
         if (this.state.buffer.length === 0) {
-            // First chunk - allocate with headroom (2x) to reduce reallocations
-            const initialSize = Math.min(
-                Math.max(chunk.length * 2, 16384),
-                this.options.maxBufferSize
-            );
-            const newBuffer = new Uint8Array(initialSize);
-            newBuffer.set(chunk, 0);
-            this.state.buffer = newBuffer.subarray(0, chunk.length);
+            // Zero-copy optimization:
+            // If the buffer is empty, just use the incoming chunk directly.
+            // We avoid allocating and copying until we absolutely have to (merging).
+            this.state.buffer = chunk;
         } else {
             // Check if we can reuse the underlying buffer (faster path)
             const bufferByteLength = this.state.buffer.buffer.byteLength;
@@ -836,7 +830,7 @@ export class StreamingParser {
     }
 
     /**
-     * Read meta information from Part 10 file
+     * Read meta information from Part 10 file and emit elements
      */
     private readMetaInformation(metaView: SafeDataView): {
         transferSyntax?: string;
@@ -847,61 +841,124 @@ export class StreamingParser {
             return result;
         }
 
-        const metaGroup = metaView.readUint16();
-        const metaElement = metaView.readUint16();
-
-        if (metaGroup !== 0x0002 || metaElement !== 0x0000) {
-            return result;
-        }
-
-        const vrBytes = metaView.readBytes(2);
-        const vr = String.fromCharCode(vrBytes[0], vrBytes[1]);
-        let length: number;
-        if (requiresExplicitLength(vr)) {
-            metaView.readUint16();
-            length = metaView.readUint32();
-        } else {
-            length = metaView.readUint16();
-        }
-        metaView.readBytes(length);
-
-        const maxMetaElements = 20;
+        const maxMetaElements = 20; // Safety limit
         let metaIterations = 0;
 
+        // Loop including the first element (Group Length 0002,0000) usually
         while (
             metaView.getRemainingBytes() >= 8 &&
             metaIterations < maxMetaElements
         ) {
-            metaIterations++;
-            const tsGroup = metaView.readUint16();
-            const tsElement = metaView.readUint16();
+            const startPos = metaView.getPosition();
+            const group = metaView.readUint16();
+            const element = metaView.readUint16();
 
-            if (tsGroup === 0x0002 && tsElement === 0x0010) {
-                const tsVrBytes = metaView.readBytes(2);
-                const tsVr = String.fromCharCode(tsVrBytes[0], tsVrBytes[1]);
-                let tsLength: number;
-                if (requiresExplicitLength(tsVr)) {
-                    metaView.readUint16();
-                    tsLength = metaView.readUint32();
-                } else {
-                    tsLength = metaView.readUint16();
-                }
-                result.transferSyntax = metaView.readString(tsLength).trim();
+            // Stop if not Group 2
+            if (group !== 0x0002) {
+                metaView.setPosition(startPos); // Backtrack
                 break;
-            } else if (tsGroup === 0x0002) {
-                const tsVrBytes = metaView.readBytes(2);
-                const tsVr = String.fromCharCode(tsVrBytes[0], tsVrBytes[1]);
-                let tsLength: number;
-                if (requiresExplicitLength(tsVr)) {
-                    metaView.readUint16();
-                    tsLength = metaView.readUint32();
-                } else {
-                    tsLength = metaView.readUint16();
-                }
-                metaView.readBytes(tsLength);
+            }
+
+            metaIterations++;
+
+            // Meta Elements are always Explicit VR Little Endian
+            const vrBytes = metaView.readBytes(2);
+            const vr = String.fromCharCode(vrBytes[0], vrBytes[1]);
+            let length: number;
+
+            if (requiresExplicitLength(vr)) {
+                metaView.readUint16(); // Reserved
+                length = metaView.readUint32();
             } else {
-                metaView.setPosition(metaView.getPosition() - 4);
-                break;
+                length = metaView.readUint16();
+            }
+
+            // Read Value
+            let value:
+                | string
+                | number
+                | Array<string | number>
+                | Record<string, unknown>
+                | Uint8Array
+                | undefined = undefined;
+
+            if (length > 0) {
+                if (
+                    vr === "OB" ||
+                    vr === "OW" ||
+                    vr === "OF" ||
+                    vr === "OD" ||
+                    vr === "OL" ||
+                    vr === "UN"
+                ) {
+                    const bytes = metaView.readBytes(length);
+                    value = new Uint8Array(bytes);
+                } else {
+                    const str = metaView.readString(length, "ISO_IR 192"); // Meta is always default char set (ASCII mostly)
+
+                    // Clean string value
+                    const cleanStr = str.replace(/\0+$/, "");
+
+                    if (vr === "UI") {
+                        value = cleanStr; // UIs are usually single strings in meta, but can be multi. Part 10 usually single.
+                        // But we should follow standard Value format (array of strings if VM > 1, or string if VM=1? Parser uses array usually?)
+                        // StreamingParser `parseElementValue` returns string or array.
+                        // Let's standardise on string or array.
+                        value = cleanStr.split("\\");
+                        if (Array.isArray(value) && value.length === 1)
+                            value = value[0];
+                    } else if (vr === "UL" || vr === "US") {
+                        // Numeric
+                        const num = parseInt(cleanStr, 10);
+                        value = isNaN(num) ? cleanStr : num;
+                    } else {
+                        value = cleanStr;
+                    }
+                }
+            }
+
+            // Capture Transfer Syntax
+            if (group === 0x0002 && element === 0x0010) {
+                if (Array.isArray(value)) {
+                    result.transferSyntax = String(value[0]).trim();
+                } else {
+                    result.transferSyntax = String(value).trim();
+                }
+            }
+
+            // Emit Element
+            if (this.options.onElement) {
+                const groupHex =
+                    hexCache[group] || group.toString(16).padStart(4, "0");
+                const elementHex =
+                    hexCache[element] || element.toString(16).padStart(4, "0");
+                const tagHex = `x${groupHex}${elementHex}`;
+
+                let normalizedValue = value;
+                // Normalize to array for consistency with parser if needed
+                if (
+                    normalizedValue !== undefined &&
+                    !(normalizedValue instanceof Uint8Array) &&
+                    !Array.isArray(normalizedValue)
+                ) {
+                    normalizedValue = [normalizedValue] as Array<
+                        string | number
+                    >;
+                }
+
+                const elementData: DicomElement = {
+                    vr,
+                    VR: vr,
+                    Value: normalizedValue as any,
+                    value: normalizedValue as any,
+                    length: length,
+                    Length: length,
+                };
+
+                this.options.onElement({
+                    dict: { [tagHex]: elementData },
+                    normalizedElements: { [tagHex]: elementData },
+                });
             }
         }
 

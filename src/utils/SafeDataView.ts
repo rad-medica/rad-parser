@@ -4,6 +4,8 @@
  * Provides bounds-checked byte reading operations for DICOM parsing.
  */
 
+import { findSequenceDelimiterWasm } from "../core/wasm-opt";
+
 /**
  * DataView wrapper for safe byte reading
  */
@@ -153,46 +155,52 @@ export class SafeDataView {
 
     /**
      * Skip until Sequence Delimiter Item (FF FE E0 DD).
-     * Uses Uint8Array.indexOf for speed.
+     * Uses WASM if available, otherwise optimized JS implementation.
      * Returns true if found and positioned after it, false if EOF reached.
      */
     skipUndefinedLength(limit: number): boolean {
+        // Try WASM optimization first
         const buffer = new Uint8Array(
             this.view.buffer,
-            this.view.byteOffset,
-            this.view.byteLength
+            this.view.byteOffset + this.offset,
+            Math.min(limit, this.view.byteLength - this.offset)
         );
-        let pos = this.offset;
-        const maxPos = Math.min(this.view.byteLength, this.offset + limit);
-        const endMinus4 = maxPos - 4;
 
-        while (pos <= endMinus4) {
+        const offset = findSequenceDelimiterWasm(buffer);
+        if (offset !== null) {
+            this.offset += offset + 8;
+            if (this.offset > this.view.byteLength) {
+                this.offset = this.view.byteLength;
+            }
+            return true;
+        }
+
+        // JS Fallback
+        const maxPos = Math.min(this.view.byteLength, this.offset + limit);
+        let pos = 0; // Relative to buffer start
+
+        while (pos <= buffer.length - 4) {
             const idx = buffer.indexOf(0xfe, pos);
-            if (idx === -1 || idx > endMinus4) {
+            if (idx === -1) {
                 this.offset = maxPos;
                 return false;
             }
-            pos = idx;
 
-            // Check remaining bytes: FF FE E0 DD (Little Endian)
-            // byte[0] is FE (checked)
-            // byte[1] must be FF
-            // byte[2] must be DD
-            // byte[3] must be E0
+            const matchPos = idx;
+            if (matchPos > buffer.length - 4) {
+                this.offset = maxPos;
+                return false;
+            }
+
             if (
-                buffer[pos + 1] === 0xff &&
-                buffer[pos + 2] === 0xdd &&
-                buffer[pos + 3] === 0xe0
+                buffer[matchPos + 1] === 0xff &&
+                buffer[matchPos + 2] === 0xdd &&
+                buffer[matchPos + 3] === 0xe0
             ) {
-                // Found delimiter tag.
-                // It is followed by a length (4 bytes), usually 0.
-                this.offset = pos + 8; // Skip tag (4) + length (4)
-                if (this.offset > this.view.byteLength) {
-                    this.offset = this.view.byteLength;
-                }
+                this.offset += matchPos + 8;
                 return true;
             }
-            pos++;
+            pos = matchPos + 1;
         }
 
         this.offset = maxPos;

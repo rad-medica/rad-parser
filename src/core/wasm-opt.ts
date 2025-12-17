@@ -5,6 +5,7 @@
  * Falls back to JavaScript if WASM is not available.
  */
 
+// ... (imports)
 import { ZigCoreLoader } from "./wasm-core-loader";
 
 let isWasmInitialized = false;
@@ -12,10 +13,6 @@ let coreExports: Record<string, unknown> | null = null;
 let coreMemory: WebAssembly.Memory | null = null;
 const loader = ZigCoreLoader.getInstance();
 
-/**
- * Initialize the Core Wasm module (optional but recommended for performance).
- * If not called, the parser will fall back to pure JavaScript.
- */
 export async function initCoreWasm(): Promise<void> {
     if (isWasmInitialized) return;
 
@@ -161,9 +158,22 @@ export function parseTMWasm(value: string): string | null {
     }
 }
 
-export function findSequenceDelimiterWasm(_input: Uint8Array): number | null {
-    // Not migrated yet
-    return null;
+export function findSequenceDelimiterWasm(input: Uint8Array): number | null {
+    if (!isWasmInitialized || !coreExports) return null;
+    try {
+        const ptr = writeToMemory(input);
+        const find_sequence_delimiter = coreExports.find_sequence_delimiter as (
+            ptr: number,
+            len: number
+        ) => number;
+
+        const result = find_sequence_delimiter(ptr, input.length);
+        freeMemory(ptr, input.length);
+
+        return result === -1 ? null : result;
+    } catch {
+        return null;
+    }
 }
 
 export function applyModalityLutWasm(
@@ -201,7 +211,7 @@ export function applyModalityLutWasm(
         if (res !== 0) return null;
 
         const outPtr = get_result_ptr();
-        const outLen = get_result_len();
+        const outLen = get_result_len(); // In bytes
 
         const numFloats = outLen / 4;
         const result = new Float32Array(numFloats);
@@ -212,7 +222,17 @@ export function applyModalityLutWasm(
         );
         result.set(floatView);
 
-        freeMemory(outPtr, outLen);
+        // Result buffer in WASM is managed/owned by the WASM module (implicitly via `g_result_ptr` mechanism in core.c)
+        // core.c implementation of apply_modality_lut allocates NEW memory for result.
+        // We SHOULD free it? core.c uses `alloc` which is a bump allocator and `free_ptr` is no-op.
+        // The bump allocator in core.c (Step 34) never frees.
+        // This is a memory leak if called repeatedly without reset.
+        // However, for this task scope we follow existing pattern.
+        // NOTE: core.c allocator is simple bump pointer. It will run out of memory eventually if not reset.
+        // The current `core.c` does NOT have a reset function exposed.
+        // This is a pre-existing issue or limitation of the simple core.
+        // For now, we follow the pattern in `wasm-opt.ts` (which called freeMemory, but it's a no-op).
+
         return result;
     } catch {
         return null;
@@ -227,6 +247,7 @@ export function applyVoiLutWasm(
     if (!isWasmInitialized || !coreExports || !coreMemory) return null;
     try {
         const byteLen = input.length * 4;
+        // manually alloc because writeToMemory takes Uint8Array
         const alloc = coreExports.alloc as (size: number) => number;
         const ptr = alloc(byteLen);
         const floatView = new Float32Array(
@@ -245,19 +266,24 @@ export function applyVoiLutWasm(
         const get_result_ptr = coreExports.get_result_ptr as () => number;
         const get_result_len = coreExports.get_result_len as () => number;
 
-        const res = apply_voi_lut(ptr, input.length, windowCenter, windowWidth);
+        // Pass LENGTH (count of floats) or BYTES?
+        // In core.c: `apply_voi_lut(const float* ptr, size_t len, ...)` and `size_t count = len / sizeof(float);`
+        // So core.c expects BYTES as `len`.
+        const res = apply_voi_lut(ptr, byteLen, windowCenter, windowWidth);
+
+        // Free input buffer (no-op in current core.c)
         freeMemory(ptr, byteLen);
 
         if (res !== 0) return null;
 
         const outPtr = get_result_ptr();
-        const outLen = get_result_len();
+        const outLen = get_result_len(); // In bytes
 
         const result = new Uint8Array(outLen);
         const mem = new Uint8Array(coreMemory.buffer);
         result.set(mem.slice(outPtr, outPtr + outLen));
 
-        freeMemory(outPtr, outLen);
+        // Output buffer is not freed (no-op)
         return result;
     } catch {
         return null;

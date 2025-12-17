@@ -6,21 +6,20 @@
  * Uses all available test files
  */
 
+import dcmjs from "dcmjs";
+import dicomParser from "dicom-parser";
+import efferentDicom from "efferent-dicom";
 import {
+    existsSync,
+    mkdirSync,
     readFileSync,
     readdirSync,
     statSync,
     writeFileSync,
-    mkdirSync,
-    existsSync,
 } from "fs";
-import { join, dirname, resolve } from "path";
+import { dirname, join } from "path";
 import { fileURLToPath } from "url";
-import { parse, initCoreWasm } from "../src/index.js";
-import { StreamingParser } from "../src/index.js";
-import dcmjs from "dcmjs";
-import dicomParser from "dicom-parser";
-import efferentDicom from "efferent-dicom";
+import { StreamingParser, initCoreWasm, parse } from "../src/index.js";
 
 // ... (keep existing imports)
 
@@ -148,8 +147,11 @@ function benchmarkParser(
         let dataset;
         switch (parserName) {
             case "rad-parser":
-            case "rad-parser-wasm":
                 dataset = parse(fileData, { type: "full" });
+                elementCount = Object.keys(dataset.dict || {}).length;
+                break;
+            case "rad-parser-wasm":
+                dataset = parse(fileData, { type: "full", enableWasm: true });
                 elementCount = Object.keys(dataset.dict || {}).length;
                 break;
             case "rad-parser-fast":

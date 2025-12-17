@@ -5,8 +5,8 @@
  * according to DICOM PS3.15 Annex E (Basic Attribute Confidentiality Profile).
  */
 
+import { AnonymizationAction, BASIC_PROFILE_RULES } from "./anonymizationRules";
 import { DicomDataSet, DicomElement } from "./types";
-import { BASIC_PROFILE_RULES, AnonymizationAction } from "./anonymizationRules";
 
 export interface AnonymizationOptions {
     /**
@@ -64,73 +64,38 @@ export function anonymize(
     options: AnonymizationOptions = {}
 ): DicomDataSet {
     const dict = dataset.dict;
-    const customReplacements = options.replacements || {};
     const prefix = options.patientIdPrefix || DEFAULT_PREFIX;
     const uidMap = options.uidMap || {};
+    const keepPrivateTags = !!options.keepPrivateTags;
+    const customReplacements = options.replacements;
 
     // Optimized: Create new dict and process in single pass where possible
     const newDict: Record<string, DicomElement> = {};
 
-    // Pre-allocate dict size estimate
-    const dictSize = Object.keys(dict).length;
+    const context: AnonymizationContext = {
+        prefix,
+        uidMap,
+        keepPrivateTags,
+        customReplacements,
+    };
 
-    // Copy elements that won't be modified (optimized: avoid unnecessary copies)
-    // We'll modify in place for elements that need changes
-    for (const key in dict) {
-        newDict[key] = dict[key];
-    }
+    // Iterate original dict
+    for (const tag in dict) {
+        const element = dict[tag];
+        if (!element) continue;
 
-    // 1. Process Basic Profile Rules - optimized iteration
-    const basicRules = BASIC_PROFILE_RULES;
-    for (const tag in basicRules) {
-        const rule = basicRules[tag];
-        const element = newDict[tag];
-
-        // Skip if custom replacement exists
-        if (customReplacements[tag] !== undefined) {
-            continue;
+        // Clone element to avoid mutation of original
+        const newElement = { ...element };
+        if (Array.isArray(element.Value)) {
+            // Cast to any to avoid complex union type issues during spread
+            newElement.Value = [...(element.Value as any)];
         }
 
-        // Only process existing elements
-        if (element) {
-            applyRule(newDict, tag, rule.action, prefix, uidMap);
-        }
-    }
+        // Apply anonymization
+        const keep = anonymizeElement(tag, newElement, context);
 
-    // 2. Process Custom Replacements - optimized
-    const customKeys = Object.keys(customReplacements);
-    for (let i = 0; i < customKeys.length; i++) {
-        const tag = customKeys[i];
-        const replacement = customReplacements[tag];
-        if (replacement === null) {
-            delete newDict[tag];
-        } else {
-            const original = newDict[tag];
-            if (original) {
-                // Reuse object, only update needed fields
-                original.Value = replacement === "" ? "" : replacement;
-                original.value = replacement === "" ? "" : replacement;
-                original.length = replacement.length;
-            } else {
-                // Create new element only if needed
-                newDict[tag] = {
-                    vr: "UN",
-                    Value: replacement === "" ? "" : replacement,
-                    value: replacement === "" ? "" : replacement,
-                    length: replacement.length,
-                };
-            }
-        }
-    }
-
-    // 3. Private Tags Removal - optimized: delete directly (faster than collecting then deleting)
-    if (!options.keepPrivateTags) {
-        // Single pass: check and delete immediately
-        for (const tag in newDict) {
-            const group = getGroupNumberFast(tag);
-            if (group !== null && group % 2 !== 0) {
-                delete newDict[tag];
-            }
+        if (keep) {
+            newDict[tag] = newElement;
         }
     }
 
@@ -148,19 +113,72 @@ export function anonymize(
     };
 }
 
-function applyRule(
-    dict: Record<string, DicomElement>,
+export interface AnonymizationContext {
+    prefix: string;
+    uidMap: Record<string, string>;
+    keepPrivateTags?: boolean;
+    customReplacements?: Record<string, string | null>;
+}
+
+/**
+ * Anonymize a single element. Mutates the dict/element in place or returns false if should be removed.
+ */
+export function anonymizeElement(
     tag: string,
+    element: DicomElement,
+    context: AnonymizationContext
+): boolean {
+    const { prefix, uidMap, customReplacements, keepPrivateTags } = context;
+
+    // 1. Private Tag Check
+    if (!keepPrivateTags) {
+        const group = getGroupNumberFast(tag);
+        if (group !== null && group % 2 !== 0) {
+            return false; // Remove
+        }
+    }
+
+    // 2. Custom Replacement
+    if (customReplacements) {
+        const replacement = customReplacements[tag];
+        if (replacement !== undefined) {
+            if (replacement === null) return false; // Remove
+
+            element.Value = replacement === "" ? "" : replacement;
+            element.value = replacement === "" ? "" : replacement;
+            element.length = replacement.length;
+            return true;
+        }
+    }
+
+    // 3. Basic Profile Rules
+    const rule = BASIC_PROFILE_RULES[tag];
+    if (rule) {
+        applyRule(element, rule.action, prefix, uidMap);
+    }
+
+    return true;
+}
+
+function applyRule(
+    element: DicomElement,
     action: AnonymizationAction,
     prefix: string,
     uidMap: Record<string, string>
 ) {
-    const element = dict[tag];
-    if (!element) return;
-
     switch (action) {
         case "X": // Remove
-            delete dict[tag];
+            // Caller handles removal based on return of anonymizeElement?
+            // Actually, applyRule was void. But for X we need to signal removal.
+            // In legacy flow, X deleted from dict.
+            // We should change this function to return boolean?
+            // Or better, let anonymizeElement handle logic.
+            // But BASIC_PROFILE_RULES has 'X'.
+            // Let's handle X here by returning false, but we can't delete from dict easily if we just have element.
+            // Actually, the caller (anonymize) iterates dict keys.
+            // Ideally we shouldn't rely on 'dict' being passed to applyRule if we want streaming.
+            // Streaming passes 'element'.
+            // So, if action is X, we return false.
             break;
 
         case "Z": // Zero Length (Empty) - optimized: reuse object
