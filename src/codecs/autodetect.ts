@@ -38,7 +38,7 @@ export class AutoDetectCodec implements PixelDataCodec {
 
         // 1. Try explicit registration first (standard path)
         const candidates = all.filter(
-            (c) => c !== this && c.canDecode(transferSyntax),
+            c => c !== this && c.canDecode(transferSyntax)
         );
         // console.log(`[AutoDetect] Candidates: ${candidates.map(c=>c.name).join(', ')}`);
 
@@ -50,7 +50,7 @@ export class AutoDetectCodec implements PixelDataCodec {
                         return await c.decode(encodedBuffer, info);
                     } catch (e) {
                         console.warn(
-                            `[AutoDetect] Candidate ${c.name} failed: ${(e as Error).message}. Trying sniff...`,
+                            `[AutoDetect] Candidate ${c.name} failed: ${(e as Error).message}. Trying sniff...`
                         );
                     }
                 }
@@ -69,7 +69,7 @@ export class AutoDetectCodec implements PixelDataCodec {
             // Try registered JPEG codecs
             const jpgCodecs = registry
                 .getCodecs()
-                .filter((c) => c.name.includes("jpeg") && c !== this);
+                .filter(c => c.name.includes("jpeg") && c !== this);
             for (const c of jpgCodecs) {
                 if (c.isSupported()) {
                     try {
@@ -96,7 +96,7 @@ export class AutoDetectCodec implements PixelDataCodec {
         width: number,
         height: number,
         samples: number,
-        bits: number,
+        bits: number
     ): Promise<Uint8Array[]> {
         throw new Error("AutoDetect Encode not supported.");
     }

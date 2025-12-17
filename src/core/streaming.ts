@@ -120,7 +120,7 @@ export class StreamingParser {
                 const sourceBuffer = chunk.buffer;
                 if (sourceBuffer instanceof ArrayBuffer) {
                     buffer = sourceBuffer.slice(
-                        chunk.byteOffset + this.state.offset,
+                        chunk.byteOffset + this.state.offset
                     );
                 } else {
                     // SharedArrayBuffer - copy to new ArrayBuffer
@@ -171,8 +171,8 @@ export class StreamingParser {
             if (this.options.onError) {
                 this.options.onError(
                     new Error(
-                        `Buffer size exceeded limit: ${newLength} > ${this.options.maxBufferSize}`,
-                    ),
+                        `Buffer size exceeded limit: ${newLength} > ${this.options.maxBufferSize}`
+                    )
                 );
             }
             return;
@@ -183,7 +183,7 @@ export class StreamingParser {
             // First chunk - allocate with headroom (2x) to reduce reallocations
             const initialSize = Math.min(
                 Math.max(chunk.length * 2, 16384),
-                this.options.maxBufferSize,
+                this.options.maxBufferSize
             );
             const newBuffer = new Uint8Array(initialSize);
             newBuffer.set(chunk, 0);
@@ -201,20 +201,20 @@ export class StreamingParser {
                 const underlyingView = new Uint8Array(
                     this.state.buffer.buffer,
                     bufferByteOffset + actualUsedLength,
-                    chunk.length,
+                    chunk.length
                 );
                 underlyingView.set(chunk);
                 // Update buffer view to include new data
                 this.state.buffer = new Uint8Array(
                     this.state.buffer.buffer,
                     bufferByteOffset,
-                    newLength,
+                    newLength
                 );
             } else {
                 // Need to grow - use 1.5x growth factor with minimum growth
                 const growSize = Math.min(
                     Math.max(newLength, Math.floor(currentLength * 1.5)),
-                    this.options.maxBufferSize,
+                    this.options.maxBufferSize
                 );
                 const newBuffer = new Uint8Array(growSize);
                 // Copy existing data (only unprocessed portion if offset > 0)
@@ -225,11 +225,11 @@ export class StreamingParser {
                     // Copy only unprocessed data (more efficient)
                     newBuffer.set(
                         this.state.buffer.subarray(this.state.offset),
-                        0,
+                        0
                     );
                     this.state.buffer = newBuffer.subarray(
                         0,
-                        currentLength - this.state.offset,
+                        currentLength - this.state.offset
                     );
                     this.state.offset = 0;
                     // Now append new chunk
@@ -237,7 +237,7 @@ export class StreamingParser {
                     newBuffer.set(chunk, appendPos);
                     this.state.buffer = newBuffer.subarray(
                         0,
-                        appendPos + chunk.length,
+                        appendPos + chunk.length
                     );
                 } else {
                     // Copy all existing data
@@ -291,7 +291,7 @@ export class StreamingParser {
                         this.options.onError(
                             error instanceof Error
                                 ? error
-                                : new Error(String(error)),
+                                : new Error(String(error))
                         );
                     }
                 }
@@ -305,7 +305,7 @@ export class StreamingParser {
         } catch (error) {
             if (this.options.onError) {
                 this.options.onError(
-                    error instanceof Error ? error : new Error(String(error)),
+                    error instanceof Error ? error : new Error(String(error))
                 );
             }
         }
@@ -379,7 +379,7 @@ export class StreamingParser {
                             this.options.onError(
                                 callbackError instanceof Error
                                     ? callbackError
-                                    : new Error(String(callbackError)),
+                                    : new Error(String(callbackError))
                             );
                         }
                     }
@@ -402,7 +402,7 @@ export class StreamingParser {
 
                 if (this.options.onError) {
                     this.options.onError(
-                        error instanceof Error ? error : new Error(errorMsg),
+                        error instanceof Error ? error : new Error(errorMsg)
                     );
                 }
 
@@ -443,7 +443,7 @@ export class StreamingParser {
      */
     private parseElement(
         view: SafeDataView,
-        final: boolean,
+        final: boolean
     ): {
         dict: Record<string, DicomElement>;
         normalizedElements: Record<string, DicomElement>;
@@ -541,7 +541,7 @@ export class StreamingParser {
                     this.state.explicitVR,
                     this.state.littleEndian,
                     this.state.characterSet,
-                    true,
+                    true
                 );
 
                 const elementData: DicomElement = {
@@ -569,7 +569,7 @@ export class StreamingParser {
                     this.state.explicitVR,
                     this.state.littleEndian,
                     this.state.characterSet,
-                    false,
+                    false
                 );
 
                 const elementData: DicomElement = {
@@ -647,8 +647,8 @@ export class StreamingParser {
                     // Only warn if more than 66% missing
                     this.options.onError(
                         new Error(
-                            `Incomplete element ${tagHex}: expected ${length} bytes, got ${availableBytes}`,
-                        ),
+                            `Incomplete element ${tagHex}: expected ${length} bytes, got ${availableBytes}`
+                        )
                     );
                 }
                 // Still read what we have to continue parsing
@@ -674,7 +674,7 @@ export class StreamingParser {
             const pixelDataResult = extractPixelDataFromView(
                 view,
                 length,
-                this.state.transferSyntax,
+                this.state.transferSyntax
             );
             if (pixelDataResult) {
                 // Export pixel data in compatible format:
@@ -757,7 +757,7 @@ export class StreamingParser {
     private parseElementValue(
         view: SafeDataView,
         vr: string,
-        length: number,
+        length: number
     ):
         | string
         | number
@@ -797,24 +797,24 @@ export class StreamingParser {
             vr === "UL" ||
             vr === "US"
         ) {
-            const parts = str.split("\\").filter((p) => p.trim());
+            const parts = str.split("\\").filter(p => p.trim());
             if (parts.length === 1) {
                 const num = parseFloat(parts[0]);
                 return isNaN(num) ? str : Math.floor(num);
             }
-            return parts.map((p) => {
+            return parts.map(p => {
                 const num = parseFloat(p.trim());
                 return isNaN(num) ? p.trim() : num;
             });
         }
 
         if (vr === "DS" || vr === "FL" || vr === "FD") {
-            const parts = str.split("\\").filter((p) => p.trim());
+            const parts = str.split("\\").filter(p => p.trim());
             if (parts.length === 1) {
                 const num = parseFloat(parts[0]);
                 return isNaN(num) ? str : num;
             }
-            return parts.map((p) => {
+            return parts.map(p => {
                 const num = parseFloat(p.trim());
                 return isNaN(num) ? p.trim() : num;
             });
@@ -914,7 +914,7 @@ export class StreamingParser {
  */
 export async function parseFromStream(
     stream: ReadableStream<Uint8Array>,
-    options: StreamingOptions = {},
+    options: StreamingOptions = {}
 ): Promise<void> {
     const parser = new StreamingParser(options);
     const reader = stream.getReader();
@@ -931,7 +931,7 @@ export async function parseFromStream(
     } catch (error) {
         if (options.onError) {
             options.onError(
-                error instanceof Error ? error : new Error(String(error)),
+                error instanceof Error ? error : new Error(String(error))
             );
         }
         throw error;
@@ -945,7 +945,7 @@ export async function parseFromStream(
  */
 export async function parseFromAsyncIterator(
     iterator: AsyncIterable<Uint8Array>,
-    options: StreamingOptions = {},
+    options: StreamingOptions = {}
 ): Promise<void> {
     const parser = new StreamingParser(options);
 
@@ -957,7 +957,7 @@ export async function parseFromAsyncIterator(
     } catch (error) {
         if (options.onError) {
             options.onError(
-                error instanceof Error ? error : new Error(String(error)),
+                error instanceof Error ? error : new Error(String(error))
             );
         }
         throw error;

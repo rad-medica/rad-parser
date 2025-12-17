@@ -11,7 +11,7 @@ describe("Wasm Image Operations", () => {
         const path = await import("path");
         const wasmPath = path.resolve(
             __dirname,
-            "../../src/wasm-core-build/rad_parser_wasm_core_bg.wasm",
+            "../../src/wasm-core-build/rad_parser_wasm_core_bg.wasm"
         );
         const wasmBuffer = fs.readFileSync(wasmPath);
         await initCoreWasm(wasmBuffer as any);

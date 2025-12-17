@@ -12,33 +12,33 @@
  * - dictionary: Tag dictionary and lookup
  */
 
-import { registry } from "./registry";
-import { createParseError, DicomParseError } from "./errors";
 import { isPrivateTag } from "../utils/dictionary";
 import { extractPixelDataFromView } from "../utils/pixelData";
-import {
-    parseDSWasm,
-    parseISWasm,
-    parsePNWasm,
-    parseDAWasm,
-    parseTMWasm,
-    findSequenceDelimiterWasm,
-} from "./wasm-opt";
 import { SafeDataView } from "../utils/SafeDataView";
 import { parseSequence } from "../utils/sequenceParser";
 import { formatTagWithComma, normalizeTag } from "../utils/tagUtils";
-import type {
-    DicomDataSet,
-    DicomElement,
-    ShallowDicomDataSet,
-    PixelDataInfo,
-} from "./types";
 import { parseValueByVR } from "../utils/valueParsers";
 import {
     detectVR,
     detectVRForPrivateTag,
     requiresExplicitLength,
 } from "../utils/vrDetection";
+import { createParseError, DicomParseError } from "./errors";
+import { registry } from "./registry";
+import type {
+    DicomDataSet,
+    DicomElement,
+    PixelDataInfo,
+    ShallowDicomDataSet,
+} from "./types";
+import {
+    findSequenceDelimiterWasm,
+    parseDAWasm,
+    parseDSWasm,
+    parseISWasm,
+    parsePNWasm,
+    parseTMWasm,
+} from "./wasm-opt";
 
 /**
  * Transfer syntax constants
@@ -80,14 +80,14 @@ export interface ParseResult {
  * @returns Transfer syntax UID or undefined if not found
  */
 export function extractTransferSyntax(
-    byteArray: Uint8Array,
+    byteArray: Uint8Array
 ): string | undefined {
     try {
         let buffer: ArrayBuffer;
         if (byteArray.buffer instanceof ArrayBuffer) {
             buffer = byteArray.buffer.slice(
                 byteArray.byteOffset,
-                byteArray.byteOffset + byteArray.byteLength,
+                byteArray.byteOffset + byteArray.byteLength
             );
         } else {
             buffer = new ArrayBuffer(byteArray.byteLength);
@@ -120,7 +120,7 @@ export function canParse(byteArray: Uint8Array): boolean {
             const magic = new Uint8Array(
                 byteArray.buffer,
                 byteArray.byteOffset + 128,
-                4,
+                4
             );
             const magicString = String.fromCharCode(...magic);
             if (magicString === "DICM") {
@@ -132,7 +132,7 @@ export function canParse(byteArray: Uint8Array): boolean {
         const view = new DataView(
             byteArray.buffer,
             byteArray.byteOffset,
-            Math.min(byteArray.length, 8),
+            Math.min(byteArray.length, 8)
         );
         const group = view.getUint16(0, true); // Try little endian first
         if (group <= 0xffff && group !== 0x0000) {
@@ -165,7 +165,7 @@ export interface ParseOptions {
      */
     pixelDataPlugin?: (
         element: DicomElement,
-        transferSyntax: string,
+        transferSyntax: string
     ) => unknown;
     /**
      * Enable Wasm-accelerated parsing for supported VRs (PN, DA, TM) and sequence scanning.
@@ -184,14 +184,14 @@ export interface ParseOptions {
  */
 export function parseWithMetadata(
     byteArray: Uint8Array,
-    options: ParseOptions = {},
+    options: ParseOptions = {}
 ): ParseResult {
     // Ensure we have an ArrayBuffer (not SharedArrayBuffer)
     let buffer: ArrayBuffer;
     if (byteArray.buffer instanceof ArrayBuffer) {
         buffer = byteArray.buffer.slice(
             byteArray.byteOffset,
-            byteArray.byteOffset + byteArray.byteLength,
+            byteArray.byteOffset + byteArray.byteLength
         );
     } else {
         // Copy to new ArrayBuffer if SharedArrayBuffer
@@ -204,7 +204,7 @@ export function parseWithMetadata(
         throw createParseError(
             "File too small to be a valid DICOM file",
             undefined,
-            0,
+            0
         );
     }
 
@@ -219,7 +219,7 @@ export function parseWithMetadata(
             `Format detection failed - ${error instanceof Error ? error.message : "Unknown error"}`,
             undefined,
             view.getPosition(),
-            error instanceof Error ? error : undefined,
+            error instanceof Error ? error : undefined
         );
     }
 
@@ -231,7 +231,7 @@ export function parseWithMetadata(
     let characterSet = detection.characterSet;
 
     const normalizedFilterTags = options.filterTags
-        ? new Set(options.filterTags.map((t) => normalizeTag(t)))
+        ? new Set(options.filterTags.map(t => normalizeTag(t)))
         : undefined;
 
     const parseContext: ParseContext = {
@@ -261,7 +261,7 @@ export function parseWithMetadata(
             `Data element parsing failed - ${error instanceof Error ? error.message : "Unknown error"}`,
             undefined,
             view.getPosition(),
-            error instanceof Error ? error : undefined,
+            error instanceof Error ? error : undefined
         );
     }
 
@@ -308,7 +308,7 @@ interface FormatDetection {
  */
 function detectDicomFormat(
     view: SafeDataView,
-    buffer: ArrayBuffer,
+    buffer: ArrayBuffer
 ): FormatDetection {
     let offset = 0;
     let isDicomPart10 = false;
@@ -404,7 +404,8 @@ function readMetaInformation(metaView: SafeDataView): {
 
     // Read VR and length
     const vrBytes = metaView.readBytes(2);
-    const vr = String.fromCharCode(vrBytes[0], vrBytes[1]);
+    const [vr0, vr1] = vrBytes;
+    const vr = String.fromCharCode(vr0, vr1);
     let length: number;
     if (requiresExplicitLength(vr)) {
         metaView.readUint16(); // Skip reserved bytes
@@ -429,7 +430,8 @@ function readMetaInformation(metaView: SafeDataView): {
         if (tsGroup === 0x0002 && tsElement === 0x0010) {
             // Transfer syntax UID
             const tsVrBytes = metaView.readBytes(2);
-            const tsVr = String.fromCharCode(tsVrBytes[0], tsVrBytes[1]);
+            const [tsVr0, tsVr1] = tsVrBytes;
+            const tsVr = String.fromCharCode(tsVr0, tsVr1);
             let tsLength: number;
             if (requiresExplicitLength(tsVr)) {
                 metaView.readUint16();
@@ -444,7 +446,8 @@ function readMetaInformation(metaView: SafeDataView): {
         } else if (tsGroup === 0x0002) {
             // Still in meta information group, skip this element
             const tsVrBytes = metaView.readBytes(2);
-            const tsVr = String.fromCharCode(tsVrBytes[0], tsVrBytes[1]);
+            const [tsVr0, tsVr1] = tsVrBytes;
+            const tsVr = String.fromCharCode(tsVr0, tsVr1);
             let tsLength: number;
             if (requiresExplicitLength(tsVr)) {
                 metaView.readUint16();
@@ -476,7 +479,7 @@ interface ParseContext {
     enableWasm?: boolean; // Added enableWasm to ParseContext
     pixelDataPlugin?: (
         element: DicomElement,
-        transferSyntax: string,
+        transferSyntax: string
     ) => unknown;
 }
 
@@ -485,7 +488,7 @@ interface ParseContext {
  */
 function parseDataElements(
     view: SafeDataView,
-    context: ParseContext,
+    context: ParseContext
 ): {
     dict: Record<string, DicomElement>;
     detectedCharacterSet?: string;
@@ -520,7 +523,8 @@ function parseDataElements(
                     const charSetValue =
                         charSetElem?.Value || charSetElem?.value;
                     if (typeof charSetValue === "string") {
-                        detectedCharacterSet = charSetValue
+                        const safeCharSetValue = charSetValue;
+                        detectedCharacterSet = safeCharSetValue
                             .split("\\")[0]
                             .trim();
                         context.characterSet = detectedCharacterSet;
@@ -552,7 +556,7 @@ function parseDataElements(
  */
 function parseElement(
     view: SafeDataView,
-    context: ParseContext,
+    context: ParseContext
 ): {
     dict: Record<string, DicomElement>;
 } | null {
@@ -608,7 +612,7 @@ function parseElement(
                     const buffer = new Uint8Array(
                         view["view"].buffer,
                         view["view"].byteOffset + view.getPosition(),
-                        view.getRemainingBytes(),
+                        view.getRemainingBytes()
                     );
                     const offset = findSequenceDelimiterWasm(buffer);
                     if (offset !== null) {
@@ -650,7 +654,7 @@ function parseElement(
             context.littleEndian,
             context.characterSet,
             length === 0xffffffff,
-            context.enableWasm, // Pass enableWasm to parseSequence
+            context.enableWasm // Pass enableWasm to parseSequence
         );
 
         const elementLength = length === 0xffffffff ? undefined : length;
@@ -714,7 +718,7 @@ function parseElement(
             const pixelDataResult = extractPixelDataFromView(
                 view,
                 length,
-                context.transferSyntax,
+                context.transferSyntax
             );
             if (pixelDataResult) {
                 if (
@@ -759,7 +763,7 @@ function parseElement(
                 vr,
                 length,
                 context.characterSet,
-                context.enableWasm, // Pass enableWasm to parseElementValue
+                context.enableWasm // Pass enableWasm to parseElementValue
             );
         } catch {
             view.readBytes(length);
@@ -789,7 +793,7 @@ function parseElement(
         try {
             const decoded = context.pixelDataPlugin(
                 elementData,
-                context.transferSyntax || "",
+                context.transferSyntax || ""
             );
             if (decoded !== undefined) {
                 elementData.Value = decoded as any;
@@ -847,7 +851,7 @@ export interface UnifiedParseOptions {
      */
     pixelDataPlugin?: (
         element: DicomElement,
-        transferSyntax: string,
+        transferSyntax: string
     ) => unknown;
 
     // Deprecated options removed (customTags, tag)
@@ -861,7 +865,7 @@ export interface UnifiedParseOptions {
  */
 export function parse(
     byteArray: Uint8Array,
-    options: UnifiedParseOptions = {},
+    options: UnifiedParseOptions = {}
 ): DicomDataSet | ShallowDicomDataSet {
     const mode = options.type || "full";
 
@@ -913,14 +917,14 @@ export function parse(
 function createLazyDataSet(
     byteArray: Uint8Array,
     filterTags?: string[],
-    enableWasm?: boolean,
+    enableWasm?: boolean
 ): DicomDataSet {
     // 1. Perform shallow parse to get offsets
     const shallow = shallowParse(byteArray, filterTags, enableWasm); // Pass enableWasm
 
     // Normalize filter tags if present
     const validTags = filterTags
-        ? new Set(filterTags.map((t) => normalizeTag(t)))
+        ? new Set(filterTags.map(t => normalizeTag(t)))
         : null;
 
     // 2. Wrap in a Proxy to separate read logic
@@ -979,7 +983,7 @@ function createLazyDataSet(
                 vr,
                 length,
                 context.characterSet,
-                context.enableWasm,
+                context.enableWasm
             );
         } catch (e) {
             return undefined;
@@ -1011,9 +1015,9 @@ function createLazyDataSet(
                 const meta = shallow[prop];
                 return !!meta;
             },
-            ownKeys: (target) => {
+            ownKeys: target => {
                 const keys = Object.keys(shallow);
-                return validTags ? keys.filter((k) => validTags.has(k)) : keys;
+                return validTags ? keys.filter(k => validTags.has(k)) : keys;
             },
             getOwnPropertyDescriptor: (target, prop) => {
                 if (typeof prop === "string" && shallow[prop]) {
@@ -1024,29 +1028,29 @@ function createLazyDataSet(
                 }
                 return undefined;
             },
-        },
+        }
     );
 
     return {
         dict: dictProxy as Record<string, DicomElement>,
         elements: dictProxy as Record<string, DicomElement>,
-        string: (tag) => {
+        string: tag => {
             const v = readValue(tag);
             return typeof v === "string" ? v : undefined;
         },
-        uint16: (tag) => {
+        uint16: tag => {
             const v = readValue(tag);
             return typeof v === "number" ? v : undefined;
         },
-        int16: (tag) => {
+        int16: tag => {
             const v = readValue(tag);
             return typeof v === "number" ? v : undefined;
         },
-        floatString: (tag) => {
+        floatString: tag => {
             const v = readValue(tag);
             return typeof v === "number" ? v : undefined;
         },
-        intString: (tag) => {
+        intString: tag => {
             const v = readValue(tag);
             return typeof v === "number" ? Math.floor(v) : undefined;
         },
@@ -1065,7 +1069,7 @@ function createLazyDataSet(
 function fastParse(
     byteArray: Uint8Array,
     filterTags?: string[],
-    enableWasm?: boolean,
+    enableWasm?: boolean
 ): ShallowDicomDataSet {
     let buffer: ArrayBuffer;
     let byteOffset = 0;
@@ -1192,7 +1196,7 @@ function fastParse(
                     const buffer = new Uint8Array(
                         view["view"].buffer,
                         view["view"].byteOffset + view.getPosition(),
-                        view.getRemainingBytes(),
+                        view.getRemainingBytes()
                     );
                     const offset = findSequenceDelimiterWasm(buffer);
                     if (offset !== null) {
@@ -1215,7 +1219,7 @@ function fastParse(
                             const itemLength = view.readUint32();
                             const skip = Math.min(
                                 itemLength,
-                                view.getRemainingBytes(),
+                                view.getRemainingBytes()
                             );
                             view.setPosition(view.getPosition() + skip);
                         }
@@ -1269,7 +1273,7 @@ function fastParse(
                         const itemLength = view.readUint32();
                         const skip = Math.min(
                             itemLength,
-                            view.getRemainingBytes(),
+                            view.getRemainingBytes()
                         );
                         view.setPosition(view.getPosition() + skip);
                     }
@@ -1310,7 +1314,7 @@ function fastParse(
 function shallowParse(
     byteArray: Uint8Array,
     filterTags?: string[],
-    enableWasm?: boolean,
+    enableWasm?: boolean
 ): ShallowDicomDataSet {
     let buffer: ArrayBuffer;
     let byteOffset = 0;
@@ -1351,7 +1355,7 @@ function shallowParse(
 
     // Normalize filter tags for fast lookup
     const allowedTags = filterTags
-        ? new Set(filterTags.map((t) => normalizeTag(t)))
+        ? new Set(filterTags.map(t => normalizeTag(t)))
         : null;
 
     while (view.getRemainingBytes() >= 8 && iterations < maxIterations) {
@@ -1412,7 +1416,7 @@ function shallowParse(
                         const buffer = new Uint8Array(
                             view["view"].buffer,
                             view["view"].byteOffset + view.getPosition(),
-                            view.getRemainingBytes(),
+                            view.getRemainingBytes()
                         );
                         const offset = findSequenceDelimiterWasm(buffer);
                         if (offset !== null) {
@@ -1467,7 +1471,7 @@ function shallowParse(
                     const buffer = new Uint8Array(
                         view["view"].buffer,
                         view["view"].byteOffset + view.getPosition(),
-                        view.getRemainingBytes(),
+                        view.getRemainingBytes()
                     );
                     const offset = findSequenceDelimiterWasm(buffer);
                     if (offset !== null) {
@@ -1583,7 +1587,7 @@ export function extractPixelData(byteArray: Uint8Array): PixelDataInfo | null {
             const result = extractPixelDataFromView(
                 view,
                 length,
-                expectedTransferSyntax,
+                expectedTransferSyntax
             );
             if (result) {
                 return {
@@ -1593,11 +1597,11 @@ export function extractPixelData(byteArray: Uint8Array): PixelDataInfo | null {
                     isEncapsulated: result.isEncapsulated,
                     fragments:
                         result.fragmentArrays ||
-                        result.fragments?.map((f) => {
+                        result.fragments?.map(f => {
                             // Fallback: slice from concatenated pixelData if fragmentArrays not available
                             return result.pixelData.subarray(
                                 f.offset,
-                                f.offset + f.length,
+                                f.offset + f.length
                             );
                         }),
                 };
@@ -1632,7 +1636,7 @@ export function extractPixelData(byteArray: Uint8Array): PixelDataInfo | null {
                 const buffer = new Uint8Array(
                     view["view"].buffer,
                     view["view"].byteOffset + view.getPosition(),
-                    view.getRemainingBytes(),
+                    view.getRemainingBytes()
                 );
 
                 // Only try Wasm if buffer is large enough to justify overhead
@@ -1670,7 +1674,7 @@ function parseElementValue(
     vr: string,
     length: number,
     characterSet: string,
-    enableWasm?: boolean,
+    enableWasm?: boolean
 ):
     | string
     | number
@@ -1761,12 +1765,12 @@ function parseElementValue(
         }
         // Fallback: Decode as ASCII/UTF-8 and parse in JS
         const str = new TextDecoder().decode(bytes);
-        const parts = str.split("\\").filter((p) => p.trim());
+        const parts = str.split("\\").filter(p => p.trim());
         if (parts.length === 1) {
             const num = parseFloat(parts[0]);
             return isNaN(num) ? str : num;
         }
-        return parts.map((p) => {
+        return parts.map(p => {
             const num = parseFloat(p.trim());
             return isNaN(num) ? p.trim() : num;
         });
@@ -1780,12 +1784,12 @@ function parseElementValue(
         }
         // Fallback
         const str = new TextDecoder().decode(bytes);
-        const parts = str.split("\\").filter((p) => p.trim());
+        const parts = str.split("\\").filter(p => p.trim());
         if (parts.length === 1) {
             const num = parseFloat(parts[0]);
             return isNaN(num) ? str : Math.floor(num);
         }
-        return parts.map((p) => {
+        return parts.map(p => {
             const num = parseFloat(p.trim());
             return isNaN(num) ? p.trim() : num;
         });
@@ -2048,7 +2052,7 @@ function createDataSet(dict: Record<string, DicomElement>): DicomDataSet {
  */
 export async function parseAndDecode(
     byteArray: Uint8Array,
-    options: UnifiedParseOptions = {},
+    options: UnifiedParseOptions = {}
 ): Promise<DicomDataSet> {
     // Ensure we parse with pixel data
     const opts = { ...options, type: "full" as const };
@@ -2076,7 +2080,7 @@ export async function parseAndDecode(
 
             const decodedPixels = await decoder.decode(
                 fragments,
-                decodeOptions,
+                decodeOptions
             );
 
             // Replace the pixel data value with the decoded buffer

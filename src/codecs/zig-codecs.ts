@@ -21,7 +21,7 @@ interface CodecExports {
         len: number,
         width: number,
         height: number,
-        quality: number,
+        quality: number
     ) => number;
     // JPEG 2000
     decode_jpeg2000?: (ptr: number, len: number) => number;
@@ -31,7 +31,7 @@ interface CodecExports {
         width: number,
         height: number,
         bits: number,
-        components: number,
+        components: number
     ) => number;
     // JPEG-LS
     decode_jpegls?: (ptr: number, len: number) => number;
@@ -41,7 +41,7 @@ interface CodecExports {
         width: number,
         height: number,
         bits: number,
-        components: number,
+        components: number
     ) => number;
     // RLE
     decode_rle?: (
@@ -49,14 +49,14 @@ interface CodecExports {
         len: number,
         width: number,
         height: number,
-        components: number,
+        components: number
     ) => number;
     encode_rle?: (
         ptr: number,
         len: number,
         width: number,
         height: number,
-        components: number,
+        components: number
     ) => number;
     // HTJ2K (OpenJPH)
     decode_htj2k?: (ptr: number, len: number) => number;
@@ -87,7 +87,7 @@ export class ZigCodecs {
      * Get codec type for a DICOM Transfer Syntax UID.
      */
     public static getCodecForTransferSyntax(
-        transferSyntaxUid: string,
+        transferSyntaxUid: string
     ): CodecType | null {
         return ZigWasmCodecLoader.getCodecForTransferSyntax(transferSyntaxUid);
     }
@@ -104,7 +104,7 @@ export class ZigCodecs {
     private writeBuffer(
         memory: WebAssembly.Memory,
         ptr: number,
-        data: Uint8Array,
+        data: Uint8Array
     ) {
         const mem = new Uint8Array(memory.buffer);
         mem.set(data, ptr);
@@ -113,7 +113,7 @@ export class ZigCodecs {
     private readBuffer(
         memory: WebAssembly.Memory,
         ptr: number,
-        size: number,
+        size: number
     ): Uint8Array {
         const mem = new Uint8Array(memory.buffer);
         return mem.slice(ptr, ptr + size);
@@ -148,7 +148,7 @@ export class ZigCodecs {
         pixels: Uint8Array,
         width: number,
         height: number,
-        quality: number,
+        quality: number
     ): Promise<Uint8Array> {
         const exports = await this.getCodecExports("jpeg");
         const memory = this.getMemory("jpeg");
@@ -162,7 +162,7 @@ export class ZigCodecs {
             pixels.length,
             width,
             height,
-            quality,
+            quality
         );
         if (res !== 0) {
             exports.free(ptr, pixels.length);
@@ -208,7 +208,7 @@ export class ZigCodecs {
         width: number,
         height: number,
         bits: number,
-        components: number,
+        components: number
     ): Promise<Uint8Array> {
         const exports = await this.getCodecExports("j2k");
         const memory = this.getMemory("j2k");
@@ -223,7 +223,7 @@ export class ZigCodecs {
             width,
             height,
             bits,
-            components,
+            components
         );
         if (res !== 0) {
             exports.free(ptr, pixels.length);
@@ -269,7 +269,7 @@ export class ZigCodecs {
         width: number,
         height: number,
         bits: number,
-        components: number,
+        components: number
     ): Promise<Uint8Array> {
         const exports = await this.getCodecExports("jpegls");
         const memory = this.getMemory("jpegls");
@@ -284,7 +284,7 @@ export class ZigCodecs {
             width,
             height,
             bits,
-            components,
+            components
         );
         if (res !== 0) {
             exports.free(ptr, pixels.length);
@@ -306,7 +306,7 @@ export class ZigCodecs {
         data: Uint8Array,
         width: number,
         height: number,
-        components: number,
+        components: number
     ): Promise<Uint8Array> {
         const exports = await this.getCodecExports("rle");
         const memory = this.getMemory("rle");
@@ -320,7 +320,7 @@ export class ZigCodecs {
             data.length,
             width,
             height,
-            components,
+            components
         );
         if (res !== 0) {
             exports.free(ptr, data.length);
@@ -340,7 +340,7 @@ export class ZigCodecs {
         pixels: Uint8Array,
         width: number,
         height: number,
-        components: number,
+        components: number
     ): Promise<Uint8Array> {
         const exports = await this.getCodecExports("rle");
         const memory = this.getMemory("rle");
@@ -354,7 +354,7 @@ export class ZigCodecs {
             pixels.length,
             width,
             height,
-            components,
+            components
         );
         if (res !== 0) {
             exports.free(ptr, pixels.length);

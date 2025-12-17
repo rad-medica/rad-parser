@@ -128,7 +128,7 @@ export class WebGpuDecoder implements PixelDataCodec {
             0,
             stagingBuffer,
             0,
-            outputSize,
+            outputSize
         );
         this.device.queue.submit([commandEncoder.finish()]);
 
@@ -158,7 +158,7 @@ export class WebGpuDecoder implements PixelDataCodec {
         width: number,
         height: number,
         samples: number,
-        bits: number,
+        bits: number
     ): Promise<Uint8Array[]> {
         if (!this.device) throw new Error("WebGPU device not initialized");
 
@@ -236,7 +236,7 @@ export class WebGpuDecoder implements PixelDataCodec {
             0,
             stagingBuffer,
             0,
-            paddedSize,
+            paddedSize
         );
         this.device.queue.submit([commandEncoder.finish()]);
 

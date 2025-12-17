@@ -31,7 +31,7 @@ export function extractPixelData(dataset: any): PixelDataInfo | null {
         dataset.dict?.["7fe00010"] ||
         (dataset.elements
             ? Object.values(dataset.elements).find(
-                  (e: any) => e.tag === "x7fe00010" || e.tag === "7fe00010",
+                  (e: any) => e.tag === "x7fe00010" || e.tag === "7fe00010"
               )
             : null);
 
@@ -64,7 +64,7 @@ export function extractRescaledPixelData(dataset: any): Float32Array {
 
     if (rows === 0 || columns === 0) {
         throw new Error(
-            "Invalid image dimensions: rows and columns must be > 0",
+            "Invalid image dimensions: rows and columns must be > 0"
         );
     }
 
@@ -90,7 +90,7 @@ export function extractRescaledPixelData(dataset: any): Float32Array {
             pixelData = new Int16Array(
                 raw.buffer,
                 raw.byteOffset,
-                raw.byteLength / 2,
+                raw.byteLength / 2
             );
         } else {
             // Unsigned 16-bit
@@ -101,12 +101,12 @@ export function extractRescaledPixelData(dataset: any): Float32Array {
             pixelData = new Uint16Array(
                 raw.buffer,
                 raw.byteOffset,
-                raw.byteLength / 2,
+                raw.byteLength / 2
             );
         }
     } else {
         throw new Error(
-            `Unsupported bits allocated: ${bitsAllocated}. Only 8 and 16 are supported.`,
+            `Unsupported bits allocated: ${bitsAllocated}. Only 8 and 16 are supported.`
         );
     }
 
@@ -139,7 +139,7 @@ export function extractRescaledPixelData(dataset: any): Float32Array {
             rawBytes = new Uint8Array(
                 typed.buffer,
                 typed.byteOffset,
-                typed.byteLength,
+                typed.byteLength
             );
         }
 
@@ -148,7 +148,7 @@ export function extractRescaledPixelData(dataset: any): Float32Array {
             slope,
             intercept,
             bitsAllocated,
-            pixelRepresentation,
+            pixelRepresentation
         );
 
         if (wasmResult) {

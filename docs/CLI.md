@@ -14,7 +14,7 @@ npx rad-parser [command]
 
 ## Global Options
 
--   `--help`: Show help for any command.
+- `--help`: Show help for any command.
 
 ---
 
@@ -39,9 +39,9 @@ rad dump <file>
 (7fe0,0010) | OB | <Buffer length=512>
 ```
 
--   **Tag**: The group and element in hex `(gggg,eeee)`.
--   **VR**: The 2-letter Value Representation (e.g., `PN`, `UI`, `SQ`).
--   **Value**: The interpreted value. Long binary data is summarized.
+- **Tag**: The group and element in hex `(gggg,eeee)`.
+- **VR**: The 2-letter Value Representation (e.g., `PN`, `UI`, `SQ`).
+- **Value**: The interpreted value. Long binary data is summarized.
 
 ---
 
@@ -57,18 +57,18 @@ rad transcode <input_file> <output_file> --format <format_alias_or_uid>
 
 **Parameters:**
 
--   `<input_file>`: Path to the source DICOM file.
--   `<output_file>`: Path where the transcoded DICOM file will be saved.
--   `--format`: The target format alias or Transfer Syntax UID.
+- `<input_file>`: Path to the source DICOM file.
+- `<output_file>`: Path where the transcoded DICOM file will be saved.
+- `--format`: The target format alias or Transfer Syntax UID.
 
 **Supported Format Aliases:**
 
--   `native` / `implicit`: Implicit VR Little Endian (1.2.840.10008.1.2)
--   `explicit`: Explicit VR Little Endian (1.2.840.10008.1.2.1)
--   `rle`: RLE Lossless (1.2.840.10008.1.2.5)
--   `jpeg`: JPEG Baseline (Process 1) (1.2.840.10008.1.2.4.50)
--   `j2k`: JPEG 2000 Lossless (1.2.840.10008.1.2.4.90)
--   `jpegls`: JPEG-LS Lossless (1.2.840.10008.1.2.4.80)
+- `native` / `implicit`: Implicit VR Little Endian (1.2.840.10008.1.2)
+- `explicit`: Explicit VR Little Endian (1.2.840.10008.1.2.1)
+- `rle`: RLE Lossless (1.2.840.10008.1.2.5)
+- `jpeg`: JPEG Baseline (Process 1) (1.2.840.10008.1.2.4.50)
+- `j2k`: JPEG 2000 Lossless (1.2.840.10008.1.2.4.90)
+- `jpegls`: JPEG-LS Lossless (1.2.840.10008.1.2.4.80)
 
 **Examples:**
 
@@ -91,9 +91,9 @@ rad transcode <input_file> <output_file> --format <format_alias_or_uid>
 
 **Notes:**
 
--   Automatically handles pixel data extraction and frame fragmentation for encapsulated formats.
--   Updates the `TransferSyntaxUID` (0002,0010) in the File Meta Information.
--   Updates `PixelData` (7FE0,0010) structure (Native vs. Encapsulated/Sequence-like).
+- Automatically handles pixel data extraction and frame fragmentation for encapsulated formats.
+- Updates the `TransferSyntaxUID` (0002,0010) in the File Meta Information.
+- Updates `PixelData` (7FE0,0010) structure (Native vs. Encapsulated/Sequence-like).
 
 ---
 
@@ -109,10 +109,10 @@ rad image <input_file> <output_path> --format <png|jpeg> [--frame <index>]
 
 **Parameters:**
 
--   `<input_file>`: Path to the DICOM file.
--   `<output_path>`: Path to save the image (e.g., `image.png`).
--   `--format`: Output format (`png` or `jpeg`). Default is inferred from extension.
--   `--frame`: (Optional) 0-based index of the frame to export. Default is 0.
+- `<input_file>`: Path to the DICOM file.
+- `<output_path>`: Path to save the image (e.g., `image.png`).
+- `--format`: Output format (`png` or `jpeg`). Default is inferred from extension.
+- `--frame`: (Optional) 0-based index of the frame to export. Default is 0.
 
 **Examples:**
 
@@ -129,14 +129,14 @@ rad image <input_file> <output_path> --format <png|jpeg> [--frame <index>]
 
 **Behind the Scenes:**
 
--   Parses the DICOM file.
--   Decodes the pixel data (using Wasm codecs if needed).
--   Applies basic photometric interpretation (Monochrome -> Grayscale, RGB -> RGB).
--   Encodes the pixel buffer to the target image format.
+- Parses the DICOM file.
+- Decodes the pixel data (using Wasm codecs if needed).
+- Applies basic photometric interpretation (Monochrome -> Grayscale, RGB -> RGB).
+- Encodes the pixel buffer to the target image format.
 
 ---
 
 ### Troubleshooting
 
--   **"Missing Transfer Syntax UID"**: The input file might be missing the File Meta Information header. Try converting it with another tool first if possible, or ensure it's a valid Part 10 file.
--   **"Codec not supported"**: Ensure you have the necessary Wasm modules available. `rad-parser` bundles essential Wasm codecs, but some formats might require additional initialization or are currently read-only.
+- **"Missing Transfer Syntax UID"**: The input file might be missing the File Meta Information header. Try converting it with another tool first if possible, or ensure it's a valid Part 10 file.
+- **"Codec not supported"**: Ensure you have the necessary Wasm modules available. `rad-parser` bundles essential Wasm codecs, but some formats might require additional initialization or are currently read-only.

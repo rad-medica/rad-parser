@@ -11,30 +11,25 @@ The goal is to replace the heavy legacy Rust implementation with a lightweight, 
 To achieve this goal, the following components and approaches were **permanently removed**:
 
 1.  **Legacy Rust Codebase**:
-
     - _Removed_: `src/wasm-core/`, `src/wasm-codecs/`, `src/wasm-core-build/`.
     - _Reason_: Excessive binary size (~2MB+) due to Rust std lib and panic handling overhead not suitable for these small utilities.
 
 2.  **Zig Standard Library**:
-
     - _Removed_: All usage of `std.fmt`, `std.mem`, `std.heap` in `core.zig`.
     - _Reason_: Even minimal Zig usage pulled in ~775KB of runtime code.
 
 3.  **Floating Point Logic (in WASM)**:
-
     - _Removed_: `double` and `float` types in `core.c`.
     - _Removed_: `parse_ds` returning floats.
     - _Reason_: Float operations triggered the inclusion of `compiler-rt` soft-float libraries in WASM, adding ~300KB.
     - _Replacement_: `parse_ds` now returns fixed-point integers (scaled by 1e6) or parsing is deferred to JavaScript.
 
 4.  **LUT Generation (in WASM)**:
-
     - _Removed_: Modality and VOI LUT generation functions.
     - _Reason_: Required heavy floating-point math.
     - _Replacement_: Logic moved to/kept in JavaScript.
 
 5.  **C++ Runtime**:
-
     - _Removed_: `linkLibCpp()` and `.cpp` extensions.
     - _Reason_: Unnecessary overhead for this simple logic.
 
@@ -92,15 +87,13 @@ The Zig build system's `freestanding` target for WASM might be implicitly linkin
 To fix this and reach the < 10KB goal:
 
 1.  **Analyze the 495KB Binary**:
-
     - Run `wasm-objdump -h` or `wasm2wat` to see _what_ functions are taking up space. Look for `compiler-rt` or Zig runtime symbols.
 
 2.  **Bypass Zig Build System (Test)**:
-
     - Try compiling `src/core.c` directly with `clang`:
-      ```bash
-      clang --target=wasm32 -nostdlib -Wl,--no-entry -Wl,--export-all -O3 -o core.wasm src/core.c
-      ```
+        ```bash
+        clang --target=wasm32 -nostdlib -Wl,--no-entry -Wl,--export-all -O3 -o core.wasm src/core.c
+        ```
     - If this produces a tiny binary (expected < 5KB), the issue is definitely in `build.zig` defaults.
 
 3.  **Align with RLE Build**:

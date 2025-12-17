@@ -66,20 +66,20 @@ export class JpegDecoder implements PixelDataCodec {
             const image = await decoder.decode();
             const canvas = new OffscreenCanvas(
                 image.image.displayWidth,
-                image.image.displayHeight,
+                image.image.displayHeight
             );
             const ctx = canvas.getContext("2d");
             if (ctx) {
                 ctx.drawImage(image.image, 0, 0);
                 return new Uint8Array(
                     ctx.getImageData(0, 0, canvas.width, canvas.height).data
-                        .buffer,
+                        .buffer
                 );
             }
         }
 
         throw new Error(
-            "No JPEG decoder available (Zig WASM failed and no ImageDecoder)",
+            "No JPEG decoder available (Zig WASM failed and no ImageDecoder)"
         );
     }
 }

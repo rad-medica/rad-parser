@@ -227,7 +227,7 @@ export function requiresExplicitLength(vr: string): boolean {
 export function detectVRForPrivateTag(
     _group: number,
     _element: number,
-    length: number,
+    length: number
 ): string {
     // Common patterns for private tags based on length and element number
     if (length === 0) {

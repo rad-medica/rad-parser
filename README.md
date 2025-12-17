@@ -10,19 +10,19 @@ It is designed for safety, efficiency, and reliability in medical imaging applic
 
 ## Features
 
--   ✅ **Zero Dependencies**: Pure TypeScript/JavaScript implementation.
--   ✅ **Extensive Format Support**: Handles Explicit/Implicit VR, Big/Little Endian, and all standard VR types.
--   ✅ **Automatic Codec Loading**: Compressed images (RLE, JPEG, JPEG 2000, etc.) are decoded on-demand with no extra setup.
--   ✅ **Extensible Codec System**: “Adapter” classes allow you to integrate your own decoders (e.g., from a WebAssembly library like OpenJPEG or CharLS).
--   ✅ **DICOM Manipulation**: Utilities to `anonymize` datasets and `write` them back to a file buffer.
--   ✅ **Streaming Parser**: Incremental parsing with backpressure-friendly callbacks.
--   ✅ **Multiple Parse Depths**: Fast/shallow/light/full/streaming modes to match your workload.
--   ✅ **Safe & Performant**: Designed for efficient binary parsing with strict bounds checking.
+- ✅ **Zero Dependencies**: Pure TypeScript/JavaScript implementation.
+- ✅ **Extensive Format Support**: Handles Explicit/Implicit VR, Big/Little Endian, and all standard VR types.
+- ✅ **Automatic Codec Loading**: Compressed images (RLE, JPEG, JPEG 2000, etc.) are decoded on-demand with no extra setup.
+- ✅ **Extensible Codec System**: “Adapter” classes allow you to integrate your own decoders (e.g., from a WebAssembly library like OpenJPEG or CharLS).
+- ✅ **DICOM Manipulation**: Utilities to `anonymize` datasets and `write` them back to a file buffer.
+- ✅ **Streaming Parser**: Incremental parsing with backpressure-friendly callbacks.
+- ✅ **Multiple Parse Depths**: Fast/shallow/light/full/streaming modes to match your workload.
+- ✅ **Safe & Performant**: Designed for efficient binary parsing with strict bounds checking.
 
 More docs:
 
--   [API Reference](./docs/api.md)
--   [Codec Integration Tutorial](./docs/codec-integration-tutorial.md)
+- [API Reference](./docs/api.md)
+- [Codec Integration Tutorial](./docs/codec-integration-tutorial.md)
 
 ## Installation
 
@@ -84,9 +84,9 @@ npx rad-parser image "scan.dcm" "output.png" --frame 0
 
 Notes:
 
--   Dataset: 254 DICOM files from `test_data/TEST/SOLO` and `test_data/TEST/SUBF`.
--   Fast mode now includes safeguards for undefined-length elements (no hangs).
--   Streaming parses more elements per file (fragments included) by design.
+- Dataset: 254 DICOM files from `test_data/TEST/SOLO` and `test_data/TEST/SUBF`.
+- Fast mode now includes safeguards for undefined-length elements (no hangs).
+- Streaming parses more elements per file (fragments included) by design.
 
 ---
 
@@ -94,11 +94,11 @@ Notes:
 
 ### Parse Modes
 
--   `fast`: Ultra-fast header scan (minimal metadata; new fast-mode safeguards applied).
--   `shallow`: Tag-level scan (offsets/lengths; no values).
--   `light` / `medium`: Full metadata, skips pixel data value (best for metadata + anonymization).
--   `full`: Full dataset including pixel data.
--   `streaming`: Incremental parsing via callbacks on chunks/streams.
+- `fast`: Ultra-fast header scan (minimal metadata; new fast-mode safeguards applied).
+- `shallow`: Tag-level scan (offsets/lengths; no values).
+- `light` / `medium`: Full metadata, skips pixel data value (best for metadata + anonymization).
+- `full`: Full dataset including pixel data.
+- `streaming`: Incremental parsing via callbacks on chunks/streams.
 
 ### **Example 1: Basic Parsing (Metadata Only)**
 
@@ -148,16 +148,16 @@ import * as fs from "fs";
 import { StreamingParser } from "rad-parser";
 
 const parser = new StreamingParser({
-    onElement: (el) => {
+    onElement: el => {
         // el.dict contains the parsed element(s) for this chunk
     },
-    onError: (err) => console.error("Streaming error:", err),
+    onError: err => console.error("Streaming error:", err),
     maxBufferSize: 50 * 1024 * 1024, // optional
     maxIterations: 500, // optional
 });
 
 const readStream = fs.createReadStream("large.dcm");
-readStream.on("data", (chunk) => parser.processChunk(new Uint8Array(chunk)));
+readStream.on("data", chunk => parser.processChunk(new Uint8Array(chunk)));
 readStream.on("end", () => parser.finalize());
 ```
 
@@ -216,17 +216,17 @@ A head-to-head comparison of capabilities, ecosystem, and performance.
 
 ## Full Documentation
 
--   **[API Reference](docs/api.md)** - Complete API documentation for all functions and types
--   **[Codec Tutorial](docs/CODEC_TUTORIAL.md)** - Image compression/decompression guide with examples
--   **[GitHub Repository](https://github.com/rad-medica/rad-parser)** - Source code and issues
+- **[API Reference](docs/api.md)** - Complete API documentation for all functions and types
+- **[Codec Tutorial](docs/CODEC_TUTORIAL.md)** - Image compression/decompression guide with examples
+- **[GitHub Repository](https://github.com/rad-medica/rad-parser)** - Source code and issues
 
 ### Quick Links
 
--   [Parse DICOM files](docs/api.md#parse-options)
--   [Extract pixel data](docs/api.md#extractrescaledpixeldatadataset)
--   [Streaming large files](docs/api.md#streaming-api)
--   [Image decoding examples](docs/CODEC_TUTORIAL.md#basic-image-decoding)
--   [Wasm optimization](docs/CODEC_TUTORIAL.md#wasm-optimization)
+- [Parse DICOM files](docs/api.md#parse-options)
+- [Extract pixel data](docs/api.md#extractrescaledpixeldatadataset)
+- [Streaming large files](docs/api.md#streaming-api)
+- [Image decoding examples](docs/CODEC_TUTORIAL.md#basic-image-decoding)
+- [Wasm optimization](docs/CODEC_TUTORIAL.md#wasm-optimization)
 
 ## Building from Source
 
@@ -245,13 +245,17 @@ To build the project and its WASM dependencies from source, you need [Zig](https
     git submodule update --init --recursive
     ```
 
-
-
-2.  **Build and Optimize the WASM codecs:**
+2.  **Install dependencies with Bun:**
 
     ```bash
-    npm run build:zig-codecs
-    npm run optimize:zig-codecs
+    bun install
+    ```
+
+3.  **Build and Optimize the WASM codecs:**
+
+    ```bash
+    bun run build:zig-codecs
+    bun run optimize:zig-codecs
     ```
 
     Esto compila los wrappers y dependencias (`libjpeg-turbo`, `openjpeg`, `charls`, etc.) en `src/zig-codecs/zig-out/bin` y luego genera versiones optimizadas en `src/zig-codecs/zig-out/bin-opt` usando `wasm-opt` (Binaryen).
@@ -264,10 +268,62 @@ To build the project and its WASM dependencies from source, you need [Zig](https
     cd src/zig-codecs
     zig build --release=fast -p zig-out
     cd ../../
-    npm run optimize:zig-codecs
+    bun run optimize:zig-codecs
     ```
 
-3.  **Build Core WASM (opcional):**
+4.  **Build the TypeScript project:**
+
+    ```bash
+    bun run build
+    ```
+
+### **VS Code Development Setup**
+
+This project includes optimized VS Code configurations for Bun development:
+
+- **Extensions**: Recommended extensions for TypeScript, Zig, WASM, and Bun development
+- **Tasks**: Build and test tasks using Bun runtime
+- **Debugging**: Launch configurations for CLI, tests, and benchmarks
+- **Settings**: Optimized editor settings for the project
+
+The VS Code configuration files are in the `.vscode/` directory. See `.vscode/README.md` for details.
+
+### **Development Commands**
+
+```bash
+# Install dependencies
+bun install
+
+# Type checking
+bun run type-check
+
+# Build project
+bun run build
+
+# Run tests
+bun run test
+
+# Run tests in watch mode
+bun run test:watch
+
+# Run benchmarks
+bun run benchmark
+
+# Lint and format code
+bun run lint
+bun run format
+
+# Check code quality (type-check + lint + format check)
+bun run check
+
+# Auto-fix code issues (lint + format)
+bun run fix
+
+# Format check only
+bun run format:check
+```
+
+5.  **Build Core WASM (opcional):**
 
     ```bash
     cd src/zig-core
@@ -278,6 +334,47 @@ To build the project and its WASM dependencies from source, you need [Zig](https
 ---
 
 For a deep dive into the library's features, including advanced codec registration, encoding examples, and handling encapsulated data like PDFs and ECGs, please see our **[Full API Documentation](./docs/api.md)**.
+
+---
+
+## AI Agent Integration
+
+This project includes comprehensive configurations and rules for AI coding assistants to ensure consistent, high-quality code generation:
+
+### Cursor AI Editor
+
+- **Configuration**: `.cursorrules`
+- **Features**: Project context, coding standards, architecture guidelines, development workflow
+- **Integration**: Automatic context awareness for intelligent code suggestions
+
+### GitHub Copilot
+
+- **Configuration**: `.github/copilot-instructions.md`
+- **Features**: Project overview, code standards, TypeScript guidelines, performance considerations
+- **Integration**: GitHub Copilot reads these instructions for better code completion
+
+### Antigravity AI Assistant
+
+- **Configuration**: `.antigravity/rules.md` and `.antigravity/config.json`
+- **Features**: Comprehensive coding patterns, error handling, memory management, quality gates
+- **Integration**: Context-aware code generation with project-specific standards
+
+### VS Code Integration
+
+- **Configuration**: `.vscode/` directory with optimized settings, tasks, and debugging
+- **Features**: Bun runtime integration, TypeScript support, Zig development, testing workflows
+- **Documentation**: `.vscode/README.md` with setup and usage instructions
+
+**[📖 Complete AI Agents Guide](AGENTS.md)** - Comprehensive documentation of all AI agent configurations, behavioral guidelines, and integration details.
+
+All AI agents are configured to:
+
+- Maintain TypeScript strict mode and type safety
+- Follow the established architecture (core parser, codec system, utilities)
+- Ensure cross-platform compatibility (Node.js, Bun, Deno, browsers)
+- Prioritize performance and memory efficiency
+- Include comprehensive error handling and validation
+- Generate code that passes all quality gates (linting, formatting, testing)
 
 ---
 

@@ -43,7 +43,7 @@ function getAllDicomFiles(dir: string, fileList: string[] = []): string[] {
     }
 
     const files = fs.readdirSync(dir);
-    files.forEach((file) => {
+    files.forEach(file => {
         const filePath = path.join(dir, file);
         try {
             const stat = fs.statSync(filePath);
@@ -112,7 +112,7 @@ describe("Advanced Features Comparison", () => {
     beforeAll(() => {
         console.log(`\nLoaded ${testFiles.length} test files`);
         console.log(
-            `Found ${transferSyntaxGroups.size} different transfer syntaxes`,
+            `Found ${transferSyntaxGroups.size} different transfer syntaxes`
         );
         transferSyntaxGroups.forEach((files, ts) => {
             console.log(`  ${ts}: ${files.length} files`);
@@ -135,11 +135,11 @@ describe("Advanced Features Comparison", () => {
             try {
                 let elementsParsed = 0;
                 const parser = new StreamingParser({
-                    onElement: (element) => {
+                    onElement: element => {
                         elementsParsed++;
                         elementCount += Object.keys(element.dict || {}).length;
                     },
-                    onError: (error) => {
+                    onError: error => {
                         // Don't throw, just log
                         console.warn("Streaming error:", error);
                     },
@@ -149,14 +149,14 @@ describe("Advanced Features Comparison", () => {
                 const chunkSize = 8192; // Larger chunks
                 const firstChunk = fileData.slice(
                     0,
-                    Math.min(chunkSize, fileData.length),
+                    Math.min(chunkSize, fileData.length)
                 );
                 parser.initialize(firstChunk);
 
                 for (let i = chunkSize; i < fileData.length; i += chunkSize) {
                     const chunk = fileData.slice(
                         i,
-                        Math.min(i + chunkSize, fileData.length),
+                        Math.min(i + chunkSize, fileData.length)
                     );
                     parser.processChunk(chunk);
                 }
@@ -198,7 +198,7 @@ describe("Advanced Features Comparison", () => {
 
                             const chunk = fileData.slice(
                                 offset,
-                                Math.min(offset + chunkSize, fileData.length),
+                                Math.min(offset + chunkSize, fileData.length)
                             );
                             offset += chunk.length;
                             controller.enqueue(chunk);
@@ -212,11 +212,11 @@ describe("Advanced Features Comparison", () => {
                 });
 
                 await parseFromStream(stream, {
-                    onElement: (element) => {
+                    onElement: element => {
                         elementsParsed++;
                         elementCount += Object.keys(element.dict || {}).length;
                     },
-                    onError: (error) => {
+                    onError: error => {
                         // Don't throw, just log
                         console.warn("Stream parsing error:", error);
                     },
@@ -252,8 +252,8 @@ describe("Advanced Features Comparison", () => {
                     expect(serialized.length).toBeGreaterThan(132);
                     expect(
                         serialized.slice(128, 132).every(
-                            (b, i) => b === [68, 73, 67, 77][i], // 'DICM'
-                        ),
+                            (b, i) => b === [68, 73, 67, 77][i] // 'DICM'
+                        )
                     ).toBe(true);
 
                     radParserSuccess++;
@@ -270,10 +270,10 @@ describe("Advanced Features Comparison", () => {
 
             console.log(`\nSerialization Results:`);
             console.log(
-                `  rad-parser: ${radParserSuccess}/${testFiles.length} serialized`,
+                `  rad-parser: ${radParserSuccess}/${testFiles.length} serialized`
             );
             console.log(
-                `  rad-parser round-trip: ${radParserRoundTrip}/${testFiles.length} successful`,
+                `  rad-parser round-trip: ${radParserRoundTrip}/${testFiles.length} successful`
             );
 
             expect(radParserSuccess).toBeGreaterThan(0);
@@ -357,14 +357,14 @@ describe("Advanced Features Comparison", () => {
                 } catch (error) {
                     console.warn(
                         `Anonymization failed for ${path.basename(filePath)}:`,
-                        error,
+                        error
                     );
                 }
             }
 
             console.log(`\nAnonymization Results:`);
             console.log(
-                `  Successfully anonymized: ${anonymizationSuccess}/${testFiles.length}`,
+                `  Successfully anonymized: ${anonymizationSuccess}/${testFiles.length}`
             );
             console.log(`  Patient names anonymized: ${patientNameRemoved}`);
             console.log(`  Patient IDs anonymized: ${patientIdRemoved}`);
@@ -385,8 +385,8 @@ describe("Advanced Features Comparison", () => {
 
                 // Count private tags before anonymization
                 const privateTagsBefore = Object.keys(
-                    dataset.dict || {},
-                ).filter((tag) => {
+                    dataset.dict || {}
+                ).filter(tag => {
                     if (!tag.startsWith("x")) return false;
                     const group = parseInt(tag.substring(1, 5), 16);
                     return group % 2 !== 0;
@@ -397,8 +397,8 @@ describe("Advanced Features Comparison", () => {
 
                 // Count private tags after anonymization
                 const privateTagsAfter = Object.keys(
-                    anonymized.dict || {},
-                ).filter((tag) => {
+                    anonymized.dict || {}
+                ).filter(tag => {
                     if (!tag.startsWith("x")) return false;
                     const group = parseInt(tag.substring(1, 5), 16);
                     return group % 2 !== 0;
@@ -438,7 +438,7 @@ describe("Advanced Features Comparison", () => {
                     // Test up to 5 files per syntax
                     try {
                         const fileData = new Uint8Array(
-                            fs.readFileSync(filePath),
+                            fs.readFileSync(filePath)
                         );
 
                         // Test rad-parser
@@ -452,7 +452,7 @@ describe("Advanced Features Comparison", () => {
                             const buffer = Buffer.from(
                                 fileData.buffer,
                                 fileData.byteOffset,
-                                fileData.byteLength,
+                                fileData.byteLength
                             );
                             (dcmjs as any).data.DicomMessage.readFile(buffer);
                             counts.dcmjs++;
@@ -481,7 +481,7 @@ describe("Advanced Features Comparison", () => {
                     counts.radParser,
                     counts.dcmjs,
                     counts.dicomParser,
-                    counts.efferent,
+                    counts.efferent
                 );
                 console.log(`  ${ts}:`);
                 console.log(`    rad-parser: ${counts.radParser}/${total}`);
@@ -577,25 +577,25 @@ describe("Advanced Features Comparison", () => {
             }
 
             console.log(`\nFeature Capabilities Matrix:`);
-            capabilities.forEach((cap) => {
+            capabilities.forEach(cap => {
                 console.log(`  ${cap.feature}:`);
                 console.log(
-                    `    rad-parser: ${cap.radParser.supported ? "✅" : "❌"} ${cap.radParser.success ? "Working" : "Not working"}`,
+                    `    rad-parser: ${cap.radParser.supported ? "✅" : "❌"} ${cap.radParser.success ? "Working" : "Not working"}`
                 );
                 console.log(
-                    `    dcmjs: ${cap.dcmjs.supported ? "✅" : "❌"} ${cap.dcmjs.success ? "Working" : "Not supported"}`,
+                    `    dcmjs: ${cap.dcmjs.supported ? "✅" : "❌"} ${cap.dcmjs.success ? "Working" : "Not supported"}`
                 );
                 console.log(
-                    `    dicom-parser: ${cap.dicomParser.supported ? "✅" : "❌"} ${cap.dicomParser.success ? "Working" : "Not supported"}`,
+                    `    dicom-parser: ${cap.dicomParser.supported ? "✅" : "❌"} ${cap.dicomParser.success ? "Working" : "Not supported"}`
                 );
                 console.log(
-                    `    efferent-dicom: ${cap.efferentDicom.supported ? "✅" : "❌"} ${cap.efferentDicom.success ? "Working" : "Not supported"}`,
+                    `    efferent-dicom: ${cap.efferentDicom.supported ? "✅" : "❌"} ${cap.efferentDicom.success ? "Working" : "Not supported"}`
                 );
             });
 
             // Verify rad-parser supports these features
             const streamingCap = capabilities.find(
-                (c) => c.feature === "Streaming Parser",
+                c => c.feature === "Streaming Parser"
             );
             expect(streamingCap?.radParser.supported).toBe(true);
         }, 60000);

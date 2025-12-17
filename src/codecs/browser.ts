@@ -20,7 +20,7 @@ export class BrowserImageCodec implements PixelDataCodec {
 
     canDecode(ts: string): boolean {
         return ["1.2.840.10008.1.2.4.50", "1.2.840.10008.1.2.4.51"].includes(
-            ts,
+            ts
         );
     }
 
@@ -51,7 +51,7 @@ export class BrowserImageCodec implements PixelDataCodec {
         width: number,
         height: number,
         samples: number,
-        bits: number,
+        bits: number
     ): Promise<Uint8Array[]> {
         // Use OffscreenCanvas or convert to ImageData -> Canvas -> Blob
         if (typeof document === "undefined")
@@ -75,14 +75,14 @@ export class BrowserImageCodec implements PixelDataCodec {
 
         return new Promise((resolve, reject) => {
             canvas.toBlob(
-                (blob) => {
+                blob => {
                     if (!blob) return reject("Encoding failed");
-                    blob.arrayBuffer().then((buf) =>
-                        resolve([new Uint8Array(buf)]),
+                    blob.arrayBuffer().then(buf =>
+                        resolve([new Uint8Array(buf)])
                     );
                 },
                 "image/jpeg",
-                0.9,
+                0.9
             );
         });
     }

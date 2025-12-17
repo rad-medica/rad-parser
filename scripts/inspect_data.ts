@@ -5,7 +5,7 @@ import * as path from "path";
 // Use one of the known valid files
 const TEST_FILE_PATH = path.resolve(
     process.cwd(),
-    "test_data/patient/DICOM/18CBDD76",
+    "test_data/patient/DICOM/18CBDD76"
 );
 
 function inspectData() {

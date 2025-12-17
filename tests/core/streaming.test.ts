@@ -25,10 +25,10 @@ function createDicomBuffer(): Uint8Array {
 describe("StreamingParser", () => {
     it("should parse a complete DICOM file in a single chunk", () => {
         const buffer = createDicomBuffer();
-        const onElement = vi.fn((e) => {
+        const onElement = vi.fn(e => {
             console.log("Test Received Element:", Object.keys(e.dict)[0]);
         });
-        const onError = vi.fn((e) => {
+        const onError = vi.fn(e => {
             console.error("Test Received Error:", e);
         });
         const parser = new StreamingParser({ onElement, onError });
@@ -42,8 +42,8 @@ describe("StreamingParser", () => {
 
         // Expect at least PatientName and StudyInstanceUID
         expect(onElement).toHaveBeenCalled();
-        const calls = onElement.mock.calls.map((c) => c[0]);
-        const patientName = calls.find((c) => c.dict["x00100010"]);
+        const calls = onElement.mock.calls.map(c => c[0]);
+        const patientName = calls.find(c => c.dict["x00100010"]);
         expect(patientName).toBeDefined();
 
         // PN is parsed into an object with components
@@ -57,10 +57,10 @@ describe("StreamingParser", () => {
 
     it("should parse a DICOM file split into multiple small chunks", () => {
         const buffer = createDicomBuffer();
-        const onElement = vi.fn((e) => {
+        const onElement = vi.fn(e => {
             console.log("Multi-Chunk Received:", Object.keys(e.dict)[0]);
         });
-        const onError = vi.fn((e) => console.error("Multi-Chunk Error:", e));
+        const onError = vi.fn(e => console.error("Multi-Chunk Error:", e));
         const parser = new StreamingParser({ onElement, onError });
 
         // Split into 10-byte chunks
@@ -73,8 +73,8 @@ describe("StreamingParser", () => {
         parser.finalize();
 
         expect(onElement).toHaveBeenCalled();
-        const calls = onElement.mock.calls.map((c) => c[0]);
-        const studyUid = calls.find((c) => c.dict["x0020000d"]);
+        const calls = onElement.mock.calls.map(c => c[0]);
+        const studyUid = calls.find(c => c.dict["x0020000d"]);
         expect(studyUid).toBeDefined();
         expect(studyUid.dict["x0020000d"].Value[0]).toBe("1.2.3.4");
     });
@@ -112,7 +112,7 @@ describe("StreamingParser", () => {
         const parser = new StreamingParser();
         parser.initialize(new Uint8Array(10));
         expect(() => parser.initialize(new Uint8Array(10))).toThrow(
-            "Parser already initialized",
+            "Parser already initialized"
         );
     });
 
@@ -131,7 +131,7 @@ describe("parseFromAsyncIterator", () => {
             const chunkSize = 20;
             for (let i = 0; i < buffer.length; i += chunkSize) {
                 yield buffer.slice(i, i + chunkSize);
-                await new Promise((r) => setTimeout(r, 1)); // Simulate latency
+                await new Promise(r => setTimeout(r, 1)); // Simulate latency
             }
         }
 
@@ -140,7 +140,7 @@ describe("parseFromAsyncIterator", () => {
 
         expect(onElement).toHaveBeenCalled();
         const receivedTags = onElement.mock.calls.map(
-            (c) => Object.keys(c[0].dict)[0],
+            c => Object.keys(c[0].dict)[0]
         );
         expect(receivedTags).toContain("x00100010");
     });
@@ -153,7 +153,7 @@ describe("parseFromAsyncIterator", () => {
 
         const onError = vi.fn();
         await expect(
-            parseFromAsyncIterator(errorGen(), { onError }),
+            parseFromAsyncIterator(errorGen(), { onError })
         ).rejects.toThrow("Stream failed");
         // onError might not be called if the iterator itself throws, depends on implementation wrapper.
         // In current implementation, if iterator throws, it is caught in catch block and passed to onError.
@@ -166,7 +166,7 @@ describe("parseFromAsyncIterator", () => {
 describe("parseFromStream", () => {
     if (typeof ReadableStream === "undefined") {
         console.warn(
-            "ReadableStream not available, skipping parseFromStream tests",
+            "ReadableStream not available, skipping parseFromStream tests"
         );
         return;
     }

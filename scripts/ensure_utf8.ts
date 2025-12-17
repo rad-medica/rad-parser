@@ -72,7 +72,7 @@ function ensureUtf8(filePath: string) {
             contentStr = buffer.toString("utf16le"); // Node doesn't support utf16be native? swap bytes?
             // Actually let's assume LE on Windows if UTF16.
             console.log(
-                `Found UTF-16BE BOM (unsupported auto-convert), skipping: ${filePath}`,
+                `Found UTF-16BE BOM (unsupported auto-convert), skipping: ${filePath}`
             );
             return;
         } else if (

@@ -61,7 +61,7 @@ function getGroupNumberFast(tag: string): number | null {
 
 export function anonymize(
     dataset: DicomDataSet,
-    options: AnonymizationOptions = {},
+    options: AnonymizationOptions = {}
 ): DicomDataSet {
     const dict = dataset.dict;
     const customReplacements = options.replacements || {};
@@ -137,7 +137,7 @@ export function anonymize(
     return {
         dict: newDict,
         elements: newDict,
-        string: (t) => {
+        string: t => {
             const e = newDict[t];
             return e ? String(e.Value) : undefined;
         },
@@ -153,7 +153,7 @@ function applyRule(
     tag: string,
     action: AnonymizationAction,
     prefix: string,
-    uidMap: Record<string, string>,
+    uidMap: Record<string, string>
 ) {
     const element = dict[tag];
     if (!element) return;

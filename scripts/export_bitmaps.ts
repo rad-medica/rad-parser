@@ -6,7 +6,7 @@ import * as path from "path";
 // Use the known uncompressed file
 const TEST_FILE_PATH = path.resolve(
     process.cwd(),
-    "test_data/patient/DICOM/18CBDD76",
+    "test_data/patient/DICOM/18CBDD76"
 );
 const OUT_DIR = path.resolve(process.cwd(), "results");
 
@@ -14,7 +14,7 @@ function writeBMP(
     filename: string,
     width: number,
     height: number,
-    data: Uint8Array,
+    data: Uint8Array
 ) {
     // Basic 8-bit Grayscale BMP Header
     const fileSize = 54 + 1024 + data.length; // Header + Palette + Data
@@ -73,7 +73,7 @@ function processData() {
     const fileBuffer = fs.readFileSync(TEST_FILE_PATH);
     const arrayBuffer = fileBuffer.buffer.slice(
         fileBuffer.byteOffset,
-        fileBuffer.byteOffset + fileBuffer.byteLength,
+        fileBuffer.byteOffset + fileBuffer.byteLength
     );
 
     // Common 8-bit converter
@@ -81,7 +81,7 @@ function processData() {
         const numPixels = width * height;
         if (data.length < numPixels * 2) {
             console.warn(
-                `Data length ${data.length} too small for ${width}x${height} Image`,
+                `Data length ${data.length} too small for ${width}x${height} Image`
             );
             return new Uint8Array(numPixels);
         }
@@ -89,7 +89,7 @@ function processData() {
         const view = new DataView(
             data.buffer,
             data.byteOffset,
-            data.byteLength,
+            data.byteLength
         );
 
         let min = 65535;
@@ -132,7 +132,7 @@ function processData() {
                 path.join(OUT_DIR, "rad_parser_output.bmp"),
                 radCols,
                 radRows,
-                rad8Bit,
+                rad8Bit
             );
         }
     } catch (e) {
@@ -162,7 +162,7 @@ function processData() {
                 path.join(OUT_DIR, "dcmjs_output.bmp"),
                 dcmjsCols,
                 dcmjsRows,
-                dcmjs8Bit,
+                dcmjs8Bit
             );
         }
     } catch (e) {
@@ -185,7 +185,7 @@ function processData() {
 
         if (!rowsElem || !colsElem) {
             throw new Error(
-                "Using dicom-parser: Dimensions not found (tags x00280010/x00280011)",
+                "Using dicom-parser: Dimensions not found (tags x00280010/x00280011)"
             );
         }
 
@@ -200,7 +200,7 @@ function processData() {
 
         const dpPixelData = byteArray.slice(
             element.dataOffset,
-            element.dataOffset + element.length,
+            element.dataOffset + element.length
         );
 
         if (dpPixelData) {
@@ -209,7 +209,7 @@ function processData() {
                 path.join(OUT_DIR, "dicom_parser_output.bmp"),
                 dpCols,
                 dpRows,
-                dp8Bit,
+                dp8Bit
             );
         }
     } catch (e) {

@@ -69,14 +69,14 @@ describe("Parser Edge Cases", () => {
     describe("parseWithMetadata Errors", () => {
         it("should throw if file too small", () => {
             expect(() => parseWithMetadata(new Uint8Array(5))).toThrow(
-                "File too small",
+                "File too small"
             );
         });
 
         it("should throw if format detection fails (invalid start)", () => {
             const buffer = new Uint8Array(140);
             expect(() => parseWithMetadata(buffer)).toThrow(
-                "Format detection failed",
+                "Format detection failed"
             );
         });
     });

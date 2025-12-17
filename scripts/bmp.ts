@@ -10,7 +10,7 @@ export function writeBmp(
     width: number,
     height: number,
     data: Uint8Array,
-    channels: number = 1,
+    channels: number = 1
 ) {
     const fileSize = 54 + data.length + (channels === 1 ? 1024 : 0); // Palette for 8-bit
     const buffer = new Uint8Array(fileSize);

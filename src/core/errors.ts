@@ -10,7 +10,7 @@ export class DicomParseError extends Error {
         message: string,
         public readonly tag?: string,
         public readonly offset?: number,
-        public readonly cause?: Error,
+        public readonly cause?: Error
     ) {
         super(message);
         this.name = "DicomParseError";
@@ -24,7 +24,7 @@ export function createParseError(
     message: string,
     tag?: string,
     offset?: number,
-    cause?: Error,
+    cause?: Error
 ): DicomParseError {
     let fullMessage = message;
     if (tag) {

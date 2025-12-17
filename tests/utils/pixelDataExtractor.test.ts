@@ -26,7 +26,7 @@ describe("extractRescaledPixelData", () => {
             console.log(`Extracted ${rescaled.length} pixels`);
             console.log(`First 5 values: ${Array.from(rescaled.slice(0, 5))}`);
             console.log(
-                `Min: ${Math.min(...rescaled)}, Max: ${Math.max(...rescaled)}`,
+                `Min: ${Math.min(...rescaled)}, Max: ${Math.max(...rescaled)}`
             );
         } catch (error) {
             console.warn("Test file not found, skipping test");
@@ -67,7 +67,7 @@ describe("extractRescaledPixelData", () => {
 
             const pixelRepresentation = dataset.uint16("x00280103");
             console.log(
-                `Pixel representation: ${pixelRepresentation} (0=unsigned, 1=signed)`,
+                `Pixel representation: ${pixelRepresentation} (0=unsigned, 1=signed)`
             );
 
             const rescaled = extractRescaledPixelData(dataset);
@@ -95,7 +95,7 @@ describe("extractRescaledPixelData", () => {
         } as any;
 
         expect(() => extractRescaledPixelData(mockDataset)).toThrow(
-            "Pixel data not found",
+            "Pixel data not found"
         );
     });
 
@@ -116,7 +116,7 @@ describe("extractRescaledPixelData", () => {
         } as any;
 
         expect(() => extractRescaledPixelData(mockDataset)).toThrow(
-            "Invalid image dimensions",
+            "Invalid image dimensions"
         );
     });
 });

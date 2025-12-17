@@ -29,7 +29,7 @@ function parseWithDcmjs(data: Uint8Array) {
     const buffer = Buffer.from(
         data.buffer,
         data.byteOffset,
-        data.byteLength,
+        data.byteLength
     ) as Buffer;
     const dcmjsModule = dcmjs as unknown as {
         data: {
@@ -100,7 +100,7 @@ function getMemoryUsage(): number {
 function benchmarkParser(
     parserName: string,
     filePath: string,
-    fileData: Uint8Array,
+    fileData: Uint8Array
 ): BenchmarkResult {
     const startTime = performance.now();
     const startMemory = getMemoryUsage();
@@ -204,13 +204,13 @@ function benchmarkParser(
  */
 function collectStats(
     results: BenchmarkResult[],
-    parserName: string,
+    parserName: string
 ): ParserStats {
-    const parserResults = results.filter((r) => r.parser === parserName);
-    const successful = parserResults.filter((r) => r.success);
-    const failed = parserResults.filter((r) => !r.success);
+    const parserResults = results.filter(r => r.parser === parserName);
+    const successful = parserResults.filter(r => r.success);
+    const failed = parserResults.filter(r => !r.success);
 
-    const times = successful.map((r) => r.parseTime);
+    const times = successful.map(r => r.parseTime);
     const totalTime = times.reduce((sum, t) => sum + t, 0);
     const averageTime =
         successful.length > 0 ? totalTime / successful.length : 0;
@@ -219,7 +219,7 @@ function collectStats(
 
     const totalElements = successful.reduce(
         (sum, r) => sum + r.elementCount,
-        0,
+        0
     );
     const averageElements =
         successful.length > 0 ? totalElements / successful.length : 0;
@@ -228,7 +228,7 @@ function collectStats(
     const averageSize =
         parserResults.length > 0 ? totalSize / parserResults.length : 0;
 
-    const errors = failed.map((r) => {
+    const errors = failed.map(r => {
         const fileName = r.file.split(/[/\\]/).pop() || r.file;
         return `${fileName}: ${r.error || "Unknown error"}`;
     });
@@ -285,14 +285,14 @@ function printResults(stats: ParserStats[]): void {
     console.log("Summary:");
     console.log("-".repeat(80));
     console.log(
-        `${"Parser".padEnd(20)} ${"Files".padEnd(8)} ${"Success".padEnd(10)} ${"Avg Time".padEnd(12)} ${"Min Time".padEnd(12)} ${"Max Time".padEnd(12)} ${"Avg Elements".padEnd(15)}`,
+        `${"Parser".padEnd(20)} ${"Files".padEnd(8)} ${"Success".padEnd(10)} ${"Avg Time".padEnd(12)} ${"Min Time".padEnd(12)} ${"Max Time".padEnd(12)} ${"Avg Elements".padEnd(15)}`
     );
     console.log("-".repeat(80));
 
     for (const stat of sorted) {
         const successRate = `${stat.successful}/${stat.totalFiles}`;
         console.log(
-            `${stat.parser.padEnd(20)} ${stat.totalFiles.toString().padEnd(8)} ${successRate.padEnd(10)} ${formatTime(stat.averageTime).padEnd(12)} ${formatTime(stat.minTime).padEnd(12)} ${formatTime(stat.maxTime).padEnd(12)} ${stat.averageElements.toFixed(0).padEnd(15)}`,
+            `${stat.parser.padEnd(20)} ${stat.totalFiles.toString().padEnd(8)} ${successRate.padEnd(10)} ${formatTime(stat.averageTime).padEnd(12)} ${formatTime(stat.minTime).padEnd(12)} ${formatTime(stat.maxTime).padEnd(12)} ${stat.averageElements.toFixed(0).padEnd(15)}`
         );
     }
 
@@ -308,7 +308,7 @@ function printResults(stats: ParserStats[]): void {
                 : 1;
         const bar = "█".repeat(Math.min(50, Math.round(speedup * 10)));
         console.log(
-            `${stat.parser.padEnd(20)} ${speedup.toFixed(2)}x ${bar} ${formatTime(stat.averageTime)}`,
+            `${stat.parser.padEnd(20)} ${speedup.toFixed(2)}x ${bar} ${formatTime(stat.averageTime)}`
         );
     }
 
@@ -317,18 +317,18 @@ function printResults(stats: ParserStats[]): void {
     console.log("File Size Statistics:");
     console.log("-".repeat(80));
     console.log(
-        `${"Parser".padEnd(20)} ${"Total Size".padEnd(15)} ${"Avg Size".padEnd(15)} ${"Files Processed".padEnd(18)}`,
+        `${"Parser".padEnd(20)} ${"Total Size".padEnd(15)} ${"Avg Size".padEnd(15)} ${"Files Processed".padEnd(18)}`
     );
     console.log("-".repeat(80));
 
     for (const stat of sorted) {
         console.log(
-            `${stat.parser.padEnd(20)} ${formatBytes(stat.totalSize).padEnd(15)} ${formatBytes(stat.averageSize).padEnd(15)} ${stat.totalFiles.toString().padEnd(18)}`,
+            `${stat.parser.padEnd(20)} ${formatBytes(stat.totalSize).padEnd(15)} ${formatBytes(stat.averageSize).padEnd(15)} ${stat.totalFiles.toString().padEnd(18)}`
         );
     }
 
     // Errors
-    const parsersWithErrors = stats.filter((s) => s.errors.length > 0);
+    const parsersWithErrors = stats.filter(s => s.errors.length > 0);
     if (parsersWithErrors.length > 0) {
         console.log("\n" + "-".repeat(80));
         console.log("Errors:");
@@ -357,7 +357,7 @@ function getAllDicomFiles(dir: string, fileList: string[] = []): string[] {
     }
 
     const files = readdirSync(dir);
-    files.forEach((file) => {
+    files.forEach(file => {
         const filePath = join(dir, file);
         try {
             const stat = statSync(filePath);
@@ -400,7 +400,7 @@ async function runBenchmark(): Promise<void> {
     try {
         const wasmPath = join(
             projectRoot,
-            "src/wasm-core-build/rad_parser_wasm_core_bg.wasm",
+            "src/wasm-core-build/rad_parser_wasm_core_bg.wasm"
         );
         const wasmBuffer = readFileSync(wasmPath);
         await initCoreWasm(wasmBuffer as any);
@@ -421,9 +421,9 @@ async function runBenchmark(): Promise<void> {
 
     if (allFiles.length === 0) {
         console.error("No DICOM files found. Tried paths:");
-        possiblePaths.forEach((p) => console.error(`  - ${p}`));
+        possiblePaths.forEach(p => console.error(`  - ${p}`));
         console.error(
-            "Please ensure test_data directory exists with DICOM files",
+            "Please ensure test_data directory exists with DICOM files"
         );
         process.exit(1);
     }
@@ -470,7 +470,7 @@ async function runBenchmark(): Promise<void> {
 
                 if (processed % 10 === 0) {
                     process.stdout.write(
-                        `  Processed ${processed}/${files.length} files...\r`,
+                        `  Processed ${processed}/${files.length} files...\r`
                     );
                 }
             } catch (error) {
@@ -483,7 +483,7 @@ async function runBenchmark(): Promise<void> {
     }
 
     // Collect statistics
-    const stats = parsers.map((parser) => collectStats(results, parser));
+    const stats = parsers.map(parser => collectStats(results, parser));
 
     // Print results
     printResults(stats);
@@ -499,7 +499,7 @@ async function runBenchmark(): Promise<void> {
 }
 
 // Run benchmark
-runBenchmark().catch((error) => {
+runBenchmark().catch(error => {
     console.error("Benchmark failed:", error);
     process.exit(1);
 });

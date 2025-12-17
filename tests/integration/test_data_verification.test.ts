@@ -15,13 +15,13 @@ describe("Test Data Verification", () => {
 
         const files = fs
             .readdirSync(TEST_DATA_DIR)
-            .filter((file) => !file.includes("Zone.Identifier"));
+            .filter(file => !file.includes("Zone.Identifier"));
 
         let successCount = 0;
         let failureCount = 0;
         const errors: string[] = [];
 
-        files.forEach((file) => {
+        files.forEach(file => {
             const filePath = path.join(TEST_DATA_DIR, file);
             // Skip directories if any
             if (fs.statSync(filePath).isDirectory()) return;

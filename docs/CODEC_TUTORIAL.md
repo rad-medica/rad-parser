@@ -194,7 +194,7 @@ await parseFromStream(stream, {
         const tag = Object.keys(dict)[0];
         console.log("Received:", tag, dict[tag]);
     },
-    onError: (error) => {
+    onError: error => {
         console.error("Stream error:", error);
     },
 });

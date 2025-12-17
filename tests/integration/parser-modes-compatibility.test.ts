@@ -23,7 +23,7 @@ function findDicomFiles(dir: string, maxFiles = 10): string[] {
 
             if (stat.isDirectory()) {
                 files.push(
-                    ...findDicomFiles(fullPath, maxFiles - files.length),
+                    ...findDicomFiles(fullPath, maxFiles - files.length)
                 );
             } else if (stat.isFile() && !entry.includes(".json")) {
                 files.push(fullPath);
@@ -51,7 +51,7 @@ describe("Parser Mode Compatibility", () => {
 
     console.log(`Testing with ${testFiles.length} DICOM files`);
 
-    testFiles.forEach((filePath) => {
+    testFiles.forEach(filePath => {
         const fileName = filePath.split(/[/\\]/).pop() || "unknown";
 
         describe(`File: ${fileName}`, () => {

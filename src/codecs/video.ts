@@ -26,8 +26,8 @@ export class VideoDecoder implements PixelDataCodec {
             w: number,
             h: number,
             s: number,
-            b: number,
-        ) => Promise<Uint8Array[]>,
+            b: number
+        ) => Promise<Uint8Array[]>
     ) {}
 
     canEncode(transferSyntax: string): boolean {
@@ -41,7 +41,7 @@ export class VideoDecoder implements PixelDataCodec {
         width: number,
         height: number,
         samples: number,
-        bits: number,
+        bits: number
     ): Promise<Uint8Array[]> {
         if (!this.externalEncoder)
             throw new Error("Video encoder not configured.");
@@ -51,7 +51,7 @@ export class VideoDecoder implements PixelDataCodec {
             width,
             height,
             samples,
-            bits,
+            bits
         );
     }
 

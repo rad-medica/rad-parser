@@ -1,0 +1,171 @@
+# Cursor AI Editor Rules for rad-parser
+
+## Project Overview
+
+This is a high-performance DICOM parser written in TypeScript with WASM codecs compiled from Zig. The project supports multiple runtimes: Node.js, Bun, Deno, and browsers with zero external dependencies.
+
+## Development Environment
+
+- **Primary Runtime**: Bun (for development and building)
+- **Language**: TypeScript with ESM modules
+- **Build Tools**: esbuild, Zig compiler (0.13.0+)
+- **Testing**: Vitest with comprehensive test suite
+- **Linting**: ESLint with Prettier integration
+- **Package Manager**: Bun (with npm/Node.js compatibility)
+
+## Code Style Standards
+
+- **Indentation**: 4 spaces (general), 2 spaces (JS/TS/JSON)
+- **Line Endings**: LF (Unix-style, cross-platform)
+- **Encoding**: UTF-8
+- **Quotes**: Double quotes (`"`) for all strings
+- **Semicolons**: Required
+- **Trailing Commas**: ES5 style
+- **Imports**: Double quotes, relative paths preferred
+
+## Architecture & Code Organization
+
+### Core Structure
+
+- **`src/core/`**: Pure TypeScript DICOM parser
+    - `parser.ts` - Main parsing logic
+    - `types.ts` - TypeScript type definitions
+    - `streaming.ts` - Incremental parsing
+    - `writer.ts` - DICOM file writing
+    - `registry.ts` - Codec registration system
+
+- **`src/codecs/`**: Image compression/decompression
+    - WASM modules compiled from Zig
+    - Support for JPEG, JPEG2000, RLE, PNG, etc.
+    - Auto-detection and loading system
+
+- **`src/utils/`**: Utility functions
+    - `bufferUtils.ts` - Binary data handling
+    - `valueParsers.ts` - DICOM value parsing
+    - `pixelDataExtractor.ts` - Image data extraction
+
+- **`src/cli.ts`**: Command-line interface
+- **`tests/`**: Comprehensive test suite
+- **`scripts/`**: Build and benchmark scripts
+
+### WASM Integration
+
+- Zig-compiled codecs in `src/zig-codecs/`
+- Binaryen optimization with `wasm-opt`
+- Runtime loading with fallbacks
+- WASI interface for system calls
+
+## Development Workflow
+
+### Key Commands
+
+```bash
+bun install              # Install dependencies
+bun run build           # Build TypeScript + WASM
+bun run test            # Run test suite
+bun run benchmark       # Performance benchmarks
+bun run check           # Type-check + lint + format check
+bun run fix             # Auto-fix linting + formatting
+bun run format          # Format code only
+```
+
+### Build Process
+
+1. **TypeScript**: `tsc` compiles to `dist/`
+2. **CJS Output**: esbuild generates CommonJS bundles
+3. **Zig Codecs**: `zig build` compiles WASM modules
+4. **Optimization**: `wasm-opt` reduces WASM size by ~23%
+
+## Coding Guidelines
+
+### TypeScript Best Practices
+
+- Use strict TypeScript settings
+- Prefer `interface` over `type` for object shapes
+- Use `const` assertions for readonly arrays
+- Leverage utility types (`Pick`, `Omit`, `Partial`)
+- Avoid `any` - use proper type definitions
+
+### Error Handling
+
+- Use custom error classes from `src/core/errors.ts`
+- Provide descriptive error messages
+- Handle both sync and async error cases
+- Validate inputs at function boundaries
+
+### Performance Considerations
+
+- Zero-copy operations where possible
+- Efficient binary parsing with bounds checking
+- Lazy loading of WASM codecs
+- Memory-efficient streaming for large files
+
+## Testing Strategy
+
+- **Unit Tests**: Individual functions and modules
+- **Integration Tests**: End-to-end DICOM parsing
+- **Codec Tests**: Image compression/decompression
+- **Benchmark Tests**: Performance regression detection
+- **Cross-platform**: Node.js, Bun, Deno, browser compatibility
+
+## File Naming Conventions
+
+- **TypeScript**: `camelCase.ts`
+- **Test Files**: `*.test.ts`
+- **Config Files**: `*.config.*`, `.*rc*`
+- **Build Outputs**: `dist/`, `zig-out/`
+- **Documentation**: `*.md` in `docs/`
+
+## Important Notes
+
+- **Zig Dependency**: Building requires Zig 0.13.0+ for WASM compilation
+- **Test Data**: Some tests require DICOM files in `test_data/`
+- **Multi-runtime**: Code must work in Node.js, Bun, Deno, and browsers
+- **Zero Dependencies**: No external runtime dependencies allowed
+- **Security**: All binary parsing includes bounds checking
+- **Performance**: Optimized for both speed and memory usage
+
+## AI Assistant Guidelines
+
+When suggesting code changes:
+
+1. Maintain the established patterns and architecture
+2. Ensure cross-platform and multi-runtime compatibility
+3. Follow the strict TypeScript and linting rules
+4. Consider performance implications
+5. Add appropriate error handling
+6. Update tests when modifying functionality
+7. Keep WASM and TypeScript boundaries clear
+
+## Common Patterns
+
+### DICOM Tag Handling
+
+```typescript
+// Use hex notation for tags
+const patientNameTag = 0x00100010;
+// Or string notation
+const patientName = dataset.string("x00100010");
+```
+
+### Error Handling
+
+```typescript
+try {
+    const result = parseDicom(buffer);
+    return result;
+} catch (error) {
+    if (error instanceof DicomParseError) {
+        throw new ValidationError(`Invalid DICOM: ${error.message}`);
+    }
+    throw error;
+}
+```
+
+### Codec Registration
+
+```typescript
+registry.register(new Jpeg2000Decoder(customDecoder));
+```
+
+Remember: This is a performance-critical medical imaging library. All changes must maintain backward compatibility and performance characteristics.

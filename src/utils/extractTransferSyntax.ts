@@ -121,7 +121,7 @@ function findTransferSyntaxInRawDicom(byteArray: Uint8Array): string | null {
 function readUIDInPlace(
     byteArray: Uint8Array,
     offset: number,
-    length: number,
+    length: number
 ): string | null {
     if (length <= 0 || offset + length > byteArray.length) {
         return null;

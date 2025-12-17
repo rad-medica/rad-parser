@@ -1,0 +1,43 @@
+{
+    "name": "rad-parser",
+    "description": "High-performance DICOM parser with WASM codecs",
+    "version": "2.0.0",
+    "languages": ["typescript", "zig"],
+    "frameworks": ["node", "bun", "deno", "browser"],
+    "buildTools": ["esbuild", "zig", "binaryen"],
+    "testing": ["vitest"],
+    "linting": ["eslint", "prettier"],
+    "codeStyle": {
+        "quotes": "double",
+        "indentation": "spaces",
+        "indentSize": 4,
+        "lineEnding": "lf",
+        "encoding": "utf8",
+        "semicolons": true,
+        "trailingCommas": "es5"
+    },
+    "architecture": {
+        "pattern": "modular",
+        "layers": ["core", "codecs", "utils", "cli"],
+        "moduleSystem": "esm",
+        "wasmIntegration": true
+    },
+    "qualityGates": {
+        "typeCheck": true,
+        "linting": true,
+        "formatting": true,
+        "testing": true,
+        "build": true
+    },
+    "performance": {
+        "targetBundleSize": "500KB",
+        "targetParseTime": "10ms",
+        "memoryEfficient": true,
+        "zeroCopy": true
+    },
+    "compatibility": {
+        "runtimes": ["node", "bun", "deno", "browser"],
+        "zeroDependencies": true,
+        "crossPlatform": true
+    }
+}

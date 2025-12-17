@@ -26,7 +26,7 @@ function parseSequenceItem(
     littleEndian: boolean,
     characterSet: string,
     expected: boolean = true,
-    enableWasm?: boolean,
+    enableWasm?: boolean
 ): SequenceItem | null {
     const startPos = view.getPosition();
 
@@ -36,7 +36,7 @@ function parseSequenceItem(
             throw createParseError(
                 "Unexpected end of data while reading sequence item",
                 undefined,
-                startPos,
+                startPos
             );
         }
         return null;
@@ -62,7 +62,7 @@ function parseSequenceItem(
             littleEndian,
 
             characterSet,
-            enableWasm,
+            enableWasm
         );
     }
 
@@ -77,7 +77,7 @@ function parseSequenceItem(
         throw createParseError(
             "Sequence item length out of bounds",
             "xFFFEE000",
-            view.getPosition(),
+            view.getPosition()
         );
     }
     return parseItemElements(
@@ -86,7 +86,7 @@ function parseSequenceItem(
         littleEndian,
         characterSet,
         itemEnd,
-        enableWasm,
+        enableWasm
     );
 }
 
@@ -99,7 +99,7 @@ function parseUndefinedLengthItem(
     littleEndian: boolean,
     characterSet: string,
 
-    enableWasm?: boolean,
+    enableWasm?: boolean
 ): SequenceItem {
     const elements: Record<string, DicomElement> = {};
     const normalizedElements: Record<string, DicomElement> = {};
@@ -127,14 +127,14 @@ function parseUndefinedLengthItem(
             explicitVR,
             littleEndian,
             characterSet,
-            enableWasm,
+            enableWasm
         );
         if (!element) {
             // If we can't parse an element inside an undefined length item, and didn't find delimiter: error
             throw createParseError(
                 "Unexpected end of data or invalid tag in undefined length item",
                 undefined,
-                view.getPosition(),
+                view.getPosition()
             );
         }
 
@@ -159,7 +159,7 @@ function parseItemElements(
     littleEndian: boolean,
     characterSet: string,
     endPos: number,
-    enableWasm?: boolean,
+    enableWasm?: boolean
 ): SequenceItem {
     const elements: Record<string, DicomElement> = {};
     const normalizedElements: Record<string, DicomElement> = {};
@@ -170,7 +170,7 @@ function parseItemElements(
             explicitVR,
             littleEndian,
             characterSet,
-            enableWasm,
+            enableWasm
         );
         if (!element) {
             break;
@@ -196,7 +196,7 @@ function parseElement(
     explicitVR: boolean,
     littleEndian: boolean,
     characterSet: string,
-    enableWasm?: boolean,
+    enableWasm?: boolean
 ): {
     dict: Record<string, DicomElement>;
     normalizedElements: Record<string, DicomElement>;
@@ -251,7 +251,7 @@ function parseElement(
             characterSet,
 
             length === 0xffffffff,
-            enableWasm,
+            enableWasm
         );
         const tagHex = `x${group.toString(16).padStart(4, "0")}${element.toString(16).padStart(4, "0")}`;
         const tagComma = `${group.toString(16).padStart(4, "0")},${element.toString(16).padStart(4, "0")}`;
@@ -302,7 +302,7 @@ function parseElement(
                 vr,
                 length,
                 characterSet,
-                enableWasm,
+                enableWasm
             );
         } catch {
             view.readBytes(length);
@@ -363,7 +363,7 @@ function parseElementValue(
     length: number,
     characterSet: string,
 
-    enableWasm?: boolean,
+    enableWasm?: boolean
 ): unknown {
     if (
         vr === "OB" ||
@@ -416,12 +416,12 @@ function parseElementValue(
             if (res) return res;
             // Fallback to JS
             const str = new TextDecoder().decode(bytes);
-            const parts = str.split("\\").filter((p) => p.trim());
+            const parts = str.split("\\").filter(p => p.trim());
             if (parts.length === 1) {
                 const num = parseFloat(parts[0]);
                 return isNaN(num) ? str : num;
             }
-            return parts.map((p) => {
+            return parts.map(p => {
                 const num = parseFloat(p.trim());
                 return isNaN(num) ? p.trim() : num;
             });
@@ -432,12 +432,12 @@ function parseElementValue(
             if (res) return res;
             // Fallback to JS
             const str = new TextDecoder().decode(bytes);
-            const parts = str.split("\\").filter((p) => p.trim());
+            const parts = str.split("\\").filter(p => p.trim());
             if (parts.length === 1) {
                 const num = parseFloat(parts[0]);
                 return isNaN(num) ? str : Math.floor(num);
             }
-            return parts.map((p) => {
+            return parts.map(p => {
                 const num = parseFloat(p.trim());
                 return isNaN(num) ? p.trim() : num;
             });
@@ -454,7 +454,7 @@ function parseElementValue(
         vr === "US"
     ) {
         // Numeric types
-        const parts = str.split("\\").filter((p) => p.trim());
+        const parts = str.split("\\").filter(p => p.trim());
         if (parts.length === 1) {
             const num = parseFloat(parts[0]);
             return isNaN(num)
@@ -463,7 +463,7 @@ function parseElementValue(
                   ? Math.floor(num)
                   : Math.floor(num);
         }
-        return parts.map((p) => {
+        return parts.map(p => {
             const num = parseFloat(p.trim());
             return isNaN(num) ? p.trim() : num;
         });
@@ -471,12 +471,12 @@ function parseElementValue(
 
     if (vr === "DS" || vr === "FL" || vr === "FD") {
         // Floating point types
-        const parts = str.split("\\").filter((p) => p.trim());
+        const parts = str.split("\\").filter(p => p.trim());
         if (parts.length === 1) {
             const num = parseFloat(parts[0]);
             return isNaN(num) ? str : num;
         }
-        return parts.map((p) => {
+        return parts.map(p => {
             const num = parseFloat(p.trim());
             return isNaN(num) ? p.trim() : num;
         });
@@ -507,7 +507,7 @@ export function parseSequence(
     littleEndian: boolean,
     characterSet: string,
     undefinedLength: boolean,
-    enableWasm?: boolean,
+    enableWasm?: boolean
 ): SequenceItem[] {
     const items: SequenceItem[] = [];
 
@@ -539,7 +539,7 @@ export function parseSequence(
 
                 characterSet,
                 true,
-                enableWasm,
+                enableWasm
             );
             if (!item) {
                 break;
@@ -558,7 +558,7 @@ export function parseSequence(
                 littleEndian,
                 characterSet,
                 true,
-                enableWasm,
+                enableWasm
             );
             if (!item) {
                 break;

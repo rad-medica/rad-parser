@@ -72,7 +72,7 @@ export function parseDate(value: string): Date | string | Array<Date | string> {
         return parseSingleDate(dates[0]);
     }
 
-    return dates.map((d) => parseSingleDate(d));
+    return dates.map(d => parseSingleDate(d));
 }
 
 function parseSingleDate(dateStr: string): Date | string {
@@ -107,7 +107,7 @@ export function parseTime(value: string): Date | string | Array<Date | string> {
         return parseSingleTime(times[0]);
     }
 
-    return times.map((t) => parseSingleTime(t));
+    return times.map(t => parseSingleTime(t));
 }
 
 function parseSingleTime(timeStr: string): Date | string {
@@ -139,7 +139,7 @@ function parseSingleTime(timeStr: string): Date | string {
  * Format: YYYYMMDDHHMMSS.FFFFFF&ZZZZ or YYYYMMDDHHMMSS
  */
 export function parseDateTime(
-    value: string,
+    value: string
 ): Date | string | Array<Date | string> {
     if (!value || typeof value !== "string") {
         return value;
@@ -150,7 +150,7 @@ export function parseDateTime(
         return parseSingleDateTime(dateTimes[0]);
     }
 
-    return dateTimes.map((dt) => parseSingleDateTime(dt));
+    return dateTimes.map(dt => parseSingleDateTime(dt));
 }
 
 function parseSingleDateTime(dateTimeStr: string): Date | string {
@@ -190,7 +190,7 @@ function parseSingleDateTime(dateTimeStr: string): Date | string {
  * Format: nnnD/W/M/Y (days/weeks/months/years)
  */
 export function parseAgeString(
-    value: string,
+    value: string
 ):
     | { value: number; unit: "D" | "W" | "M" | "Y" }
     | string
@@ -204,11 +204,11 @@ export function parseAgeString(
         return parseSingleAge(ages[0]);
     }
 
-    return ages.map((a) => parseSingleAge(a));
+    return ages.map(a => parseSingleAge(a));
 }
 
 function parseSingleAge(
-    ageStr: string,
+    ageStr: string
 ): { value: number; unit: "D" | "W" | "M" | "Y" } | string {
     const match = ageStr.match(/^(\d{3})([DWMY])$/);
     if (match) {
@@ -227,7 +227,7 @@ function parseSingleAge(
  */
 export function parseValueByVR(
     vr: string,
-    value: string | number | Array<string | number>,
+    value: string | number | Array<string | number>
 ):
     | string
     | number
@@ -280,8 +280,8 @@ export function parseValueByVR(
                 ) {
                     return parsed[0] as Record<string, unknown>;
                 }
-                return parsed.map((p) =>
-                    typeof p === "object" ? p : String(p),
+                return parsed.map(p =>
+                    typeof p === "object" ? p : String(p)
                 ) as Array<string | number>;
             }
             return typeof parsed === "object" && parsed !== null

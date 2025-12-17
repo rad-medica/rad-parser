@@ -12,7 +12,7 @@ import type { PixelDataResult } from "./pixelData";
  */
 export function decompressPixelData(
     pixelData: PixelDataResult,
-    transferSyntax?: string,
+    transferSyntax?: string
 ): Uint8Array | null {
     if (!pixelData.isEncapsulated || !transferSyntax) {
         return pixelData.pixelData;
@@ -83,7 +83,7 @@ function decompressRLE(pixelData: PixelDataResult): Uint8Array | null {
 
             // Decompress this segment
             const segmentData = decompressRLESegment(
-                data.slice(segmentStart, segmentEnd),
+                data.slice(segmentStart, segmentEnd)
             );
             if (!segmentData) {
                 return null;
@@ -148,7 +148,7 @@ export function supportsImageDecoder(): boolean {
  */
 export async function decompressJPEG(
     pixelData: PixelDataResult,
-    mimeType: string = "image/jpeg",
+    mimeType: string = "image/jpeg"
 ): Promise<Uint8Array | null> {
     if (!supportsImageDecoder()) {
         return null;
@@ -166,7 +166,7 @@ export async function decompressJPEG(
         // Convert VideoFrame to ImageData
         const canvas = new OffscreenCanvas(
             videoFrame.displayWidth,
-            videoFrame.displayHeight,
+            videoFrame.displayHeight
         );
         const ctx = canvas.getContext("2d");
         if (!ctx) {

@@ -7,7 +7,7 @@ import { performance } from "perf_hooks";
 
 const TEST_FILE_PATH = path.resolve(
     process.cwd(),
-    "test_data/patient/DICOM/18CBDD76",
+    "test_data/patient/DICOM/18CBDD76"
 );
 
 // 8-bit converter (part of the workload)
@@ -40,7 +40,7 @@ const to8Bit = (data: Uint8Array, width: number, height: number) => {
 function readValue(
     view: SafeDataView,
     offset: number,
-    length: number,
+    length: number
 ): Uint8Array {
     view.setPosition(offset);
     return view.readBytes(length);
@@ -66,12 +66,12 @@ function runBenchmark() {
     const fileBuffer = fs.readFileSync(TEST_FILE_PATH);
     const fileBytes = new Uint8Array(fileBuffer);
     const fileBytesForDicomParser = new Uint8Array(
-        fs.readFileSync(TEST_FILE_PATH),
+        fs.readFileSync(TEST_FILE_PATH)
     ); // clean copy
     // dcmjs needs ArrayBuffer
     const arrayBuffer = fileBuffer.buffer.slice(
         fileBuffer.byteOffset,
-        fileBuffer.byteOffset + fileBuffer.byteLength,
+        fileBuffer.byteOffset + fileBuffer.byteLength
     );
 
     const iterations = 50;
@@ -84,7 +84,7 @@ function runBenchmark() {
     };
 
     console.log(
-        `Starting comprehensive benchmark (${iterations} iterations)...`,
+        `Starting comprehensive benchmark (${iterations} iterations)...`
     );
 
     // Warmup
@@ -148,7 +148,7 @@ function runBenchmark() {
             const view = new SafeDataView(
                 fileBytes.buffer,
                 fileBytes.byteOffset,
-                fileBytes.byteLength,
+                fileBytes.byteLength
             );
             view.setEndianness(true); // Assuming little endian (detected in shallowParse but we need to re-apply or reuse context?)
             // shallowParse detects format but doesn't return context.
@@ -163,17 +163,17 @@ function runBenchmark() {
                 const rowsData = readValue(
                     view,
                     rowElem.dataOffset,
-                    rowElem.length,
+                    rowElem.length
                 );
                 const colsData = readValue(
                     view,
                     colElem.dataOffset,
-                    colElem.length,
+                    colElem.length
                 );
                 const pixelData = readValue(
                     view,
                     pixelElem.dataOffset,
-                    pixelElem.length,
+                    pixelElem.length
                 );
 
                 const rows = decodeUS(rowsData);
@@ -199,7 +199,7 @@ function runBenchmark() {
         const element = dpDataSet.elements["x7fe00010"];
         const pixelData = fileBytesForDicomParser.slice(
             element.dataOffset,
-            element.dataOffset + element.length,
+            element.dataOffset + element.length
         );
         to8Bit(pixelData, cols, rows);
 
@@ -268,7 +268,7 @@ function runBenchmark() {
         const view = new SafeDataView(
             fileBytes.buffer,
             fileBytes.byteOffset,
-            fileBytes.byteLength,
+            fileBytes.byteLength
         );
         view.setEndianness(true);
         for (let k = 0; k < 1000; k++) {

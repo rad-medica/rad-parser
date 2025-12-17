@@ -62,7 +62,7 @@ export class Jpeg2000Decoder implements PixelDataCodec {
         width: number,
         height: number,
         samples: number,
-        bits: number,
+        bits: number
     ): Promise<Uint8Array[]> {
         if (this.initPromise) {
             await this.initPromise;
@@ -73,7 +73,7 @@ export class Jpeg2000Decoder implements PixelDataCodec {
             width,
             height,
             bits,
-            samples,
+            samples
         );
         return [encoded];
     }

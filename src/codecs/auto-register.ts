@@ -12,21 +12,21 @@ registry.registerDynamic("1.2.840.10008.1.2.5", () => import("./rle"));
 // Use native Wasm implementation for universal support (Node.js + Browser)
 registry.registerDynamic(
     "1.2.840.10008.1.2.4.50",
-    () => import("./jpegNative"),
+    () => import("./jpegNative")
 );
 registry.registerDynamic("1.2.840.10008.1.2.4.51", () => import("./browser")); // Keep extended on browser for now (or fallback)
 
 // JPEG Lossless, Non-Hierarchical (Process 14)
 registry.registerDynamic(
     "1.2.840.10008.1.2.4.57",
-    () => import("./jpegLossless"),
+    () => import("./jpegLossless")
 );
 
 // JPEG Lossless, Non-Hierarchical, First-Order Prediction (Process 14 [SV1])
 // This can be handled by a native JS implementation or a WASM library.
 registry.registerDynamic(
     "1.2.840.10008.1.2.4.70",
-    () => import("./jpegLosslessNative"),
+    () => import("./jpegLosslessNative")
 );
 
 // JPEG-LS Lossless and Near-Lossless

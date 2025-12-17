@@ -24,11 +24,11 @@ async function main() {
     // Initialize environment
     const wasmCorePath = new URL(
         "../src/wasm-core-build/rad_parser_wasm_core_bg.wasm",
-        import.meta.url,
+        import.meta.url
     );
     const wasmCodecsPath = new URL(
         "../src/wasm-codecs-build/rad_parser_wasm_codecs_bg.wasm",
-        import.meta.url,
+        import.meta.url
     );
 
     // Load Wasm bytes
@@ -147,7 +147,7 @@ async function runImage(args: string[]) {
     // Usage: input output --format png|jpeg --frame 0
     if (args.length < 2) {
         console.log(
-            "Usage: rad image <input.dcm> <output.png> [--frame 0] [--format png]",
+            "Usage: rad image <input.dcm> <output.png> [--frame 0] [--format png]"
         );
         return;
     }
@@ -216,7 +216,7 @@ async function runDump(args: string[]) {
         if (el.Value instanceof Uint8Array) {
             valStr = `[Uint8Array ${el.Value.length} bytes]`;
         } else if (Array.isArray(el.Value)) {
-            valStr = el.Value.map((v) => String(v))
+            valStr = el.Value.map(v => String(v))
                 .join("\\")
                 .substring(0, 100);
             if (el.Value.length > 50 || valStr.length >= 100) valStr += "...";

@@ -5,7 +5,7 @@ import { parse, extractPixelData } from "../src/index";
 
 const filePath = path.resolve(
     process.cwd(),
-    "test_data/patient/DICOM/18CBDD76",
+    "test_data/patient/DICOM/18CBDD76"
 );
 
 if (!fs.existsSync(filePath)) {
@@ -17,7 +17,7 @@ const fileBuffer = fs.readFileSync(filePath);
 const byteArray = new Uint8Array(fileBuffer);
 
 console.log(
-    `Benchmarking Pixel Data Extraction on file size: ${(byteArray.byteLength / 1024 / 1024).toFixed(2)} MB`,
+    `Benchmarking Pixel Data Extraction on file size: ${(byteArray.byteLength / 1024 / 1024).toFixed(2)} MB`
 );
 
 const iterations = 50;
@@ -32,12 +32,12 @@ function benchmark(name: string, fn: () => void) {
         const total = end - start;
         const avg = total / iterations;
         console.log(
-            `${name}: Total ${total.toFixed(2)}ms, Avg ${avg.toFixed(2)}ms`,
+            `${name}: Total ${total.toFixed(2)}ms, Avg ${avg.toFixed(2)}ms`
         );
         return avg;
     } catch (err: unknown) {
         console.error(
-            `${name} FAILED: ${err instanceof Error ? err.message : String(err)}`,
+            `${name} FAILED: ${err instanceof Error ? err.message : String(err)}`
         );
         // console.error(err);
     }

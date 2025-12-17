@@ -4,7 +4,7 @@ import * as path from "path";
 
 const TEST_FILE_PATH = path.resolve(
     process.cwd(),
-    "test_data/patient/DICOM/18CBDD76",
+    "test_data/patient/DICOM/18CBDD76"
 );
 
 function runTest() {
@@ -64,7 +64,7 @@ function runTest() {
     } else {
         console.error(
             "❌ Light included pixel data value?",
-            resultLight.dict[pixelTag],
+            resultLight.dict[pixelTag]
         );
     }
 

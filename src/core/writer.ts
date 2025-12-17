@@ -74,7 +74,7 @@ const encoder = new TextEncoder();
  */
 export function write(
     dataset: DicomDataSet,
-    options: WriteOptions = {},
+    options: WriteOptions = {}
 ): Uint8Array {
     // Pre-allocate chunks array with estimated size (reduces reallocations)
     const chunks: Uint8Array[] = [];
@@ -213,7 +213,7 @@ function concatChunks(chunks: Uint8Array[]): Uint8Array {
 
 function serializeDataset(dict: Record<string, DicomElement>): Uint8Array {
     const sortedTags = Object.keys(dict)
-        .filter((tag) => tag.startsWith("x"))
+        .filter(tag => tag.startsWith("x"))
         .sort();
 
     const chunks: Uint8Array[] = [];
@@ -253,7 +253,7 @@ function parseTagFast(tagHex: string): { group: number; elem: number } | null {
 
 function serializeElement(
     tagHex: string,
-    element: DicomElement,
+    element: DicomElement
 ): Uint8Array | null {
     // Parse tag xGGGGEEEE (optimized with caching)
     const tagParts = parseTagFast(tagHex);
@@ -333,7 +333,7 @@ function serializeElement(
     ) {
         const totalLen = (element.Value as Uint8Array[]).reduce(
             (a, b) => a + b.length,
-            0,
+            0
         );
         let off = 0;
         valueBytes = new Uint8Array(totalLen);

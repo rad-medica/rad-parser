@@ -23,7 +23,7 @@ function parseWithDcmjs(data: Uint8Array) {
     const buffer = Buffer.from(
         data.buffer,
         data.byteOffset,
-        data.byteLength,
+        data.byteLength
     ) as Buffer;
     const dcmjsModule = dcmjs as unknown as {
         data: {
@@ -111,7 +111,7 @@ function benchmarkParserWithTimeout(
     parserName: string,
     filePath: string,
     fileData: Uint8Array,
-    timeoutMs: number = 10000,
+    timeoutMs: number = 10000
 ): BenchmarkResult {
     const startTime = performance.now();
     let success = false;
@@ -149,9 +149,9 @@ function benchmarkParserWithTimeout(
                 const parser = new StreamingParser({
                     maxBufferSize: 50 * 1024 * 1024,
                     maxIterations: 500,
-                    onElement: (element) => {
+                    onElement: element => {
                         streamingElements += Object.keys(
-                            element.dict || {},
+                            element.dict || {}
                         ).length;
                         streamingSuccess = true;
                     },
@@ -161,7 +161,7 @@ function benchmarkParserWithTimeout(
                 for (let i = 0; i < fileData.length; i += chunkSize) {
                     const chunk = fileData.slice(
                         i,
-                        Math.min(i + chunkSize, fileData.length),
+                        Math.min(i + chunkSize, fileData.length)
                     );
                     if (i === 0) {
                         parser.initialize(chunk);
@@ -210,17 +210,17 @@ function benchmarkParserWithTimeout(
 
 function calculateStats(
     parserName: string,
-    results: BenchmarkResult[],
+    results: BenchmarkResult[]
 ): ParserStats {
-    const successful = results.filter((r) => r.success);
-    const failed = results.filter((r) => !r.success);
+    const successful = results.filter(r => r.success);
+    const failed = results.filter(r => !r.success);
     const totalTime = successful.reduce((sum, r) => sum + r.parseTime, 0);
     const totalElements = successful.reduce(
         (sum, r) => sum + r.elementCount,
-        0,
+        0
     );
     const totalSize = results.reduce((sum, r) => sum + r.fileSize, 0);
-    const times = successful.map((r) => r.parseTime);
+    const times = successful.map(r => r.parseTime);
     const averageTime =
         successful.length > 0 ? totalTime / successful.length : 0;
     const minTime = times.length > 0 ? Math.min(...times) : 0;
@@ -228,9 +228,7 @@ function calculateStats(
     const averageElements =
         successful.length > 0 ? totalElements / successful.length : 0;
     const averageSize = results.length > 0 ? totalSize / results.length : 0;
-    const errors = failed.map(
-        (r) => `${r.file}: ${r.error || "Unknown error"}`,
-    );
+    const errors = failed.map(r => `${r.file}: ${r.error || "Unknown error"}`);
 
     return {
         parser: parserName,
@@ -327,7 +325,7 @@ async function main() {
                 const elapsed = (performance.now() - startParserTime) / 1000;
                 const rate = elapsed > 0 ? processed / elapsed : 0;
                 console.log(
-                    `  [${processed}/${fileData.length}] ${rate.toFixed(1)} files/s`,
+                    `  [${processed}/${fileData.length}] ${rate.toFixed(1)} files/s`
                 );
             }
 
@@ -335,7 +333,7 @@ async function main() {
                 parserName,
                 path,
                 data,
-                10000,
+                10000
             );
             parserResults.push(result);
             allResults.push(result);
@@ -347,7 +345,7 @@ async function main() {
 
     const stats: ParserStats[] = [];
     for (const parserName of parsers) {
-        const parserResults = allResults.filter((r) => r.parser === parserName);
+        const parserResults = allResults.filter(r => r.parser === parserName);
         stats.push(calculateStats(parserName, parserResults));
     }
 
@@ -365,15 +363,15 @@ async function main() {
     });
 
     console.log(
-        `${"Parser".padEnd(25)} ${"Success".padEnd(12)} ${"Avg Time".padEnd(12)} ${"Avg Elements".padEnd(15)}`,
+        `${"Parser".padEnd(25)} ${"Success".padEnd(12)} ${"Avg Time".padEnd(12)} ${"Avg Elements".padEnd(15)}`
     );
     console.log("-".repeat(80));
     for (const stat of sorted) {
         const successRate = ((stat.successful / stat.totalFiles) * 100).toFixed(
-            1,
+            1
         );
         console.log(
-            `${stat.parser.padEnd(25)} ${successRate.padEnd(11)}% ${formatTime(stat.averageTime).padEnd(12)} ${stat.averageElements.toFixed(0).padEnd(15)}`,
+            `${stat.parser.padEnd(25)} ${successRate.padEnd(11)}% ${formatTime(stat.averageTime).padEnd(12)} ${stat.averageElements.toFixed(0).padEnd(15)}`
         );
     }
 
@@ -386,15 +384,15 @@ async function main() {
 
     writeFileSync(
         join(resultsDir, "comprehensive-benchmark-stats.json"),
-        JSON.stringify(stats, replacer, 2),
+        JSON.stringify(stats, replacer, 2)
     );
     writeFileSync(
         join(resultsDir, "comprehensive-benchmark-results.json"),
-        JSON.stringify(allResults, replacer, 2),
+        JSON.stringify(allResults, replacer, 2)
     );
 
     console.log(
-        `\nResults saved to: ${join(resultsDir, "comprehensive-benchmark-*.json")}`,
+        `\nResults saved to: ${join(resultsDir, "comprehensive-benchmark-*.json")}`
     );
 }
 

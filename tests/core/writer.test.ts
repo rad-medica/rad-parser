@@ -5,7 +5,7 @@ import * as path from "path";
 
 const TEST_FILE = path.resolve(
     __dirname,
-    "../test_data/patient/DICOM/18CBDD76",
+    "../test_data/patient/DICOM/18CBDD76"
 );
 
 describe("DICOM Writer", () => {

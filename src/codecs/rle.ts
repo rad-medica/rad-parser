@@ -29,7 +29,7 @@ export class RleCodec implements PixelDataCodec {
         } catch (e) {
             console.warn(
                 "Failed to init RLE Zig WASM codec, using JS fallback",
-                e,
+                e
             );
         }
     }
@@ -58,8 +58,8 @@ export class RleCodec implements PixelDataCodec {
         // RLE is per-frame, decode each fragment
         const decodedFrames = await Promise.all(
             encodedBuffer
-                .filter((frag) => frag.byteLength > 0)
-                .map((frag) => this.processFrame(frag, info)),
+                .filter(frag => frag.byteLength > 0)
+                .map(frag => this.processFrame(frag, info))
         );
 
         if (decodedFrames.length === 0) {
@@ -74,12 +74,12 @@ export class RleCodec implements PixelDataCodec {
 
     private async processFrame(
         buffer: Uint8Array,
-        info: any,
+        info: any
     ): Promise<Uint8Array> {
         const view = new DataView(
             buffer.buffer,
             buffer.byteOffset,
-            buffer.byteLength,
+            buffer.byteLength
         );
 
         if (view.byteLength < 64) {
@@ -102,7 +102,7 @@ export class RleCodec implements PixelDataCodec {
                     buffer,
                     width,
                     height,
-                    samples,
+                    samples
                 );
             } catch (e) {
                 console.warn("WASM RLE decode failed, using JS fallback", e);
@@ -129,7 +129,7 @@ export class RleCodec implements PixelDataCodec {
             }
         }
 
-        const decodedSegments = segments.map((s) => this.decompressRle(s));
+        const decodedSegments = segments.map(s => this.decompressRle(s));
 
         if (decodedSegments.length === 0) return new Uint8Array(0);
         if (decodedSegments.length === 1) return decodedSegments[0];
@@ -195,7 +195,7 @@ export class RleCodec implements PixelDataCodec {
         width: number,
         height: number,
         samples: number,
-        bits: number,
+        bits: number
     ): Promise<Uint8Array[]> {
         if (this.initPromise) {
             await this.initPromise;
@@ -208,7 +208,7 @@ export class RleCodec implements PixelDataCodec {
                     pixelData,
                     width,
                     height,
-                    samples,
+                    samples
                 );
                 return [encoded];
             } catch (e) {
@@ -246,7 +246,7 @@ export class RleCodec implements PixelDataCodec {
             segments.push(pixelData);
         }
 
-        const encodedSegments = segments.map((s) => this.packBits(s));
+        const encodedSegments = segments.map(s => this.packBits(s));
 
         // Build header
         const header = new Uint8Array(64);

@@ -1,0 +1,296 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Install dependencies with Bun",
+            "type": "shell",
+            "command": "bun",
+            "args": ["install"],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "presentation": {
+                "echo": true,
+                "reveal": "silent",
+                "focus": false,
+                "panel": "shared",
+                "showReuseMessage": true,
+                "clear": false
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Build with Bun",
+            "type": "shell",
+            "command": "bun",
+            "args": ["run", "build"],
+            "group": {
+                "kind": "build",
+                "isDefault": false
+            },
+            "presentation": {
+                "echo": true,
+                "reveal": "silent",
+                "focus": false,
+                "panel": "shared",
+                "showReuseMessage": true,
+                "clear": false
+            },
+            "dependsOn": ["Install dependencies with Bun"],
+            "problemMatcher": ["$tsc"]
+        },
+        {
+            "label": "Build Zig codecs",
+            "type": "shell",
+            "command": "bun",
+            "args": ["run", "build:zig-codecs"],
+            "group": "build",
+            "presentation": {
+                "echo": true,
+                "reveal": "silent",
+                "focus": false,
+                "panel": "shared",
+                "showReuseMessage": true,
+                "clear": false
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Optimize Zig codecs",
+            "type": "shell",
+            "command": "bun",
+            "args": ["run", "optimize:zig-codecs"],
+            "group": "build",
+            "presentation": {
+                "echo": true,
+                "reveal": "silent",
+                "focus": false,
+                "panel": "shared",
+                "showReuseMessage": true,
+                "clear": false
+            },
+            "dependsOn": ["Build Zig codecs"],
+            "problemMatcher": []
+        },
+        {
+            "label": "Run tests with Bun",
+            "type": "shell",
+            "command": "bun",
+            "args": ["run", "test"],
+            "group": {
+                "kind": "test",
+                "isDefault": true
+            },
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared",
+                "showReuseMessage": true,
+                "clear": false
+            },
+            "problemMatcher": ["$vitest"]
+        },
+        {
+            "label": "Run tests in watch mode",
+            "type": "shell",
+            "command": "bun",
+            "args": ["run", "test:watch"],
+            "group": "test",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared",
+                "showReuseMessage": true,
+                "clear": true
+            },
+            "isBackground": true,
+            "problemMatcher": ["$vitest"]
+        },
+        {
+            "label": "Run benchmarks",
+            "type": "shell",
+            "command": "bun",
+            "args": ["run", "benchmark"],
+            "group": "test",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared",
+                "showReuseMessage": true,
+                "clear": false
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Run comprehensive benchmarks",
+            "type": "shell",
+            "command": "bun",
+            "args": ["run", "benchmark:comprehensive"],
+            "group": "test",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared",
+                "showReuseMessage": true,
+                "clear": false
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Lint code",
+            "type": "shell",
+            "command": "bun",
+            "args": ["run", "lint"],
+            "group": "build",
+            "presentation": {
+                "echo": true,
+                "reveal": "silent",
+                "focus": false,
+                "panel": "shared",
+                "showReuseMessage": true,
+                "clear": false
+            },
+            "problemMatcher": ["$eslint-stylish"]
+        },
+        {
+            "label": "Format code",
+            "type": "shell",
+            "command": "bun",
+            "args": ["run", "format"],
+            "group": "build",
+            "presentation": {
+                "echo": true,
+                "reveal": "silent",
+                "focus": false,
+                "panel": "shared",
+                "showReuseMessage": true,
+                "clear": false
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Type check",
+            "type": "shell",
+            "command": "bun",
+            "args": ["run", "type-check"],
+            "group": "build",
+            "presentation": {
+                "echo": true,
+                "reveal": "silent",
+                "focus": false,
+                "panel": "shared",
+                "showReuseMessage": true,
+                "clear": false
+            },
+            "problemMatcher": ["$tsc"]
+        },
+        {
+            "label": "Clean build artifacts",
+            "type": "shell",
+            "command": "Remove-Item",
+            "args": [
+                "-Recurse",
+                "-Force",
+                "dist",
+                "zig-out",
+                "zig-cache",
+                "*.log"
+            ],
+            "group": "build",
+            "presentation": {
+                "echo": true,
+                "reveal": "silent",
+                "focus": false,
+                "panel": "shared",
+                "showReuseMessage": true,
+                "clear": false
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Check code quality",
+            "type": "shell",
+            "command": "bun",
+            "args": ["run", "check"],
+            "group": "test",
+            "presentation": {
+                "echo": true,
+                "reveal": "silent",
+                "focus": false,
+                "panel": "shared",
+                "showReuseMessage": true,
+                "clear": false
+            },
+            "problemMatcher": ["$eslint", "$tsc"]
+        },
+        {
+            "label": "Fix code issues",
+            "type": "shell",
+            "command": "bun",
+            "args": ["run", "fix"],
+            "group": "build",
+            "presentation": {
+                "echo": true,
+                "reveal": "silent",
+                "focus": false,
+                "panel": "shared",
+                "showReuseMessage": true,
+                "clear": false
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Format check",
+            "type": "shell",
+            "command": "bun",
+            "args": ["run", "format:check"],
+            "group": "test",
+            "presentation": {
+                "echo": true,
+                "reveal": "silent",
+                "focus": false,
+                "panel": "shared",
+                "showReuseMessage": true,
+                "clear": false
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Run streaming benchmarks",
+            "type": "shell",
+            "command": "bun",
+            "args": ["run", "benchmark:streaming"],
+            "group": "test",
+            "presentation": {
+                "echo": true,
+                "reveal": "silent",
+                "focus": false,
+                "panel": "shared",
+                "showReuseMessage": true,
+                "clear": false
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Generate comprehensive report",
+            "type": "shell",
+            "command": "bun",
+            "args": ["run", "report:comprehensive"],
+            "group": "build",
+            "presentation": {
+                "echo": true,
+                "reveal": "silent",
+                "focus": false,
+                "panel": "shared",
+                "showReuseMessage": true,
+                "clear": false
+            },
+            "problemMatcher": []
+        }
+    ]
+}

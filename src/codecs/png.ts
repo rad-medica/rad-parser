@@ -39,7 +39,7 @@ export class NodePngEncoder implements PixelDataCodec {
         width: number,
         height: number,
         samples: number,
-        bits: number,
+        bits: number
     ): Promise<Uint8Array[]> {
         // Node-only path
         let zlib;
@@ -63,7 +63,7 @@ export class NodePngEncoder implements PixelDataCodec {
             const srcOffset = y * rowSize;
             rawBuffer.set(
                 pixelData.subarray(srcOffset, srcOffset + rowSize),
-                destOffset + 1,
+                destOffset + 1
             );
         }
 
@@ -75,7 +75,7 @@ export class NodePngEncoder implements PixelDataCodec {
 
         // Header
         chunks.push(
-            new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
+            new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])
         );
 
         // IHDR
@@ -165,7 +165,7 @@ export interface EncodePngOptions {
 }
 
 export async function encodePNG(
-    options: EncodePngOptions,
+    options: EncodePngOptions
 ): Promise<Uint8Array> {
     const encoder = new NodePngEncoder();
     const samples = options.colorType === "grayscale" ? 1 : 3;
@@ -175,7 +175,7 @@ export async function encodePNG(
         options.width,
         options.height,
         samples,
-        options.bitDepth,
+        options.bitDepth
     );
     return fragments[0];
 }

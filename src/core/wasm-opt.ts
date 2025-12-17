@@ -42,7 +42,7 @@ function freeMemory(ptr: number, size: number): void {
     if (!coreExports) return;
     const free_ptr = coreExports.free_ptr as (
         ptr: number,
-        size: number,
+        size: number
     ) => void;
     free_ptr(ptr, size);
 }
@@ -53,10 +53,10 @@ export function parseDSWasm(input: Uint8Array): Float64Array | null {
         const ptr = writeToMemory(input);
         const parse_ds = coreExports.parse_ds as (
             ptr: number,
-            len: number,
+            len: number
         ) => number;
         const get_ds_value = coreExports.get_ds_value as (
-            index: number,
+            index: number
         ) => number;
 
         const count = parse_ds(ptr, input.length);
@@ -80,10 +80,10 @@ export function parseISWasm(input: Uint8Array): Int32Array | null {
         const ptr = writeToMemory(input);
         const parse_is = coreExports.parse_is as (
             ptr: number,
-            len: number,
+            len: number
         ) => number;
         const get_is_value = coreExports.get_is_value as (
-            index: number,
+            index: number
         ) => number;
 
         const count = parse_is(ptr, input.length);
@@ -115,7 +115,7 @@ export function parseDAWasm(value: string): string | null {
 
         const parse_date = coreExports.parse_date as (
             ptr: number,
-            len: number,
+            len: number
         ) => number;
         const resultPtr = parse_date(ptr, bytes.length);
         freeMemory(ptr, bytes.length);
@@ -143,7 +143,7 @@ export function parseTMWasm(value: string): string | null {
 
         const parse_time = coreExports.parse_time as (
             ptr: number,
-            len: number,
+            len: number
         ) => number;
         const resultPtr = parse_time(ptr, bytes.length);
         freeMemory(ptr, bytes.length);
@@ -171,7 +171,7 @@ export function applyModalityLutWasm(
     slope: number,
     intercept: number,
     bitsAllocated: number,
-    pixelRepresentation: number,
+    pixelRepresentation: number
 ): Float32Array | null {
     if (!isWasmInitialized || !coreExports || !coreMemory) return null;
     try {
@@ -183,7 +183,7 @@ export function applyModalityLutWasm(
             slope: number,
             intercept: number,
             bits: number,
-            repr: number,
+            repr: number
         ) => number;
         const get_result_ptr = coreExports.get_result_ptr as () => number;
         const get_result_len = coreExports.get_result_len as () => number;
@@ -194,7 +194,7 @@ export function applyModalityLutWasm(
             slope,
             intercept,
             bitsAllocated,
-            pixelRepresentation,
+            pixelRepresentation
         );
         freeMemory(ptr, pixelData.length);
 
@@ -208,7 +208,7 @@ export function applyModalityLutWasm(
         const floatView = new Float32Array(
             coreMemory.buffer,
             outPtr,
-            numFloats,
+            numFloats
         );
         result.set(floatView);
 
@@ -222,7 +222,7 @@ export function applyModalityLutWasm(
 export function applyVoiLutWasm(
     input: Float32Array,
     windowCenter: number,
-    windowWidth: number,
+    windowWidth: number
 ): Uint8Array | null {
     if (!isWasmInitialized || !coreExports || !coreMemory) return null;
     try {
@@ -232,7 +232,7 @@ export function applyVoiLutWasm(
         const floatView = new Float32Array(
             coreMemory.buffer,
             ptr,
-            input.length,
+            input.length
         );
         floatView.set(input);
 
@@ -240,7 +240,7 @@ export function applyVoiLutWasm(
             ptr: number,
             len: number,
             wc: number,
-            ww: number,
+            ww: number
         ) => number;
         const get_result_ptr = coreExports.get_result_ptr as () => number;
         const get_result_len = coreExports.get_result_len as () => number;

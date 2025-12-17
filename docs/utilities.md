@@ -15,15 +15,15 @@ const pixels = extractRescaledPixelData(dataset);
 
 **What it does:**
 
--   Extracts pixel data (auto-decodes compressed formats)
--   Applies: `value = stored * slope + intercept`
--   Returns consistent Float32Array
+- Extracts pixel data (auto-decodes compressed formats)
+- Applies: `value = stored * slope + intercept`
+- Returns consistent Float32Array
 
 **Use cases:**
 
--   Get Hounsfield units from CT scans
--   Extract calibrated MR signal intensities
--   Prepare pixel data for ML/analysis
+- Get Hounsfield units from CT scans
+- Extract calibrated MR signal intensities
+- Prepare pixel data for ML/analysis
 
 ---
 
@@ -40,10 +40,10 @@ const result = extractPixelDataFromView(view, length, "1.2.840.10008.1.2.1");
 
 **Returns:** `PixelDataResult`
 
--   `pixelData: Uint8Array` - Raw pixel bytes
--   `isEncapsulated: boolean` - True if compressed
--   `fragments?: Array<{offset, length}>` - Fragment info
--   `fragmentArrays?: Uint8Array[]` - Fragment data
+- `pixelData: Uint8Array` - Raw pixel bytes
+- `isEncapsulated: boolean` - True if compressed
+- `fragments?: Array<{offset, length}>` - Fragment info
+- `fragmentArrays?: Uint8Array[]` - Fragment data
 
 ---
 
@@ -69,10 +69,10 @@ const j2kDataset = await transcode(dataset, {
 
 **Features:**
 
--   Automatically decodes original pixel data.
--   Re-encodes using registered Wasm codecs.
--   Updates `TransferSyntaxUID` and `PixelData` tags.
--   Handles fragmentation for encapsulated data.
+- Automatically decodes original pixel data.
+- Re-encodes using registered Wasm codecs.
+- Updates `TransferSyntaxUID` and `PixelData` tags.
+- Handles fragmentation for encapsulated data.
 
 ---
 
@@ -94,9 +94,9 @@ fs.writeFileSync("output.png", buffer);
 
 **Features:**
 
--   Extracts frame from multi-frame datasets.
--   Decodes compressed pixel data.
--   Renders to 8-bit RGB/Grayscale image buffer.
+- Extracts frame from multi-frame datasets.
+- Decodes compressed pixel data.
+- Renders to 8-bit RGB/Grayscale image buffer.
 
 ---
 
@@ -307,13 +307,13 @@ const str = view.readString(20, "utf-8"); // Read string
 
 **Methods:**
 
--   `readUint8()`, `readUint16()`, `readUint32()`
--   `readInt16()`, `readInt32()`
--   `readFloat32()`, `readFloat64()`
--   `readBytes(length)`
--   `readString(length, charset)`
--   `getRemainingBytes()`
--   `getPosition()`, `setPosition(pos)`
+- `readUint8()`, `readUint16()`, `readUint32()`
+- `readInt16()`, `readInt32()`
+- `readFloat32()`, `readFloat64()`
+- `readBytes(length)`
+- `readString(length, charset)`
+- `getRemainingBytes()`
+- `getPosition()`, `setPosition(pos)`
 
 ---
 

@@ -7,7 +7,7 @@ import { performance } from "perf_hooks";
 
 const TEST_FILE_PATH = path.resolve(
     process.cwd(),
-    "test_data/patient/DICOM/18CBDD76",
+    "test_data/patient/DICOM/18CBDD76"
 );
 const REPORT_FILE = path.resolve(process.cwd(), "results/benchmark_report.md");
 
@@ -55,7 +55,7 @@ function runBenchmark() {
     const fileBytes = new Uint8Array(fileBuffer);
     const arrayBuffer = fileBuffer.buffer.slice(
         fileBuffer.byteOffset,
-        fileBuffer.byteOffset + fileBuffer.byteLength,
+        fileBuffer.byteOffset + fileBuffer.byteLength
     );
 
     const iterations = 50;
@@ -124,7 +124,7 @@ function runBenchmark() {
         const element = dpDataSet.elements["x7fe00010"];
         const pixelData = fileBytes.slice(
             element.dataOffset,
-            element.dataOffset + element.length,
+            element.dataOffset + element.length
         );
         const bitmap = to8Bit(pixelData, cols, rows);
 

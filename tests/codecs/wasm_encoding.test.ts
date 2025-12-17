@@ -19,7 +19,7 @@ describe("Wasm Encoding", () => {
         const path = await import("path");
         const wasmPath = path.resolve(
             __dirname,
-            "../../src/wasm-codecs-build/rad_parser_wasm_codecs_bg.wasm",
+            "../../src/wasm-codecs-build/rad_parser_wasm_codecs_bg.wasm"
         );
         const wasmBuffer = fs.readFileSync(wasmPath);
 
@@ -49,7 +49,7 @@ describe("Wasm Encoding", () => {
             width,
             height,
             1,
-            8,
+            8
         );
         expect(encodedFragments.length).toBeGreaterThan(0);
 
@@ -67,7 +67,7 @@ describe("Wasm Encoding", () => {
         for (let i = 0; i < input.length; i++) {
             if (input[i] !== decoded[i]) {
                 throw new Error(
-                    `Mismatch at index ${i}: expected ${input[i]}, got ${decoded[i]}`,
+                    `Mismatch at index ${i}: expected ${input[i]}, got ${decoded[i]}`
                 );
             }
         }
@@ -88,7 +88,7 @@ describe("Wasm Encoding", () => {
             width,
             height,
             1,
-            8,
+            8
         );
         expect(encodedFragments.length).toBe(1);
         const jpegData = encodedFragments[0];
@@ -112,7 +112,7 @@ describe("Wasm Encoding", () => {
             width,
             height,
             1,
-            8,
+            8
         );
 
         // Decode (using same codec, which uses Wasm decoder)

@@ -16,7 +16,7 @@ describe("Pixel Data Comparison with dcmjs", () => {
 
         const files = fs
             .readdirSync(TEST_DIR)
-            .filter((f) => !f.includes(".zip") && !f.includes("DICOMDIR"))
+            .filter(f => !f.includes(".zip") && !f.includes("DICOMDIR"))
             .slice(0, 5); // Test first 5 files
 
         for (const file of files) {
@@ -29,7 +29,7 @@ describe("Pixel Data Comparison with dcmjs", () => {
 
             const arrayBuffer = fileBuffer.buffer.slice(
                 fileBuffer.byteOffset,
-                fileBuffer.byteOffset + fileBuffer.byteLength,
+                fileBuffer.byteOffset + fileBuffer.byteLength
             );
 
             // 2. Parse with dcmjs
@@ -73,7 +73,7 @@ describe("Pixel Data Comparison with dcmjs", () => {
                 } else {
                     const totalLength = dcmjsPixelData.reduce(
                         (acc: number, buf: ArrayBuffer) => acc + buf.byteLength,
-                        0,
+                        0
                     );
                     dcmjsBytes = new Uint8Array(totalLength);
                     let offset = 0;
@@ -86,7 +86,7 @@ describe("Pixel Data Comparison with dcmjs", () => {
                 dcmjsBytes = new Uint8Array(dcmjsPixelData);
             } else {
                 console.warn(
-                    `Skipping ${file}: Unknown dcmjs pixel data format`,
+                    `Skipping ${file}: Unknown dcmjs pixel data format`
                 );
                 continue;
             }
@@ -98,7 +98,7 @@ describe("Pixel Data Comparison with dcmjs", () => {
             } else if (Array.isArray(radPixelData)) {
                 const totalLength = radPixelData.reduce(
                     (acc: number, buf: Uint8Array) => acc + buf.length,
-                    0,
+                    0
                 );
                 radBytes = new Uint8Array(totalLength);
                 let offset = 0;
@@ -108,14 +108,14 @@ describe("Pixel Data Comparison with dcmjs", () => {
                 }
             } else {
                 console.warn(
-                    `Skipping ${file}: Unknown rad-parser pixel data format`,
+                    `Skipping ${file}: Unknown rad-parser pixel data format`
                 );
                 continue;
             }
 
             // Compare sizes
             expect(radBytes.length, `Size mismatch for ${file}`).toBe(
-                dcmjsBytes.length,
+                dcmjsBytes.length
             );
 
             // Scan for mismatch
@@ -129,7 +129,7 @@ describe("Pixel Data Comparison with dcmjs", () => {
 
             if (mismatch !== -1) {
                 console.error(
-                    `Mismatch in ${file} at byte ${mismatch}. Rad: ${radBytes[mismatch]}, Dcmjs: ${dcmjsBytes[mismatch]}`,
+                    `Mismatch in ${file} at byte ${mismatch}. Rad: ${radBytes[mismatch]}, Dcmjs: ${dcmjsBytes[mismatch]}`
                 );
             }
             expect(mismatch, `Content mismatch for ${file}`).toBe(-1);

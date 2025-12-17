@@ -43,12 +43,12 @@ function generateReport() {
     const resultsPath = join(
         __dirname,
         "results",
-        "comprehensive-benchmark-stats.json",
+        "comprehensive-benchmark-stats.json"
     );
 
     if (!existsSync(resultsPath)) {
         console.error(
-            "Benchmark results not found. Please run benchmark:comprehensive first.",
+            "Benchmark results not found. Please run benchmark:comprehensive first."
         );
         process.exit(1);
     }
@@ -66,7 +66,7 @@ function generateReport() {
     });
 
     const fastest =
-        sorted.find((s) => s.successful === s.totalFiles) || sorted[0];
+        sorted.find(s => s.successful === s.totalFiles) || sorted[0];
     const mostReliable = sorted[0]; // Already sorted by success rate
 
     let report = `# Comprehensive DICOM Parser Comparison
@@ -99,7 +99,7 @@ function generateReport() {
     for (const stat of sorted) {
         const rate = ((stat.successful / stat.totalFiles) * 100).toFixed(1);
         const bar = "█".repeat(
-            Math.round((stat.successful / stat.totalFiles) * 20),
+            Math.round((stat.successful / stat.totalFiles) * 20)
         );
         report += `| **${stat.parser}** | ${rate}% ${bar} | ${stat.successful}/${stat.totalFiles} | ${stat.failed} |\n`;
     }
@@ -226,7 +226,7 @@ function generateReport() {
 
     for (const stat of sorted) {
         const successRate = ((stat.successful / stat.totalFiles) * 100).toFixed(
-            1,
+            1
         );
         report += `### ${stat.parser}\n\n`;
         report += `- **Success Rate:** ${successRate}% (${stat.successful}/${stat.totalFiles})\n`;
@@ -275,17 +275,17 @@ function generateReport() {
     report += `- ⚡ Real-time parsing\n\n`;
 
     report += `### Choose dicom-parser when:\n`;
-    const dicomParserStat = sorted.find((s) => s.parser === "dicom-parser");
+    const dicomParserStat = sorted.find(s => s.parser === "dicom-parser");
     const dicomFailRate = dicomParserStat
         ? ((dicomParserStat.failed / dicomParserStat.totalFiles) * 100).toFixed(
-              0,
+              0
           )
         : "0";
     report += `- ⚡ Maximum speed (accepts ${dicomFailRate}% failures)\n`;
     report += `- 📝 Simple use cases\n\n`;
 
     report += `### Choose dcmjs when:\n`;
-    const dcmjsStat = sorted.find((s) => s.parser === "dcmjs");
+    const dcmjsStat = sorted.find(s => s.parser === "dcmjs");
     const dcmjsFailRate = dcmjsStat
         ? ((dcmjsStat.failed / dcmjsStat.totalFiles) * 100).toFixed(0)
         : "0";
@@ -298,7 +298,7 @@ function generateReport() {
     const outputPath = join(
         __dirname,
         "..",
-        "COMPREHENSIVE_COMPARISON_REPORT.md",
+        "COMPREHENSIVE_COMPARISON_REPORT.md"
     );
     writeFileSync(outputPath, report);
     console.log(`Report generated: ${outputPath}`);

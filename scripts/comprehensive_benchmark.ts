@@ -44,7 +44,7 @@ function parseWithDcmjs(data: Uint8Array) {
     const buffer = Buffer.from(
         data.buffer,
         data.byteOffset,
-        data.byteLength,
+        data.byteLength
     ) as Buffer;
     const dcmjsModule = dcmjs as unknown as {
         data: {
@@ -137,7 +137,7 @@ function getAllDicomFiles(dir: string): string[] {
 function benchmarkParser(
     parserName: string,
     filePath: string,
-    fileData: Uint8Array,
+    fileData: Uint8Array
 ): BenchmarkResult {
     const startTime = performance.now();
     let success = false;
@@ -173,13 +173,13 @@ function benchmarkParser(
                 const parser = new StreamingParser({
                     maxBufferSize: 50 * 1024 * 1024, // 50MB max
                     maxIterations: 500, // Limit iterations per chunk
-                    onElement: (element) => {
+                    onElement: element => {
                         streamingElements += Object.keys(
-                            element.dict || {},
+                            element.dict || {}
                         ).length;
                         streamingSuccess = true;
                     },
-                    onError: (err) => {
+                    onError: err => {
                         streamingError = err.message;
                         // Don't fail completely on streaming errors
                     },
@@ -200,7 +200,7 @@ function benchmarkParser(
                         }
                         const chunk = fileData.slice(
                             i,
-                            Math.min(i + chunkSize, fileData.length),
+                            Math.min(i + chunkSize, fileData.length)
                         );
                         if (i === 0) {
                             parser.initialize(chunk);
@@ -259,17 +259,17 @@ function benchmarkParser(
  */
 function calculateStats(
     parserName: string,
-    results: BenchmarkResult[],
+    results: BenchmarkResult[]
 ): ParserStats {
-    const successful = results.filter((r) => r.success);
-    const failed = results.filter((r) => !r.success);
+    const successful = results.filter(r => r.success);
+    const failed = results.filter(r => !r.success);
     const totalTime = successful.reduce((sum, r) => sum + r.parseTime, 0);
     const totalElements = successful.reduce(
         (sum, r) => sum + r.elementCount,
-        0,
+        0
     );
     const totalSize = results.reduce((sum, r) => sum + r.fileSize, 0);
-    const times = successful.map((r) => r.parseTime);
+    const times = successful.map(r => r.parseTime);
     const averageTime =
         successful.length > 0 ? totalTime / successful.length : 0;
     const minTime = times.length > 0 ? Math.min(...times) : 0;
@@ -277,9 +277,7 @@ function calculateStats(
     const averageElements =
         successful.length > 0 ? totalElements / successful.length : 0;
     const averageSize = results.length > 0 ? totalSize / results.length : 0;
-    const errors = failed.map(
-        (r) => `${r.file}: ${r.error || "Unknown error"}`,
-    );
+    const errors = failed.map(r => `${r.file}: ${r.error || "Unknown error"}`);
 
     return {
         parser: parserName,
@@ -398,7 +396,7 @@ async function main() {
                 const eta = rate > 0 ? remaining / rate : 0;
                 const fileName = path.split(/[/\\]/).pop() || "unknown";
                 console.log(
-                    `  [${processed}/${fileData.length}] ${fileName.substring(0, 30)}... (${rate.toFixed(1)} files/s${eta > 0 ? `, ETA: ${eta.toFixed(0)}s` : ""})`,
+                    `  [${processed}/${fileData.length}] ${fileName.substring(0, 30)}... (${rate.toFixed(1)} files/s${eta > 0 ? `, ETA: ${eta.toFixed(0)}s` : ""})`
                 );
             }
 
@@ -410,7 +408,7 @@ async function main() {
             // Warn if a single file takes too long
             if (fileTime > 10000) {
                 console.log(
-                    `  ⚠ Warning: ${path.split(/[/\\]/).pop()} took ${(fileTime / 1000).toFixed(1)}s`,
+                    `  ⚠ Warning: ${path.split(/[/\\]/).pop()} took ${(fileTime / 1000).toFixed(1)}s`
                 );
             }
 
@@ -419,14 +417,14 @@ async function main() {
         }
         const parserTime = (performance.now() - startParserTime) / 1000;
         console.log(
-            `  ✓ Completed ${fileData.length} files in ${parserTime.toFixed(1)}s`,
+            `  ✓ Completed ${fileData.length} files in ${parserTime.toFixed(1)}s`
         );
     }
 
     // Calculate statistics
     const stats: ParserStats[] = [];
     for (const parserName of parsers) {
-        const parserResults = allResults.filter((r) => r.parser === parserName);
+        const parserResults = allResults.filter(r => r.parser === parserName);
         stats.push(calculateStats(parserName, parserResults));
     }
 
@@ -439,7 +437,7 @@ async function main() {
     console.log("Summary:");
     console.log("-".repeat(80));
     console.log(
-        `${"Parser".padEnd(25)} ${"Files".padEnd(8)} ${"Success".padEnd(10)} ${"Success %".padEnd(12)} ${"Avg Time".padEnd(12)} ${"Min Time".padEnd(12)} ${"Max Time".padEnd(12)} ${"Avg Elements".padEnd(15)}`,
+        `${"Parser".padEnd(25)} ${"Files".padEnd(8)} ${"Success".padEnd(10)} ${"Success %".padEnd(12)} ${"Avg Time".padEnd(12)} ${"Min Time".padEnd(12)} ${"Max Time".padEnd(12)} ${"Avg Elements".padEnd(15)}`
     );
     console.log("-".repeat(80));
 
@@ -455,11 +453,11 @@ async function main() {
 
     for (const stat of sorted) {
         const successRate = ((stat.successful / stat.totalFiles) * 100).toFixed(
-            1,
+            1
         );
         const successStr = `${stat.successful}/${stat.totalFiles}`;
         console.log(
-            `${stat.parser.padEnd(25)} ${stat.totalFiles.toString().padEnd(8)} ${successStr.padEnd(10)} ${successRate.padEnd(11)}% ${formatTime(stat.averageTime).padEnd(12)} ${formatTime(stat.minTime).padEnd(12)} ${formatTime(stat.maxTime).padEnd(12)} ${stat.averageElements.toFixed(0).padEnd(15)}`,
+            `${stat.parser.padEnd(25)} ${stat.totalFiles.toString().padEnd(8)} ${successStr.padEnd(10)} ${successRate.padEnd(11)}% ${formatTime(stat.averageTime).padEnd(12)} ${formatTime(stat.minTime).padEnd(12)} ${formatTime(stat.maxTime).padEnd(12)} ${stat.averageElements.toFixed(0).padEnd(15)}`
         );
     }
 
@@ -469,7 +467,7 @@ async function main() {
     console.log("-".repeat(80));
 
     const fastest =
-        sorted.find((s) => s.successful === s.totalFiles) || sorted[0];
+        sorted.find(s => s.successful === s.totalFiles) || sorted[0];
     for (const stat of sorted) {
         const speedup =
             fastest.averageTime > 0
@@ -477,10 +475,10 @@ async function main() {
                 : 1;
         const bar = "█".repeat(Math.min(50, Math.round(speedup * 5)));
         const successRate = ((stat.successful / stat.totalFiles) * 100).toFixed(
-            1,
+            1
         );
         console.log(
-            `${stat.parser.padEnd(25)} ${speedup.toFixed(2)}x ${bar} ${formatTime(stat.averageTime)} (${successRate}% success)`,
+            `${stat.parser.padEnd(25)} ${speedup.toFixed(2)}x ${bar} ${formatTime(stat.averageTime)} (${successRate}% success)`
         );
     }
 
@@ -570,12 +568,12 @@ async function main() {
     ];
 
     console.log(
-        `${"Feature".padEnd(20)} ${"rad-fast".padEnd(12)} ${"rad-shallow".padEnd(12)} ${"rad-medium".padEnd(12)} ${"rad-full".padEnd(12)} ${"rad-streaming".padEnd(14)} ${"dcmjs".padEnd(8)} ${"dicom-parser".padEnd(14)} ${"efferent".padEnd(10)}`,
+        `${"Feature".padEnd(20)} ${"rad-fast".padEnd(12)} ${"rad-shallow".padEnd(12)} ${"rad-medium".padEnd(12)} ${"rad-full".padEnd(12)} ${"rad-streaming".padEnd(14)} ${"dcmjs".padEnd(8)} ${"dicom-parser".padEnd(14)} ${"efferent".padEnd(10)}`
     );
     console.log("-".repeat(120));
     for (const cap of capabilities) {
         console.log(
-            `${cap.feature.padEnd(20)} ${cap.radFast.padEnd(12)} ${cap.radShallow.padEnd(12)} ${cap.radMedium.padEnd(12)} ${cap.radFull.padEnd(12)} ${cap.radStreaming.padEnd(14)} ${cap.dcmjs.padEnd(8)} ${cap.dicomParser.padEnd(14)} ${cap.efferent.padEnd(10)}`,
+            `${cap.feature.padEnd(20)} ${cap.radFast.padEnd(12)} ${cap.radShallow.padEnd(12)} ${cap.radMedium.padEnd(12)} ${cap.radFull.padEnd(12)} ${cap.radStreaming.padEnd(14)} ${cap.dcmjs.padEnd(8)} ${cap.dicomParser.padEnd(14)} ${cap.efferent.padEnd(10)}`
         );
     }
 
@@ -603,15 +601,15 @@ async function main() {
 
     writeFileSync(
         join(resultsDir, "comprehensive-benchmark-stats.json"),
-        JSON.stringify(stats, replacer, 2),
+        JSON.stringify(stats, replacer, 2)
     );
     writeFileSync(
         join(resultsDir, "comprehensive-benchmark-results.json"),
-        JSON.stringify(allResults, replacer, 2),
+        JSON.stringify(allResults, replacer, 2)
     );
 
     console.log(
-        `\nDetailed results saved to: ${join(resultsDir, "comprehensive-benchmark-*.json")}`,
+        `\nDetailed results saved to: ${join(resultsDir, "comprehensive-benchmark-*.json")}`
     );
 }
 

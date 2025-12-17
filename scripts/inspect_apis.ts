@@ -10,7 +10,7 @@ if (dcmjs.data) {
     if (dcmjs.data.DicomMessage) {
         console.log(
             "dcmjs.data.DicomMessage prototype:",
-            Object.getOwnPropertyNames(dcmjs.data.DicomMessage.prototype),
+            Object.getOwnPropertyNames(dcmjs.data.DicomMessage.prototype)
         );
     }
 }

@@ -24,7 +24,7 @@ export interface PixelDataResult {
 export function extractPixelDataFromView(
     view: SafeDataView,
     length: number,
-    transferSyntax?: string,
+    transferSyntax?: string
 ): PixelDataResult | null {
     if (length === 0) {
         return null;
@@ -45,7 +45,7 @@ export function extractPixelDataFromView(
  */
 function extractNativePixelData(
     view: SafeDataView,
-    length: number,
+    length: number
 ): PixelDataResult | null {
     if (view.getRemainingBytes() < length) {
         return null;
@@ -71,7 +71,7 @@ export { concatFragments };
  */
 function extractEncapsulatedPixelData(
     view: SafeDataView,
-    transferSyntax?: string,
+    transferSyntax?: string
 ): PixelDataResult | null {
     const fragments: Array<{ offset: number; length: number }> = [];
     const fragmentArrays: Uint8Array[] = [];

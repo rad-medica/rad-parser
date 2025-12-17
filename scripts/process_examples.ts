@@ -38,7 +38,7 @@ if (!fs.existsSync(RESULTS_DIR)) {
 
 function getAllFiles(dir: string, fileList: string[] = []) {
     const files = fs.readdirSync(dir);
-    files.forEach((file) => {
+    files.forEach(file => {
         const filePath = path.join(dir, file);
         if (fs.statSync(filePath).isDirectory()) {
             getAllFiles(filePath, fileList);
@@ -63,7 +63,7 @@ async function processFile(filePath: string) {
         const data = new Uint8Array(
             buffer.buffer,
             buffer.byteOffset,
-            buffer.byteLength,
+            buffer.byteLength
         );
 
         // 1. Parse
@@ -84,14 +84,14 @@ async function processFile(filePath: string) {
                         tags: Object.keys(dataset.dict).length,
                     },
                     null,
-                    2,
-                ),
+                    2
+                )
             );
         } catch (parseErr) {
             console.error(`  - Parse Failed: ${parseErr.message}`);
             fs.writeFileSync(
                 `${resultBase}_error.txt`,
-                `Parse Error: ${parseErr.message}`,
+                `Parse Error: ${parseErr.message}`
             );
             return;
         }
@@ -106,7 +106,7 @@ async function processFile(filePath: string) {
 
                 if (info.isEncapsulated) {
                     const decoder = await registry.getDecoder(
-                        info.transferSyntax,
+                        info.transferSyntax
                     );
                     if (decoder) {
                         const fragments =
@@ -120,14 +120,14 @@ async function processFile(filePath: string) {
                             // Success RLE (or other)
                             const folder = path.join(
                                 RESULTS_DIR,
-                                "decoded_rle",
+                                "decoded_rle"
                             );
                             if (!fs.existsSync(folder))
                                 fs.mkdirSync(folder, { recursive: true });
 
                             fs.writeFileSync(
                                 path.join(folder, `${fileName}.raw`),
-                                decoded,
+                                decoded
                             );
 
                             // BMP
@@ -150,7 +150,7 @@ async function processFile(filePath: string) {
                                     col,
                                     rows,
                                     bmpData,
-                                    samples,
+                                    samples
                                 );
 
                                 // PNG (Native Node)
@@ -163,23 +163,23 @@ async function processFile(filePath: string) {
                                             col,
                                             rows,
                                             samples,
-                                            bits,
+                                            bits
                                         );
                                         if (pngFrames.length > 0) {
                                             fs.writeFileSync(
                                                 path.join(
                                                     folder,
-                                                    `${fileName}.png`,
+                                                    `${fileName}.png`
                                                 ),
-                                                pngFrames[0],
+                                                pngFrames[0]
                                             );
                                             console.log(
-                                                `  - Saved ${fileName}.png`,
+                                                `  - Saved ${fileName}.png`
                                             );
                                         }
                                     } catch (pngErr) {
                                         console.warn(
-                                            `  - PNG Gen Failed: ${pngErr.message}`,
+                                            `  - PNG Gen Failed: ${pngErr.message}`
                                         );
                                     }
                                 }
@@ -188,7 +188,7 @@ async function processFile(filePath: string) {
                             // Verify Encoding (Round Trip)
                             try {
                                 const encoder = await registry.getEncoder(
-                                    info.transferSyntax,
+                                    info.transferSyntax
                                 );
                                 if (encoder) {
                                     const encodedFrames = await encoder.encode(
@@ -197,15 +197,15 @@ async function processFile(filePath: string) {
                                         col,
                                         rows,
                                         samples,
-                                        bits,
+                                        bits
                                     );
                                     if (encodedFrames.length > 0) {
                                         fs.writeFileSync(
                                             path.join(
                                                 folder,
-                                                `${fileName}.rle`,
+                                                `${fileName}.rle`
                                             ),
-                                            encodedFrames[0],
+                                            encodedFrames[0]
                                         );
                                     }
                                 }
@@ -216,31 +216,31 @@ async function processFile(filePath: string) {
                             // Decoder exists but failed (likely Adapter not configured)
                             const folder = path.join(
                                 RESULTS_DIR,
-                                "unsupported_extracted",
+                                "unsupported_extracted"
                             );
                             if (!fs.existsSync(folder))
                                 fs.mkdirSync(folder, { recursive: true });
 
                             fs.writeFileSync(
                                 path.join(folder, `${fileName}.enc`),
-                                info.pixelData,
+                                info.pixelData
                             );
                             fs.writeFileSync(
                                 path.join(folder, `${fileName}_error.txt`),
-                                `Decode Failed: ${decodeErr.message}`,
+                                `Decode Failed: ${decodeErr.message}`
                             );
                         }
                     } else {
                         // No decoder found
                         const folder = path.join(
                             RESULTS_DIR,
-                            "unsupported_extracted",
+                            "unsupported_extracted"
                         );
                         if (!fs.existsSync(folder))
                             fs.mkdirSync(folder, { recursive: true });
                         fs.writeFileSync(
                             path.join(folder, `${fileName}.enc`),
-                            info.pixelData,
+                            info.pixelData
                         );
                     }
                 } else {
@@ -252,7 +252,7 @@ async function processFile(filePath: string) {
 
                     fs.writeFileSync(
                         path.join(folder, `${fileName}.raw`),
-                        info.pixelData,
+                        info.pixelData
                     );
 
                     // BMP
@@ -277,7 +277,7 @@ async function processFile(filePath: string) {
                             col,
                             rows,
                             bmpData,
-                            samples,
+                            samples
                         );
                     }
                 }
@@ -288,7 +288,7 @@ async function processFile(filePath: string) {
             console.warn(`  - Pixel Extraction Failed: ${extractErr.message}`);
             fs.writeFileSync(
                 `${resultBase}_pixel_error.txt`,
-                `Extraction Error: ${extractErr.message}`,
+                `Extraction Error: ${extractErr.message}`
             );
         }
     } catch (err) {

@@ -9,7 +9,7 @@ describe("Error Handling", () => {
                 "Parsing failed",
                 "x00100010",
                 123,
-                cause,
+                cause
             );
 
             expect(error).toBeInstanceOf(Error);
@@ -35,7 +35,7 @@ describe("Error Handling", () => {
 
             expect(error).toBeInstanceOf(DicomParseError);
             expect(error.message).toBe(
-                "Invalid length (tag: x00100020) (offset: 500)",
+                "Invalid length (tag: x00100020) (offset: 500)"
             );
             expect(error.tag).toBe("x00100020");
             expect(error.offset).toBe(500);
@@ -57,7 +57,7 @@ describe("Error Handling", () => {
                 "Read failed",
                 undefined,
                 undefined,
-                rootCause,
+                rootCause
             );
             expect(error.cause).toBe(rootCause);
             expect(error.message).toBe("Read failed");

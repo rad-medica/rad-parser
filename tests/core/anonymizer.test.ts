@@ -66,7 +66,7 @@ describe("Anonymizer", () => {
         const anon2 = anonymize(dataset2, { uidMap });
 
         expect(anon1.dict["x0020000D"].Value).toBe(
-            anon2.dict["x0020000D"].Value,
+            anon2.dict["x0020000D"].Value
         );
     });
 

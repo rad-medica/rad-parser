@@ -25,7 +25,7 @@ function createExplicitPart10Dicom(patientName: string): Uint8Array {
         0x0002,
         0x0010,
         "UI",
-        tsValue,
+        tsValue
     );
     const metaLength = transferSyntaxElement.length;
     const metaGroupLength = createULValue(metaLength);
@@ -33,14 +33,14 @@ function createExplicitPart10Dicom(patientName: string): Uint8Array {
         0x0002,
         0x0000,
         "UL",
-        metaGroupLength,
+        metaGroupLength
     );
 
     const patientNameElement = createExplicitElement(
         0x0010,
         0x0010,
         "PN",
-        pnValue,
+        pnValue
     );
 
     const preamble = new Uint8Array(128);
@@ -52,7 +52,7 @@ function createExplicitPart10Dicom(patientName: string): Uint8Array {
         header,
         metaHeader,
         transferSyntaxElement,
-        patientNameElement,
+        patientNameElement
     );
 }
 
@@ -74,7 +74,7 @@ function createExplicitElement(
     group: number,
     element: number,
     vr: string,
-    value: Uint8Array,
+    value: Uint8Array
 ): Uint8Array {
     const longVRs = new Set([
         "OB",

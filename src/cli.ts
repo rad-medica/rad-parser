@@ -59,7 +59,7 @@ async function run() {
         case "extract-image":
             if (!args[1] || !args[2]) {
                 console.error(
-                    "Usage: rad-parser extract-image <input.dcm> <output.png>",
+                    "Usage: rad-parser extract-image <input.dcm> <output.png>"
                 );
                 process.exit(1);
             }
@@ -102,7 +102,7 @@ function getTag(filePath: string, tag: string) {
 
         if (element) {
             console.log(
-                dataset.string(normalizedTag) || "[Binary or complex value]",
+                dataset.string(normalizedTag) || "[Binary or complex value]"
             );
         } else {
             console.error(`Tag ${tag} not found in file.`);
@@ -144,7 +144,7 @@ async function extractImage(inputFile: string, outputFile: string) {
 
         if (encodeOptions.width === 0 || encodeOptions.height === 0) {
             throw new Error(
-                "Image dimensions (width/height) not found in DICOM file.",
+                "Image dimensions (width/height) not found in DICOM file."
             );
         }
 
@@ -152,7 +152,7 @@ async function extractImage(inputFile: string, outputFile: string) {
         const encoder = await registry.getEncoder("png");
         if (!encoder || !encoder.encode) {
             throw new Error(
-                "PNG encoder not available. Ensure you are in a Node.js environment.",
+                "PNG encoder not available. Ensure you are in a Node.js environment."
             );
         }
 
@@ -162,7 +162,7 @@ async function extractImage(inputFile: string, outputFile: string) {
             encodeOptions.width,
             encodeOptions.height,
             encodeOptions.samplesPerPixel,
-            encodeOptions.bitsAllocated,
+            encodeOptions.bitsAllocated
         );
 
         fs.writeFileSync(outputFile, pngFragments[0]);
@@ -222,7 +222,7 @@ function anonymizeFile(inputPath: string, outputPath?: string) {
             const base = path.basename(inputPath, ext);
             outputPath = path.join(
                 path.dirname(inputPath),
-                `${base}_anon${ext}`,
+                `${base}_anon${ext}`
             );
         }
 
@@ -275,7 +275,7 @@ import { fileURLToPath } from "url";
 // ESM check - works in both ESM and CJS environments
 try {
     if (import.meta.url && process.argv[1] === fileURLToPath(import.meta.url)) {
-        run().catch((err) => {
+        run().catch(err => {
             console.error(err);
             process.exit(1);
         });

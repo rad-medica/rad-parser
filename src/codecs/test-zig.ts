@@ -41,17 +41,17 @@ async function main() {
             pixels,
             width,
             height,
-            components,
+            components
         );
         console.log(
-            `Encoded size: ${rleEncoded.length} (Original: ${pixels.length})`,
+            `Encoded size: ${rleEncoded.length} (Original: ${pixels.length})`
         );
 
         const rleDecoded = await codecs.decodeRle(
             rleEncoded,
             width,
             height,
-            components,
+            components
         );
         console.log(`Decoded size: ${rleDecoded.length}`);
 
@@ -64,7 +64,7 @@ async function main() {
         for (let i = 0; i < pixels.length; i++) {
             if (pixels[i] !== rleDecoded[i]) {
                 console.error(
-                    `Mismatch at ${i}: expected ${pixels[i]}, got ${rleDecoded[i]}`,
+                    `Mismatch at ${i}: expected ${pixels[i]}, got ${rleDecoded[i]}`
                 );
                 matches = false;
                 break;
@@ -92,7 +92,7 @@ async function main() {
             console.log("✓ JPEG Passed (RGBA output)");
         } else {
             console.warn(
-                `⚠ JPEG Decoded size ${jpegDecoded.length} unexpected`,
+                `⚠ JPEG Decoded size ${jpegDecoded.length} unexpected`
             );
         }
     } catch (e) {
@@ -107,7 +107,7 @@ async function main() {
             width,
             height,
             8,
-            components,
+            components
         );
         console.log(`Encoded size: ${j2kEncoded.length}`);
 
@@ -131,7 +131,7 @@ async function main() {
             width,
             height,
             8,
-            components,
+            components
         );
         console.log(`Encoded size: ${jpeglsEncoded.length}`);
 
@@ -142,7 +142,7 @@ async function main() {
             console.log("✓ JPEG-LS Passed");
         } else {
             console.warn(
-                `⚠ JPEG-LS Decoded size ${jpeglsDecoded.length} unexpected`,
+                `⚠ JPEG-LS Decoded size ${jpeglsDecoded.length} unexpected`
             );
         }
     } catch (e) {

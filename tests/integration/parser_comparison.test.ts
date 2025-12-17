@@ -49,7 +49,7 @@ function getAllDicomFiles(dir: string, fileList: string[] = []): string[] {
     }
 
     const files = fs.readdirSync(dir);
-    files.forEach((file) => {
+    files.forEach(file => {
         const filePath = path.join(dir, file);
         try {
             const stat = fs.statSync(filePath);
@@ -108,7 +108,7 @@ function parseWithDcmjs(data: Uint8Array): ParseResult {
         const buffer = Buffer.from(
             data.buffer,
             data.byteOffset,
-            data.byteLength,
+            data.byteLength
         );
         const message = (dcmjs as any).data.DicomMessage.readFile(buffer);
         const dict = message?.dict ?? {};
@@ -294,36 +294,36 @@ describe("Parser Comparison Tests", () => {
                         efferentResult.success)
                 ) {
                     failures.push(
-                        `${fileName}: rad-parser failed but others succeeded`,
+                        `${fileName}: rad-parser failed but others succeeded`
                     );
                 }
             }
 
             console.log(`\nParsing Success Rates:`);
             console.log(
-                `  rad-parser: ${radParserSuccess}/${filesToTest.length} (${((radParserSuccess / filesToTest.length) * 100).toFixed(1)}%)`,
+                `  rad-parser: ${radParserSuccess}/${filesToTest.length} (${((radParserSuccess / filesToTest.length) * 100).toFixed(1)}%)`
             );
             console.log(
-                `  dcmjs: ${dcmjsSuccess}/${filesToTest.length} (${((dcmjsSuccess / filesToTest.length) * 100).toFixed(1)}%)`,
+                `  dcmjs: ${dcmjsSuccess}/${filesToTest.length} (${((dcmjsSuccess / filesToTest.length) * 100).toFixed(1)}%)`
             );
             console.log(
-                `  dicom-parser: ${dicomParserSuccess}/${filesToTest.length} (${((dicomParserSuccess / filesToTest.length) * 100).toFixed(1)}%)`,
+                `  dicom-parser: ${dicomParserSuccess}/${filesToTest.length} (${((dicomParserSuccess / filesToTest.length) * 100).toFixed(1)}%)`
             );
             console.log(
-                `  efferent-dicom: ${efferentSuccess}/${filesToTest.length} (${((efferentSuccess / filesToTest.length) * 100).toFixed(1)}%)`,
+                `  efferent-dicom: ${efferentSuccess}/${filesToTest.length} (${((efferentSuccess / filesToTest.length) * 100).toFixed(1)}%)`
             );
             console.log(
-                `  All parsers succeeded: ${allSuccess}/${filesToTest.length}`,
+                `  All parsers succeeded: ${allSuccess}/${filesToTest.length}`
             );
             console.log(
-                `  rad-parser only: ${radParserOnly}/${filesToTest.length}`,
+                `  rad-parser only: ${radParserOnly}/${filesToTest.length}`
             );
 
             // rad-parser should succeed on files that at least one other parser succeeds on
             // (with some tolerance for edge cases)
             expect(radParserSuccess).toBeGreaterThanOrEqual(
                 Math.max(dcmjsSuccess, dicomParserSuccess, efferentSuccess) *
-                    0.9,
+                    0.9
             );
         }, 120000); // 2 minute timeout
     });
@@ -348,7 +348,7 @@ describe("Parser Comparison Tests", () => {
                     radTransferSyntax || radResult.transferSyntax,
                     dcmjsResult.transferSyntax,
                     dicomParserResult.transferSyntax,
-                ].filter((ts) => ts !== undefined) as string[];
+                ].filter(ts => ts !== undefined) as string[];
 
                 if (transferSyntaxes.length > 0) {
                     const unique = new Set(transferSyntaxes);
@@ -356,18 +356,18 @@ describe("Parser Comparison Tests", () => {
                         matches++;
                     } else {
                         mismatches.push(
-                            `${fileName}: ${Array.from(unique).join(" vs ")}`,
+                            `${fileName}: ${Array.from(unique).join(" vs ")}`
                         );
                     }
                 }
             }
 
             console.log(
-                `\nTransfer Syntax Matches: ${matches}/${filesToTest.length}`,
+                `\nTransfer Syntax Matches: ${matches}/${filesToTest.length}`
             );
             if (mismatches.length > 0) {
                 console.log(`Mismatches (first 5):`);
-                mismatches.slice(0, 5).forEach((m) => console.log(`  ${m}`));
+                mismatches.slice(0, 5).forEach(m => console.log(`  ${m}`));
             }
 
             // Most files should have matching transfer syntax detection
@@ -458,11 +458,11 @@ describe("Parser Comparison Tests", () => {
                         radResult.patientName,
                         dcmjsResult.patientName,
                         dicomParserResult.patientName,
-                    ].filter((pn) => pn !== undefined && pn !== "") as string[];
+                    ].filter(pn => pn !== undefined && pn !== "") as string[];
 
                     if (patientNames.length > 1) {
                         const unique = new Set(
-                            patientNames.map((pn) => pn.trim()),
+                            patientNames.map(pn => pn.trim())
                         );
                         if (unique.size === 1) patientNameMatches++;
                     }
@@ -472,12 +472,10 @@ describe("Parser Comparison Tests", () => {
                         radResult.studyDate,
                         dcmjsResult.studyDate,
                         dicomParserResult.studyDate,
-                    ].filter((sd) => sd !== undefined && sd !== "") as string[];
+                    ].filter(sd => sd !== undefined && sd !== "") as string[];
 
                     if (studyDates.length > 1) {
-                        const unique = new Set(
-                            studyDates.map((sd) => sd.trim()),
-                        );
+                        const unique = new Set(studyDates.map(sd => sd.trim()));
                         if (unique.size === 1) studyDateMatches++;
                     }
 
@@ -486,10 +484,10 @@ describe("Parser Comparison Tests", () => {
                         radResult.modality,
                         dcmjsResult.modality,
                         dicomParserResult.modality,
-                    ].filter((m) => m !== undefined && m !== "") as string[];
+                    ].filter(m => m !== undefined && m !== "") as string[];
 
                     if (modalities.length > 1) {
-                        const unique = new Set(modalities.map((m) => m.trim()));
+                        const unique = new Set(modalities.map(m => m.trim()));
                         if (unique.size === 1) modalityMatches++;
                     }
                 }
@@ -497,17 +495,17 @@ describe("Parser Comparison Tests", () => {
 
             console.log(`\nMetadata Extraction Matches:`);
             console.log(
-                `  Patient Name: ${patientNameMatches}/${totalComparisons}`,
+                `  Patient Name: ${patientNameMatches}/${totalComparisons}`
             );
             console.log(
-                `  Study Date: ${studyDateMatches}/${totalComparisons}`,
+                `  Study Date: ${studyDateMatches}/${totalComparisons}`
             );
             console.log(`  Modality: ${modalityMatches}/${totalComparisons}`);
 
             // Most files should have matching metadata
             if (totalComparisons > 0) {
                 expect(
-                    patientNameMatches + studyDateMatches + modalityMatches,
+                    patientNameMatches + studyDateMatches + modalityMatches
                 ).toBeGreaterThan(0);
             }
         }, 60000);

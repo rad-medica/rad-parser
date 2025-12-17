@@ -59,7 +59,7 @@ describe("RLE Codec", () => {
             6,
             1,
             1,
-            8,
+            8
         );
         expect(encoded.length).toBe(1);
         expect(encoded[0].length).toBeGreaterThan(64);
@@ -94,7 +94,7 @@ describe("Adapter Plugins with Injection", () => {
             1,
             1,
             1,
-            8,
+            8
         );
         expect(mockEncode).toHaveBeenCalled();
         expect(res[0]).toEqual(new Uint8Array([9, 9]));

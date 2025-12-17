@@ -17,7 +17,7 @@ export interface ImageExportOptions {
 
 export async function dicomToImage(
     dataset: DicomDataSet,
-    options: ImageExportOptions = {},
+    options: ImageExportOptions = {}
 ): Promise<Uint8Array> {
     const frameIndex = options.frame || 0;
     const format = options.format || "image/png";
@@ -142,7 +142,7 @@ export async function dicomToImage(
             columns,
             rows,
             samples,
-            8,
+            8
         );
         return frags[0];
     }

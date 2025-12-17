@@ -8,7 +8,7 @@ import { fileURLToPath } from "url";
 
 const TEST_DATA_DIR = path.resolve(
     process.cwd(),
-    "test_data/21197522-9_20251130013123Examenes/DICOM",
+    "test_data/21197522-9_20251130013123Examenes/DICOM"
 );
 const OUTPUT_FILE = "parsed_dicom.json";
 
@@ -46,7 +46,7 @@ async function main() {
                 // Fallback to first file in dir
                 const files = fs
                     .readdirSync(TEST_DATA_DIR)
-                    .filter((f) => !f.includes("Zone.Identifier"));
+                    .filter(f => !f.includes("Zone.Identifier"));
                 if (files.length > 0) {
                     filePath = path.join(TEST_DATA_DIR, files[0]);
                 }
@@ -80,7 +80,7 @@ async function main() {
                         // If it has a dict, it's a DicomDataSet, otherwise might be a plain object
                         const dict = item.dict || item;
                         const sanitizedItem: Record<string, any> = {};
-                        Object.keys(dict).forEach((k) => {
+                        Object.keys(dict).forEach(k => {
                             if (/^[0-9a-fA-F]{4},[0-9a-fA-F]{4}$/.test(k)) {
                                 sanitizedItem[k] = sanitizeElement(dict[k]);
                             }
@@ -98,7 +98,7 @@ async function main() {
         // Filter keys to only keep the comma-separated format (canonical DICOM)
         const filteredDict: Record<string, any> = {};
         if (dataset && dataset.dict) {
-            Object.keys(dataset.dict).forEach((key) => {
+            Object.keys(dataset.dict).forEach(key => {
                 // Keep only keys that match the pattern GGGG,EEEE (hex digits with comma)
                 if (/^[0-9a-fA-F]{4},[0-9a-fA-F]{4}$/.test(key)) {
                     filteredDict[key] = sanitizeElement(dataset.dict[key]);

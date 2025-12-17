@@ -15,7 +15,7 @@ export class SafeDataView {
     constructor(
         buffer: ArrayBuffer,
         byteOffset: number = 0,
-        byteLength?: number,
+        byteLength?: number
     ) {
         this.view = new DataView(buffer, byteOffset, byteLength);
         this.offset = 0;
@@ -37,7 +37,7 @@ export class SafeDataView {
     setPosition(position: number): void {
         if (position < 0 || position > this.view.byteLength) {
             throw new Error(
-                `Position ${position} out of bounds (max: ${this.view.byteLength})`,
+                `Position ${position} out of bounds (max: ${this.view.byteLength})`
             );
         }
         this.offset = position;
@@ -113,13 +113,13 @@ export class SafeDataView {
     readBytes(length: number): Uint8Array {
         if (this.offset + length > this.view.byteLength) {
             throw new Error(
-                `Read beyond buffer: need ${length} bytes at offset ${this.offset}, have ${this.view.byteLength - this.offset}`,
+                `Read beyond buffer: need ${length} bytes at offset ${this.offset}, have ${this.view.byteLength - this.offset}`
             );
         }
         const bytes = new Uint8Array(
             this.view.buffer,
             this.view.byteOffset + this.offset,
-            length,
+            length
         );
         this.offset += length;
         return bytes;
@@ -160,7 +160,7 @@ export class SafeDataView {
         const buffer = new Uint8Array(
             this.view.buffer,
             this.view.byteOffset,
-            this.view.byteLength,
+            this.view.byteLength
         );
         let pos = this.offset;
         const maxPos = Math.min(this.view.byteLength, this.offset + limit);

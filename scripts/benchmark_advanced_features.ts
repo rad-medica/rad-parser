@@ -46,7 +46,7 @@ function getAllDicomFiles(dir: string, fileList: string[] = []): string[] {
     }
 
     const files = readdirSync(dir);
-    files.forEach((file) => {
+    files.forEach(file => {
         const filePath = join(dir, file);
         try {
             const stat = statSync(filePath);
@@ -94,7 +94,7 @@ function groupByTransferSyntax(files: string[]): Map<string, string[]> {
  */
 function benchmarkStreaming(
     filePath: string,
-    fileData: Uint8Array,
+    fileData: Uint8Array
 ): BenchmarkResult {
     const startTime = performance.now();
     let success = false;
@@ -104,10 +104,10 @@ function benchmarkStreaming(
     try {
         let elementCount = 0;
         const parser = new StreamingParser({
-            onElement: (element) => {
+            onElement: element => {
                 elementCount += Object.keys(element.dict || {}).length;
             },
-            onError: (err) => {
+            onError: err => {
                 throw err;
             },
         });
@@ -115,13 +115,13 @@ function benchmarkStreaming(
         // Simulate streaming
         const chunkSize = 8192; // 8KB chunks
         parser.initialize(
-            fileData.slice(0, Math.min(chunkSize, fileData.length)),
+            fileData.slice(0, Math.min(chunkSize, fileData.length))
         );
 
         for (let i = chunkSize; i < fileData.length; i += chunkSize) {
             const chunk = fileData.slice(
                 i,
-                Math.min(i + chunkSize, fileData.length),
+                Math.min(i + chunkSize, fileData.length)
             );
             parser.processChunk(chunk);
         }
@@ -150,7 +150,7 @@ function benchmarkStreaming(
  */
 function benchmarkSerialization(
     filePath: string,
-    fileData: Uint8Array,
+    fileData: Uint8Array
 ): BenchmarkResult {
     const startTime = performance.now();
     let success = false;
@@ -189,7 +189,7 @@ function benchmarkSerialization(
  */
 function benchmarkRoundTrip(
     filePath: string,
-    fileData: Uint8Array,
+    fileData: Uint8Array
 ): BenchmarkResult {
     const startTime = performance.now();
     let success = false;
@@ -228,7 +228,7 @@ function benchmarkRoundTrip(
  */
 function benchmarkAnonymization(
     filePath: string,
-    fileData: Uint8Array,
+    fileData: Uint8Array
 ): BenchmarkResult {
     const startTime = performance.now();
     let success = false;
@@ -266,12 +266,12 @@ function benchmarkAnonymization(
 function collectStats(
     results: BenchmarkResult[],
     feature: string,
-    operation: string,
+    operation: string
 ) {
     const filtered = results.filter(
-        (r) => r.feature === feature && r.operation === operation,
+        r => r.feature === feature && r.operation === operation
     );
-    const successful = filtered.filter((r) => r.success);
+    const successful = filtered.filter(r => r.success);
 
     if (successful.length === 0) {
         return {
@@ -287,7 +287,7 @@ function collectStats(
         };
     }
 
-    const times = successful.map((r) => r.time);
+    const times = successful.map(r => r.time);
     const avgTime = times.reduce((a, b) => a + b, 0) / times.length;
     const minTime = Math.min(...times);
     const maxTime = Math.max(...times);
@@ -391,13 +391,13 @@ async function runBenchmark(): Promise<void> {
     console.log("Summary:");
     console.log("-".repeat(80));
     console.log(
-        `${"Feature".padEnd(20)} ${"Operation".padEnd(15)} ${"Success Rate".padEnd(15)} ${"Avg Time".padEnd(12)} ${"Min Time".padEnd(12)} ${"Max Time".padEnd(12)}`,
+        `${"Feature".padEnd(20)} ${"Operation".padEnd(15)} ${"Success Rate".padEnd(15)} ${"Avg Time".padEnd(12)} ${"Min Time".padEnd(12)} ${"Max Time".padEnd(12)}`
     );
     console.log("-".repeat(80));
 
     for (const stat of stats) {
         console.log(
-            `${stat.feature.padEnd(20)} ${stat.operation.padEnd(15)} ${stat.successRate.toFixed(1).padEnd(14)}% ${formatTime(stat.avgTime).padEnd(12)} ${formatTime(stat.minTime).padEnd(12)} ${formatTime(stat.maxTime).padEnd(12)}`,
+            `${stat.feature.padEnd(20)} ${stat.operation.padEnd(15)} ${stat.successRate.toFixed(1).padEnd(14)}% ${formatTime(stat.avgTime).padEnd(12)} ${formatTime(stat.minTime).padEnd(12)} ${formatTime(stat.maxTime).padEnd(12)}`
         );
     }
 
@@ -407,7 +407,7 @@ async function runBenchmark(): Promise<void> {
     console.log("-".repeat(80));
 
     const tsStats = new Map<string, { total: number; success: number }>();
-    results.forEach((r) => {
+    results.forEach(r => {
         const ts = r.transferSyntax || "UNKNOWN";
         if (!tsStats.has(ts)) {
             tsStats.set(ts, { total: 0, success: 0 });
@@ -420,7 +420,7 @@ async function runBenchmark(): Promise<void> {
     tsStats.forEach((stat, ts) => {
         const rate = (stat.success / stat.total) * 100;
         console.log(
-            `  ${ts}: ${stat.success}/${stat.total} (${rate.toFixed(1)}%)`,
+            `  ${ts}: ${stat.success}/${stat.total} (${rate.toFixed(1)}%)`
         );
     });
 
@@ -434,7 +434,7 @@ async function runBenchmark(): Promise<void> {
     console.log(`\nDetailed results saved to: ${outputPath}`);
 }
 
-runBenchmark().catch((error) => {
+runBenchmark().catch(error => {
     console.error("Benchmark failed:", error);
     process.exit(1);
 });

@@ -20,13 +20,13 @@ import { DicomDataSet } from "./types";
 export async function decodePixelData(
     transferSyntax: string,
     fragments: Uint8Array[],
-    decodeOptions?: any,
+    decodeOptions?: any
 ): Promise<Uint8Array> {
     const decoder = await registry.getDecoder(transferSyntax);
 
     if (!decoder) {
         throw new Error(
-            `No decoder found for Transfer Syntax: ${transferSyntax}`,
+            `No decoder found for Transfer Syntax: ${transferSyntax}`
         );
     }
 
@@ -50,13 +50,13 @@ export async function encodePixelData(
         samplesPerPixel: number;
         bitsAllocated: number;
         [key: string]: any; // Allow other properties
-    },
+    }
 ): Promise<Uint8Array[]> {
     const encoder = await registry.getEncoder(transferSyntax);
 
     if (!encoder || !encoder.encode) {
         throw new Error(
-            `No encoder found for Transfer Syntax: ${transferSyntax}`,
+            `No encoder found for Transfer Syntax: ${transferSyntax}`
         );
     }
 
@@ -66,6 +66,6 @@ export async function encodePixelData(
         encodeOptions.width,
         encodeOptions.height,
         encodeOptions.samplesPerPixel,
-        encodeOptions.bitsAllocated,
+        encodeOptions.bitsAllocated
     );
 }

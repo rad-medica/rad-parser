@@ -57,7 +57,7 @@ export class Htj2kDecoder implements PixelDataCodec {
         width: number,
         height: number,
         samples: number,
-        bits: number,
+        bits: number
     ): Promise<Uint8Array[]> {
         throw new Error("HTJ2K encoding not implemented");
     }

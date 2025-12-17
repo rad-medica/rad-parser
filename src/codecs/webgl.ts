@@ -76,7 +76,7 @@ export class WebGlDecoder implements PixelDataCodec {
             0,
             gl.RGBA,
             gl.UNSIGNED_BYTE,
-            paddedData,
+            paddedData
         );
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
@@ -136,7 +136,7 @@ export class WebGlDecoder implements PixelDataCodec {
             0,
             gl.RGBA_INTEGER,
             gl.UNSIGNED_BYTE,
-            null,
+            null
         ); // Integer format
 
         const fb = gl.createFramebuffer();
@@ -146,7 +146,7 @@ export class WebGlDecoder implements PixelDataCodec {
             gl.COLOR_ATTACHMENT0,
             gl.TEXTURE_2D,
             targetTexture,
-            0,
+            0
         );
 
         gl.viewport(0, 0, width, height);
@@ -161,7 +161,7 @@ export class WebGlDecoder implements PixelDataCodec {
             height,
             gl.RGBA_INTEGER,
             gl.UNSIGNED_BYTE,
-            results,
+            results
         );
 
         // Cleanup
@@ -180,7 +180,7 @@ export class WebGlDecoder implements PixelDataCodec {
     private createProgram(
         gl: WebGL2RenderingContext,
         vs: string,
-        fs: string,
+        fs: string
     ): WebGLProgram {
         const p = gl.createProgram();
         if (!p) throw new Error("Create Program failed");

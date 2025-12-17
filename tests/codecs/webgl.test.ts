@@ -25,15 +25,11 @@ describe("WebGlDecoder", () => {
     it("should report supported if canvas and webgl2 are available", async () => {
         const mockContext = {};
         const mockCanvas = {
-            getContext: vi.fn((type) =>
-                type === "webgl2" ? mockContext : null,
-            ),
+            getContext: vi.fn(type => (type === "webgl2" ? mockContext : null)),
         };
 
         global.document = {
-            createElement: vi.fn((tag) =>
-                tag === "canvas" ? mockCanvas : null,
-            ),
+            createElement: vi.fn(tag => (tag === "canvas" ? mockCanvas : null)),
         } as any;
 
         const decoder = new WebGlDecoder();

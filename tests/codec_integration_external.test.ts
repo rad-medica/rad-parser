@@ -78,7 +78,7 @@ describe("External codec integration", () => {
         expect(decoder?.name).toBe("failing-codec");
 
         await expect(
-            decoder?.decode([new Uint8Array([0xcc])], {}),
+            decoder?.decode([new Uint8Array([0xcc])], {})
         ).rejects.toThrow("decode failed");
         expect(decodeFail).toHaveBeenCalledTimes(1);
     });

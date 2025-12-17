@@ -6,7 +6,7 @@ import * as path from "path";
 // Use one of the known valid files
 const TEST_FILE_PATH = path.resolve(
     process.cwd(),
-    "test_data/patient/DICOM/18CBDD76",
+    "test_data/patient/DICOM/18CBDD76"
 );
 
 function compareOutputs() {
@@ -22,7 +22,7 @@ function compareOutputs() {
     // dcmjs uses ArrayBuffer
     const dcmjsInput = fileBuffer.buffer.slice(
         fileBuffer.byteOffset,
-        fileBuffer.byteOffset + fileBuffer.byteLength,
+        fileBuffer.byteOffset + fileBuffer.byteLength
     );
 
     console.log("Parsing file:", TEST_FILE_PATH);
@@ -72,7 +72,7 @@ function compareOutputs() {
                 ) {
                     const total = val.reduce(
                         (acc, v) => acc + (v.byteLength || v.length),
-                        0,
+                        0
                     );
                     return `[Array(${val.length}) Binary Total=${total}]`;
                 }

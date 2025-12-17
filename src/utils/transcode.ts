@@ -18,7 +18,7 @@ export interface TranscodeOptions {
  */
 export async function transcode(
     dataset: DicomDataSet,
-    options: TranscodeOptions,
+    options: TranscodeOptions
 ): Promise<DicomDataSet> {
     const currentTS = dataset.string("x00020010");
     if (!currentTS) {
@@ -33,7 +33,7 @@ export async function transcode(
     const targetCodec = await registry.getEncoder(options.targetTransferSyntax);
     if (!targetCodec) {
         throw new Error(
-            `Target Transfer Syntax ${options.targetTransferSyntax} not supported for encoding`,
+            `Target Transfer Syntax ${options.targetTransferSyntax} not supported for encoding`
         );
     }
 
@@ -42,7 +42,7 @@ export async function transcode(
         !targetCodec.canEncode(options.targetTransferSyntax)
     ) {
         throw new Error(
-            `Codec ${targetCodec.name} implies support but cannot encode ${options.targetTransferSyntax}`,
+            `Codec ${targetCodec.name} implies support but cannot encode ${options.targetTransferSyntax}`
         );
     }
 
@@ -82,7 +82,7 @@ export async function transcode(
         const sourceCodec = await registry.getDecoder(currentTS);
         if (!sourceCodec) {
             throw new Error(
-                `Source Transfer Syntax ${currentTS} not supported`,
+                `Source Transfer Syntax ${currentTS} not supported`
             );
         }
 
@@ -105,14 +105,14 @@ export async function transcode(
 
         if (fullDecodedBuffer.byteLength !== frameSize * frames) {
             console.warn(
-                `Decoded buffer size ${fullDecodedBuffer.byteLength} != expected ${frameSize * frames}. Padding or mismatch?`,
+                `Decoded buffer size ${fullDecodedBuffer.byteLength} != expected ${frameSize * frames}. Padding or mismatch?`
             );
         }
 
         for (let i = 0; i < frames; i++) {
             const start = i * frameSize;
             decodedFrames.push(
-                fullDecodedBuffer.subarray(start, start + frameSize),
+                fullDecodedBuffer.subarray(start, start + frameSize)
             );
         }
     } else {
@@ -120,7 +120,7 @@ export async function transcode(
         const buffer = pixelDataInfo.Value;
         if (!(buffer instanceof Uint8Array)) {
             throw new Error(
-                "Pixel Data is not a Uint8Array. Type: " + typeof buffer,
+                "Pixel Data is not a Uint8Array. Type: " + typeof buffer
             );
         }
 
@@ -129,7 +129,7 @@ export async function transcode(
         if (frames > 1 && buffer.length >= frameSize) {
             for (let i = 0; i < frames; i++) {
                 decodedFrames.push(
-                    buffer.slice(i * frameSize, (i + 1) * frameSize),
+                    buffer.slice(i * frameSize, (i + 1) * frameSize)
                 );
             }
         } else {
@@ -150,7 +150,7 @@ export async function transcode(
             columns,
             rows,
             samples,
-            bits,
+            bits
         );
         if (!fragments) throw new Error("Codec returned undefined fragments");
         encodedFragments.push(...fragments);

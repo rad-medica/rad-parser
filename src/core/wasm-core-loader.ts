@@ -83,11 +83,19 @@ export class ZigCoreLoader {
                     wasmPath = path.resolve(__dirname, wasmFileName);
                     if (!fs.existsSync(wasmPath)) {
                         // Fallback to development location
-                        wasmPath = path.resolve(__dirname, "../zig-core/zig-out/bin", wasmFileName);
+                        wasmPath = path.resolve(
+                            __dirname,
+                            "../zig-core/zig-out/bin",
+                            wasmFileName
+                        );
                     }
                 } catch {
                     // Fallback for environments where import.meta.url is not available
-                    wasmPath = path.resolve(process.cwd(), "dist", wasmFileName);
+                    wasmPath = path.resolve(
+                        process.cwd(),
+                        "dist",
+                        wasmFileName
+                    );
                 }
             }
 
@@ -98,7 +106,7 @@ export class ZigCoreLoader {
             const response = await fetch(wasmUrl);
             if (!response.ok) {
                 throw new Error(
-                    `Failed to fetch ${wasmUrl}: ${response.status} ${response.statusText}`,
+                    `Failed to fetch ${wasmUrl}: ${response.status} ${response.statusText}`
                 );
             }
             bytes = await response.arrayBuffer();

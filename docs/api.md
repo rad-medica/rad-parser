@@ -9,11 +9,9 @@ Parse a DICOM file buffer into a dataset.
 
 **Parameters:**
 
--   `buffer: Uint8Array | Buffer` - DICOM file data
--   `options?: ParseOptions`
-    -   `type?: 'full' | 'shallow' | 'light' | 'lazy'` - Parsing mode (default: 'full')
-=======
-`rad-parser` is a lightweight, performant, and self-contained DICOM parser for JavaScript and TypeScript environments. It's designed with two core principles:
+- `buffer: Uint8Array | Buffer` - DICOM file data
+- # `options?: ParseOptions` - `type?: 'full' | 'shallow' | 'light' | 'lazy'` - Parsing mode (default: 'full')
+    `rad-parser` is a lightweight, performant, and self-contained DICOM parser for JavaScript and TypeScript environments. It's designed with two core principles:
 
 1.  **Zero Dependencies:** The core parsing logic has no external dependencies, making it robust and suitable for a wide range of environments, from Node.js servers to web browsers.
 2.  **Modular & Extensible:** Complex features like compressed pixel data decoding are handled through a clean, extensible codec system. The library provides adapters for common formats, and you can easily inject your own decoders (e.g., from a WebAssembly library).
@@ -42,13 +40,8 @@ parse(byteArray: Uint8Array, options?: UnifiedParseOptions): DicomDataSet | Shal
 
 - `byteArray`: `Uint8Array` with raw DICOM bytes.
 - `options` (optional):
-  - `type`:
-    - `'fast'`: Ultra-fast header scan (minimal metadata, no values; safe skipping for undefined-length data).
-    - `'shallow'`: Tag metadata only (offset/length/VR), no values.
-    - `'light'` (aka medium): Full metadata, skips pixel data value (best for metadata/anonymization).
-    - `'full'` (default): Full parse including pixel data.
-    - `'lazy'`: Returns a proxy that reads values on demand (built atop shallow scan).
->>>>>>> 0abe5b2af341db379da260e9559e0adaf3c4af83
+    - `type`: - `'fast'`: Ultra-fast header scan (minimal metadata, no values; safe skipping for undefined-length data). - `'shallow'`: Tag metadata only (offset/length/VR), no values. - `'light'` (aka medium): Full metadata, skips pixel data value (best for metadata/anonymization). - `'full'` (default): Full parse including pixel data. - `'lazy'`: Returns a proxy that reads values on demand (built atop shallow scan).
+        > > > > > > > 0abe5b2af341db379da260e9559e0adaf3c4af83
 
 **Returns:** `DicomDataSet` or `ShallowDicomDataSet`
 
@@ -74,7 +67,7 @@ Initialize Wasm module for optimized DS/IS/PN/DA/TM parsing.
 
 **Parameters:**
 
--   `path?: string | URL` - Optional custom Wasm file path
+- `path?: string | URL` - Optional custom Wasm file path
 
 **Returns:** `Promise<unknown>`
 
@@ -157,9 +150,9 @@ new StreamingParser(options?: StreamingOptions)
 
 **Methods:**
 
--   `processChunk(chunk: Uint8Array): void` - Add data chunk
--   `finalize(): void` - Complete parsing
--   `initialize(chunk: Uint8Array): void` - Initialize with first chunk
+- `processChunk(chunk: Uint8Array): void` - Add data chunk
+- `finalize(): void` - Complete parsing
+- `initialize(chunk: Uint8Array): void` - Initialize with first chunk
 
 **Example:**
 
@@ -168,7 +161,7 @@ const parser = new StreamingParser({
     onElement: ({ dict }) => {
         console.log("Element:", dict);
     },
-    onError: (err) => console.error(err),
+    onError: err => console.error(err),
 });
 
 parser.processChunk(chunk1);
@@ -184,8 +177,8 @@ Parse from ReadableStream.
 
 **Parameters:**
 
--   `stream: ReadableStream<Uint8Array>`
--   `options?: StreamingOptions`
+- `stream: ReadableStream<Uint8Array>`
+- `options?: StreamingOptions`
 
 **Example:**
 
@@ -205,8 +198,8 @@ Parse from async iterable.
 
 **Parameters:**
 
--   `iterator: AsyncIterable<Uint8Array>`
--   `options?: StreamingOptions`
+- `iterator: AsyncIterable<Uint8Array>`
+- `options?: StreamingOptions`
 
 **Example:**
 
@@ -230,7 +223,7 @@ Extract and rescale pixel data to calibrated Float32 values.
 
 **Parameters:**
 
--   `dataset: DicomDataSet` - Parsed DICOM dataset (must be parsed with `type: 'full'`)
+- `dataset: DicomDataSet` - Parsed DICOM dataset (must be parsed with `type: 'full'`)
 
 **Returns:** `Float32Array` - Rescaled pixel values
 
@@ -238,10 +231,10 @@ Extract and rescale pixel data to calibrated Float32 values.
 
 **Supported:**
 
--   8-bit and 16-bit images
--   Signed and unsigned pixel representation
--   All transfer syntaxes (automatically decoded via codecs)
--   Multi-frame images
+- 8-bit and 16-bit images
+- Signed and unsigned pixel representation
+- All transfer syntaxes (automatically decoded via codecs)
+- Multi-frame images
 
 **Example:**
 
@@ -258,8 +251,8 @@ console.log("Max HU:", Math.max(...pixels));
 
 **Difference from raw pixel data:**
 
--   `dataset.uint8('x7fe00010')` - Returns raw bytes (may be compressed)
--   `extractRescaledPixelData(dataset)` - Returns calibrated Float32 values
+- `dataset.uint8('x7fe00010')` - Returns raw bytes (may be compressed)
+- `extractRescaledPixelData(dataset)` - Returns calibrated Float32 values
 
 ---
 
@@ -271,13 +264,13 @@ Decode compressed pixel data.
 
 **Parameters:**
 
--   `pixelData: Uint8Array` - Compressed pixel data
--   `transferSyntax: string` - Transfer syntax UID
--   `rows: number` - Image height
--   `columns: number` - Image width
--   `bitsAllocated: number` - Bits per pixel
--   `samplesPerPixel: number` - Samples per pixel
--   `photometricInterpretation: string` - Color interpretation
+- `pixelData: Uint8Array` - Compressed pixel data
+- `transferSyntax: string` - Transfer syntax UID
+- `rows: number` - Image height
+- `columns: number` - Image width
+- `bitsAllocated: number` - Bits per pixel
+- `samplesPerPixel: number` - Samples per pixel
+- `photometricInterpretation: string` - Color interpretation
 
 **Returns:** `Promise<Uint8Array | Uint16Array>`
 
@@ -289,11 +282,11 @@ Encode pixel data to PNG.
 
 **Parameters:**
 
--   `data: Uint8Array` - Pixel data
--   `width: number` - Image width
--   `height: number` - Image height
--   `bitDepth: number` - Bits per pixel (8 or 16)
--   `colorType: 'grayscale' | 'rgb'`
+- `data: Uint8Array` - Pixel data
+- `width: number` - Image width
+- `height: number` - Image height
+- `bitDepth: number` - Bits per pixel (8 or 16)
+- `colorType: 'grayscale' | 'rgb'`
 
 **Returns:** `Promise<Uint8Array>` - PNG file buffer
 
@@ -345,7 +338,7 @@ interface DicomElement {
 <<<<<<< HEAD
 All accessors support multiple tag formats:
 
-```typescript
+````typescript
 dataset.string("x00100010"); // x-prefixed hex
 dataset.string("0010,0010"); // comma-separated
 dataset.string("00100010"); // plain hex
@@ -381,7 +374,7 @@ const readStream = fs.createReadStream('large.dcm');
 readStream.on('data', (chunk) => parser.processChunk(new Uint8Array(chunk)));
 readStream.on('end', () => parser.finalize());
 >>>>>>> 0abe5b2af341db379da260e9559e0adaf3c4af83
-```
+````
 
 ---
 

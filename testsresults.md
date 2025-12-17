@@ -4,9 +4,9 @@
 
 **Performance Achievement:** 2.7x faster than original implementation
 
--   **Original Full Parse:** 377ms → **Final:** 149ms (60% improvement)
--   **Original Shallow Parse:** 8.7ms → **Final:** 8.81ms (maintained performance)
--   **Compatibility:** All 72 tests passed across 4 parser modes and 10+ file formats
+- **Original Full Parse:** 377ms → **Final:** 149ms (60% improvement)
+- **Original Shallow Parse:** 8.7ms → **Final:** 8.81ms (maintained performance)
+- **Compatibility:** All 72 tests passed across 4 parser modes and 10+ file formats
 
 ---
 
@@ -14,11 +14,11 @@
 
 ### Test Dataset
 
--   **Files:** 50 DICOM files
--   **Total Size:** 73.4 MB
--   **Formats:** CT, MG, MR, NM, RG, SC, US, VL, XA
--   **Compressions:** JPEG 2000 (Lossless/Lossy), JPEG-LS, Uncompressed
--   **Source:** DICOM WG04 Test Data
+- **Files:** 50 DICOM files
+- **Total Size:** 73.4 MB
+- **Formats:** CT, MG, MR, NM, RG, SC, US, VL, XA
+- **Compressions:** JPEG 2000 (Lossless/Lossy), JPEG-LS, Uncompressed
+- **Source:** DICOM WG04 Test Data
 
 ### Benchmark Results (Latest)
 
@@ -35,17 +35,17 @@
 
 **rad-parser Strengths:**
 
--   ✅ Rich metadata extraction (133.82 avg elements vs competitors' ~91)
--   ✅ Deep parsing with structured value types (PN, DA, TM, DT objects)
--   ✅ TypedArray support for numeric arrays (DS/IS → Float64Array/Int32Array)
--   ✅ Flexible parsing modes (shallow, full, light, lazy)
--   ✅ Full backward compatibility with tag format variations
+- ✅ Rich metadata extraction (133.82 avg elements vs competitors' ~91)
+- ✅ Deep parsing with structured value types (PN, DA, TM, DT objects)
+- ✅ TypedArray support for numeric arrays (DS/IS → Float64Array/Int32Array)
+- ✅ Flexible parsing modes (shallow, full, light, lazy)
+- ✅ Full backward compatibility with tag format variations
 
 **Wasm Optimization:**
 
--   Best for: Large numeric datasets (Spectroscopy, RT Dose, Waveforms)
--   Benefit: 10-50x faster DS/IS parsing on qualifying files
--   Note: Current test set is image-heavy, minimal numeric data
+- Best for: Large numeric datasets (Spectroscopy, RT Dose, Waveforms)
+- Benefit: 10-50x faster DS/IS parsing on qualifying files
+- Note: Current test set is image-heavy, minimal numeric data
 
 ---
 
@@ -76,9 +76,7 @@ dict: { [tagHex]: elementData }
 
 ```typescript
 // Before
-const tagKey = `x${group.toString(16).padStart(4, "0")}${element
-    .toString(16)
-    .padStart(4, "0")}`;
+const tagKey = `x${group.toString(16).padStart(4, "0")}${element.toString(16).padStart(4, "0")}`;
 if (group === 0xfffe) {
     /* skip */
 }
@@ -139,30 +137,30 @@ const hex = HEX_TABLE[num]; // instant lookup
 
 **Shallow Mode:**
 
--   Fast offset-only scanning
--   Returns `ShallowDicomDataSet` (tag → offset map)
--   Use case: Indexing, routing, header extraction
+- Fast offset-only scanning
+- Returns `ShallowDicomDataSet` (tag → offset map)
+- Use case: Indexing, routing, header extraction
 
 **Full Mode:**
 
--   Deep parsing with all metadata
--   Structured value types (PN objects, Date instances)
--   TypedArray support (Float64Array, Int32Array)
--   Use case: Complete data extraction
+- Deep parsing with all metadata
+- Structured value types (PN objects, Date instances)
+- TypedArray support (Float64Array, Int32Array)
+- Use case: Complete data extraction
 
 **Light Mode:**
 
--   Full parse without pixel data
--   Memory-efficient for metadata-only workflows
--   Same accessor methods as Full mode
--   Use case: Database indexing, metadata analysis
+- Full parse without pixel data
+- Memory-efficient for metadata-only workflows
+- Same accessor methods as Full mode
+- Use case: Database indexing, metadata analysis
 
 **Lazy Mode:**
 
--   On-demand value reading from buffer
--   Minimal upfront parsing cost
--   Proxy-based dict access
--   Use case: Large files with selective field access
+- On-demand value reading from buffer
+- Minimal upfront parsing cost
+- Proxy-based dict access
+- Use case: Large files with selective field access
 
 ### Tag Format Compatibility
 
@@ -191,9 +189,9 @@ dataset.string("00100020"); // ✅ plain hex
 
 **Analysis:**
 
--   `rad-parser` trades speed for metadata richness
--   Stores VR, length, dataOffset for every tag
--   9x slower than `dicom-parser` but provides 2x more metadata
+- `rad-parser` trades speed for metadata richness
+- Stores VR, length, dataOffset for every tag
+- 9x slower than `dicom-parser` but provides 2x more metadata
 
 ### Full/Deep Parsing
 
@@ -204,9 +202,9 @@ dataset.string("00100020"); // ✅ plain hex
 
 **Analysis:**
 
--   `dcmjs` does shallow parsing by default, not deep recursive parsing
--   `rad-parser` performs full recursive descent with value type conversion
--   Different parsing philosophies (lazy vs eager)
+- `dcmjs` does shallow parsing by default, not deep recursive parsing
+- `rad-parser` performs full recursive descent with value type conversion
+- Different parsing philosophies (lazy vs eager)
 
 ---
 
@@ -248,23 +246,23 @@ dataset.string("00100020"); // ✅ plain hex
 
 **Speed vs Features:**
 
--   `rad-parser` prioritizes developer experience and data completeness
--   9x slower than `dicom-parser` but provides structured metadata
--   Similar speed to `dcmjs` for equivalent parsing depth
+- `rad-parser` prioritizes developer experience and data completeness
+- 9x slower than `dicom-parser` but provides structured metadata
+- Similar speed to `dcmjs` for equivalent parsing depth
 
 **Best Use Cases:**
 
--   ✅ Applications needing rich metadata (all VRs parsed correctly)
--   ✅ TypedArray workflows (numeric data as Float64Array/Int32Array)
--   ✅ Flexible parsing modes (shallow indexing + deep extraction)
--   ✅ Wasm-optimized numeric datasets (Spectroscopy, RT Dose)
+- ✅ Applications needing rich metadata (all VRs parsed correctly)
+- ✅ TypedArray workflows (numeric data as Float64Array/Int32Array)
+- ✅ Flexible parsing modes (shallow indexing + deep extraction)
+- ✅ Wasm-optimized numeric datasets (Spectroscopy, RT Dose)
 
 ### Future Optimization Potential
 
--   [ ] Lazy value parsing (defer PN/DA/TM conversions until accessed)
--   [ ] Streaming parser for very large files (>100MB)
--   [ ] Worker thread support for parallel parsing
--   [ ] Further Wasm expansion (valueParser.ts functions)
+- [ ] Lazy value parsing (defer PN/DA/TM conversions until accessed)
+- [ ] Streaming parser for very large files (>100MB)
+- [ ] Worker thread support for parallel parsing
+- [ ] Further Wasm expansion (valueParser.ts functions)
 
 ---
 

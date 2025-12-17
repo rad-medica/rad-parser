@@ -18,7 +18,7 @@ export interface PixelDataCodec {
         width: number,
         height: number,
         samples: number,
-        bits: number,
+        bits: number
     ): Promise<Uint8Array[]>;
 }
 
@@ -39,7 +39,7 @@ export interface FunctionalCodecConfig {
         width: number,
         height: number,
         samples: number,
-        bits: number,
+        bits: number
     ) => Promise<Uint8Array[]>;
     codecInfo?: CodecInfo;
 }
@@ -56,7 +56,7 @@ class FunctionalCodec implements PixelDataCodec {
     private isSupportedFn: () => Promise<boolean> | boolean;
     private decodeFn: (
         encodedBuffer: Uint8Array[],
-        info: any,
+        info: any
     ) => Promise<Uint8Array>;
     private encodeFn?: (
         pixelData: Uint8Array,
@@ -64,7 +64,7 @@ class FunctionalCodec implements PixelDataCodec {
         width: number,
         height: number,
         samples: number,
-        bits: number,
+        bits: number
     ) => Promise<Uint8Array[]>;
 
     constructor(config: FunctionalCodecConfig) {
@@ -89,7 +89,7 @@ class FunctionalCodec implements PixelDataCodec {
         w: number,
         h: number,
         s: number,
-        b: number,
+        b: number
     ) => {
         if (!this.encodeFn) {
             throw new Error(`Encoding not supported by codec: ${this.name}`);
@@ -106,7 +106,7 @@ export class CodecRegistry {
 
     register(codec: PixelDataCodec) {
         // Avoid duplicates
-        if (!this.codecs.some((c) => c.name === codec.name)) {
+        if (!this.codecs.some(c => c.name === codec.name)) {
             this.codecs.push(codec);
             this.codecs.sort((a, b) => b.priority - a.priority);
         }
@@ -167,7 +167,7 @@ export class CodecRegistry {
             } catch (e) {
                 console.error(
                     `Error dynamically loading codec for ${transferSyntax}:`,
-                    e,
+                    e
                 );
                 return null;
             } finally {

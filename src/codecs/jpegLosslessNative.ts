@@ -35,7 +35,7 @@ export class JpegLosslessNativeDecoder implements PixelDataCodec {
         const view = new DataView(
             data.buffer,
             data.byteOffset,
-            data.byteLength,
+            data.byteLength
         );
 
         // Check SOI (FF D8)
@@ -67,7 +67,7 @@ export class JpegLosslessNativeDecoder implements PixelDataCodec {
                 width = view.getUint16(pos + 7);
                 components = data[pos + 9];
                 console.log(
-                    `  - [Native Parser] SOF3: ${width}x${height}, ${bits} bits, ${components} comps`,
+                    `  - [Native Parser] SOF3: ${width}x${height}, ${bits} bits, ${components} comps`
                 );
             } else if (marker === 0xc4) {
                 // DHT (Huffman Table)
@@ -83,7 +83,7 @@ export class JpegLosslessNativeDecoder implements PixelDataCodec {
         }
 
         throw new Error(
-            `Native JPEG-LL Parser successful! Found ${width}x${height} image. Full Huffman decode pending implementation.`,
+            `Native JPEG-LL Parser successful! Found ${width}x${height} image. Full Huffman decode pending implementation.`
         );
     }
 
@@ -93,7 +93,7 @@ export class JpegLosslessNativeDecoder implements PixelDataCodec {
         width: number,
         height: number,
         samples: number,
-        bits: number,
+        bits: number
     ): Promise<Uint8Array[]> {
         throw new Error("Native JPEG Encoding not implemented");
     }

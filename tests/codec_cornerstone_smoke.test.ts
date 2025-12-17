@@ -62,21 +62,21 @@ describe("Cornerstone codecs - import and registry wiring", () => {
 
         // Resolve and invoke
         const j2kDecoder = await testRegistry.getDecoder(
-            "1.2.840.10008.1.2.4.91",
+            "1.2.840.10008.1.2.4.91"
         );
         expect(j2kDecoder?.name).toBe("cornerstone-openjpeg");
         await j2kDecoder?.decode([new Uint8Array([0])], {});
         expect(decodeJ2K).toHaveBeenCalled();
 
         const jlsDecoder = await testRegistry.getDecoder(
-            "1.2.840.10008.1.2.4.80",
+            "1.2.840.10008.1.2.4.80"
         );
         expect(jlsDecoder?.name).toBe("cornerstone-charls");
         await jlsDecoder?.decode([new Uint8Array([0])], {});
         expect(decodeJls).toHaveBeenCalled();
 
         const jpegDecoder = await testRegistry.getDecoder(
-            "1.2.840.10008.1.2.4.50",
+            "1.2.840.10008.1.2.4.50"
         );
         expect(jpegDecoder?.name).toBe("cornerstone-libjpeg");
         await jpegDecoder?.decode([new Uint8Array([0])], {});

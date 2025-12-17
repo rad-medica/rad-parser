@@ -5,13 +5,14 @@
 ## The Adapter Pattern
 
 The concept is simple:
+
 1. You import a third-party decoding library.
 2. You instantiate the corresponding `rad-parser` adapter codec (e.g., `Jpeg2000Decoder`).
 3. You pass the third-party library's decoding function into the adapter's constructor.
 4. You register this configured codec with the `rad-parser` registry.
 5. The `rad-parser` can now decode files with that transfer syntax.
 
-*Note: Since the dynamic loader will often load a default (unconfigured) adapter, it's best practice to instantiate your own configured version and register it manually for these cases.*
+_Note: Since the dynamic loader will often load a default (unconfigured) adapter, it's best practice to instantiate your own configured version and register it manually for these cases._
 
 ---
 
@@ -24,6 +25,7 @@ JPEG 2000 (Transfer Syntaxes `1.2.840.10008.1.2.4.90` and `.91`) is a common for
 `openjpeg-js` is a popular WASM-based library for JPEG 2000.
 
 **Installation:**
+
 ```bash
 npm install openjpeg-js
 ```
@@ -31,9 +33,9 @@ npm install openjpeg-js
 **Integration Code:**
 
 ```typescript
-import { parse, registry, Jpeg2000Decoder } from 'rad-parser';
-import openjpeg from 'openjpeg-js'; // ESM module
-import * as fs from 'fs';
+import { parse, registry, Jpeg2000Decoder } from "rad-parser";
+import openjpeg from "openjpeg-js"; // ESM module
+import * as fs from "fs";
 
 async function configureOpenjpeg() {
     // The decoder function provided by the openjpeg-js library
@@ -51,8 +53,8 @@ async function configureOpenjpeg() {
 
     // Register it. It will take priority over the default dynamic loader.
     registry.register(jpeg2000Codec);
-    
-    console.log('JPEG 2000 decoder configured and registered.');
+
+    console.log("JPEG 2000 decoder configured and registered.");
 }
 
 // You must call the configuration before you start parsing J2K files.
@@ -65,6 +67,7 @@ async function configureOpenjpeg() {
 `jpeg2000-js` is another JPEG 2000 library written in pure JavaScript.
 
 **Installation:**
+
 ```bash
 npm install jpeg2000-js
 ```
@@ -72,9 +75,9 @@ npm install jpeg2000-js
 **Integration Code:**
 
 ```typescript
-import { parse, registry, Jpeg2000Decoder } from 'rad-parser';
-import { Jpeg2000Decoder as Jpeg2000Js } from 'jpeg2000-js';
-import * as fs from 'fs';
+import { parse, registry, Jpeg2000Decoder } from "rad-parser";
+import { Jpeg2000Decoder as Jpeg2000Js } from "jpeg2000-js";
+import * as fs from "fs";
 
 function configureJpeg2000js() {
     // The jpeg2000-js library has a class-based API
@@ -91,7 +94,7 @@ function configureJpeg2000js() {
     const jpeg2000Codec = new Jpeg2000Decoder(jpeg2000jsDecoder);
     registry.register(jpeg2000Codec);
 
-    console.log('jpeg2000-js decoder configured and registered.');
+    console.log("jpeg2000-js decoder configured and registered.");
 }
 ```
 
@@ -106,6 +109,7 @@ JPEG-LS (Transfer Syntaxes `1.2.840.10008.1.2.4.80` and `.81`) is a standard for
 `charls-js` is a WASM compilation of the CharLS JPEG-LS library.
 
 **Installation:**
+
 ```bash
 npm install charls-js
 ```
@@ -113,9 +117,9 @@ npm install charls-js
 **Integration Code:**
 
 ```typescript
-import { parse, registry, JpegLsDecoder } from 'rad-parser';
-import charls from 'charls-js'; // Main export
-import * as fs from 'fs';
+import { parse, registry, JpegLsDecoder } from "rad-parser";
+import charls from "charls-js"; // Main export
+import * as fs from "fs";
 
 async function configureCharlsJs() {
     const wasmModule = await charls.instantiate();
@@ -132,8 +136,8 @@ async function configureCharlsJs() {
 
     // Register it
     registry.register(jpegLsCodec);
-    
-    console.log('charls-js JPEG-LS decoder configured and registered.');
+
+    console.log("charls-js JPEG-LS decoder configured and registered.");
 }
 
 // Call this before parsing JPEG-LS files

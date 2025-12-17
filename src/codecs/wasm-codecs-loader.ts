@@ -86,11 +86,19 @@ export class ZigWasmCodecLoader {
                     wasmPath = path.resolve(__dirname, "../../", wasmFileName);
                     if (!fs.existsSync(wasmPath)) {
                         // Fallback to development location
-                        wasmPath = path.resolve(__dirname, "../zig-codecs/zig-out/bin", wasmFileName);
+                        wasmPath = path.resolve(
+                            __dirname,
+                            "../zig-codecs/zig-out/bin",
+                            wasmFileName
+                        );
                     }
                 } catch {
                     // Fallback for environments where import.meta.url is not available
-                    wasmPath = path.resolve(process.cwd(), "dist", wasmFileName);
+                    wasmPath = path.resolve(
+                        process.cwd(),
+                        "dist",
+                        wasmFileName
+                    );
                 }
             }
 
@@ -101,7 +109,7 @@ export class ZigWasmCodecLoader {
             const response = await fetch(wasmUrl);
             if (!response.ok) {
                 throw new Error(
-                    `Failed to fetch ${wasmUrl}: ${response.status} ${response.statusText}`,
+                    `Failed to fetch ${wasmUrl}: ${response.status} ${response.statusText}`
                 );
             }
             bytes = await response.arrayBuffer();
@@ -140,7 +148,7 @@ export class ZigWasmCodecLoader {
         const module = this.loadedModules.get(codec);
         if (!module) {
             throw new Error(
-                `Codec ${codec} not loaded. Call loadCodec() first.`,
+                `Codec ${codec} not loaded. Call loadCodec() first.`
             );
         }
         return module;
@@ -171,7 +179,7 @@ export class ZigWasmCodecLoader {
      * Map a DICOM Transfer Syntax UID to the appropriate codec type.
      */
     public static getCodecForTransferSyntax(
-        transferSyntaxUid: string,
+        transferSyntaxUid: string
     ): CodecType | null {
         switch (transferSyntaxUid) {
             // JPEG Baseline

@@ -26,7 +26,7 @@ if (fs.existsSync(distPath)) {
     const result = spawnSync(
         "npx",
         ["tsx", srcPath, ...process.argv.slice(2)],
-        { stdio: "inherit", shell: true },
+        { stdio: "inherit", shell: true }
     );
     process.exit(result.status ?? 0);
 } else {
@@ -34,7 +34,7 @@ if (fs.existsSync(distPath)) {
     const result = spawnSync(
         "npx",
         ["tsx", srcPath, ...process.argv.slice(2)],
-        { stdio: "inherit", shell: true },
+        { stdio: "inherit", shell: true }
     );
     process.exit(result.status ?? 0);
 }
