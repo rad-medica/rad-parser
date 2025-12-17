@@ -78,14 +78,20 @@ export class ZigWasmCodecLoader {
             if (this.basePath) {
                 wasmPath = path.join(this.basePath, wasmFileName);
             } else {
-                // Default path relative to this file
-                const __filename = url.fileURLToPath(import.meta.url);
-                const __dirname = path.dirname(__filename);
-                wasmPath = path.resolve(
-                    __dirname,
-                    "../zig-codecs/zig-out/bin",
-                    wasmFileName,
-                );
+                // Default path relative to this file - works in both development and bundled environments
+                try {
+                    const __filename = url.fileURLToPath(import.meta.url);
+                    const __dirname = path.dirname(__filename);
+                    // Try bundled location first (dist directory)
+                    wasmPath = path.resolve(__dirname, "../../", wasmFileName);
+                    if (!fs.existsSync(wasmPath)) {
+                        // Fallback to development location
+                        wasmPath = path.resolve(__dirname, "../zig-codecs/zig-out/bin", wasmFileName);
+                    }
+                } catch {
+                    // Fallback for environments where import.meta.url is not available
+                    wasmPath = path.resolve(process.cwd(), "dist", wasmFileName);
+                }
             }
 
             bytes = fs.readFileSync(wasmPath);

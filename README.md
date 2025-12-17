@@ -1,6 +1,6 @@
 # rad-parser
 
-**rad-parser** is a lightweight, performant, and self-contained DICOM parser for Node.js and browsers, built with TypeScript and with **zero external dependencies**.
+**rad-parser** is a lightweight, performant, and self-contained DICOM parser for Node.js, Bun, Deno, and browsers, built with TypeScript and with **zero external dependencies**.
 
 It is designed for safety, efficiency, and reliability in medical imaging applications, command-line utilities, and cloud-based pipelines where dependency bloat and performance are critical concerns.
 
@@ -245,20 +245,34 @@ To build the project and its WASM dependencies from source, you need [Zig](https
     git submodule update --init --recursive
     ```
 
-2.  **Build the WASM codecs:**
+
+
+2.  **Build and Optimize the WASM codecs:**
+
+    ```bash
+    npm run build:zig-codecs
+    npm run optimize:zig-codecs
+    ```
+
+    Esto compila los wrappers y dependencias (`libjpeg-turbo`, `openjpeg`, `charls`, etc.) en `src/zig-codecs/zig-out/bin` y luego genera versiones optimizadas en `src/zig-codecs/zig-out/bin-opt` usando `wasm-opt` (Binaryen).
+
+    **Para producción, usa los archivos `.wasm` de `bin-opt`**: son hasta un 23% más pequeños y cargan más rápido.
+
+    Si prefieres, puedes ejecutar los comandos manualmente:
 
     ```bash
     cd src/zig-codecs
-    zig build -p zig-out -Doptimize=ReleaseSmall
+    zig build --release=fast -p zig-out
+    cd ../../
+    npm run optimize:zig-codecs
     ```
 
-    This will compile `libjpeg-turbo`, `openjpeg`, `charls`, and the `rad-codecs` wrappers into `src/zig-codecs/zig-out/bin`.
-
-3.  **Build Core WASM:**
+3.  **Build Core WASM (opcional):**
 
     ```bash
-    cd ../zig-core
-    zig build -p zig-out -Doptimize=ReleaseFast
+    cd src/zig-core
+    zig build --release=fast -p zig-out
+    cd ../../
     ```
 
 ---

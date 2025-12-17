@@ -272,10 +272,14 @@ export { run };
 
 // Run if main
 import { fileURLToPath } from "url";
-// ESM check
-if (import.meta.url && process.argv[1] === fileURLToPath(import.meta.url)) {
-    run().catch((err) => {
-        console.error(err);
-        process.exit(1);
-    });
+// ESM check - works in both ESM and CJS environments
+try {
+    if (import.meta.url && process.argv[1] === fileURLToPath(import.meta.url)) {
+        run().catch((err) => {
+            console.error(err);
+            process.exit(1);
+        });
+    }
+} catch {
+    // In CJS environments, import.meta doesn't exist, so don't run
 }

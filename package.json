@@ -1,7 +1,7 @@
 {
   "name": "rad-parser",
   "version": "2.0.0",
-  "description": "A lightweight, performant, self-contained DICOM parser with zero external dependencies",
+  "description": "A lightweight, performant, self-contained DICOM parser for Node.js, Bun, Deno, and browsers, built with TypeScript and with zero external dependencies",
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
   "bin": {
@@ -73,6 +73,8 @@
     "build:cjs": "esbuild src/index.ts --bundle --format=cjs --platform=node --target=node16 --outfile=dist/index.cjs --log-level=info && esbuild src/index-core.ts --bundle --format=cjs --platform=node --target=node16 --outfile=dist/index-core.cjs --log-level=info && esbuild src/index-codecs.ts --bundle --format=cjs --platform=node --target=node16 --outfile=dist/index-codecs.cjs --log-level=info",
     "build:wasm:core": "cd src/wasm-core && wasm-pack build --target web --out-dir ../wasm-core-build --release",
     "build:wasm:codecs": "cd src/wasm-codecs && wasm-pack build --target web --out-dir ../wasm-codecs-build --release",
+    "build:zig-codecs": "cd src/zig-codecs && zig build --release=fast -p zig-out",
+    "optimize:zig-codecs": "node scripts/optimize_wasm_codecs.mjs",
     "build:wasm": "npm run build:wasm:core && npm run build:wasm:codecs",
     "bundle:full": "esbuild src/index.ts --bundle --format=esm --target=es2020 --platform=neutral --outfile=dist/rad-parser.js --sourcemap --log-level=info --external:env && esbuild src/index.ts --bundle --format=esm --target=es2020 --platform=neutral --outfile=dist/rad-parser.min.js --minify --log-level=info --external:env",
     "bundle:core": "esbuild src/index-core.ts --bundle --format=esm --target=es2020 --platform=neutral --outfile=dist/index-core.js --sourcemap --log-level=info",
@@ -97,12 +99,15 @@
     "prepublishOnly": "npm run release"
   },
   "engines": {
-    "node": ">=16.0.0"
+    "node": ">=16.0.0",
+    "bun": ">=1.0.0",
+    "deno": ">=1.30.0"
   },
   "peerDependencies": {
     "typescript": "^5.0.0"
   },
   "devDependencies": {
+      "binaryen": "^118.0.0",
     "@cornerstonejs/codec-charls": "^1.2.3",
     "@cornerstonejs/codec-libjpeg-turbo-8bit": "^1.2.2",
     "@cornerstonejs/codec-openjpeg": "^1.3.0",

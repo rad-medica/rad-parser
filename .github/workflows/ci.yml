@@ -17,7 +17,7 @@ jobs:
       - run: npm ci
       - run: npm run type-check
 
-  build:
+  build-node:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -31,4 +31,43 @@ jobs:
           test -d dist || exit 1
           test -f dist/index.js || exit 1
           test -f dist/index.d.ts || exit 1
+
+  build-bun:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest
+      - run: bun install
+      - run: bun run build
+      - name: Check build output
+        run: |
+          test -d dist || exit 1
+          test -f dist/index.js || exit 1
+          test -f dist/index.d.ts || exit 1
+
+  test-node:
+    runs-on: ubuntu-latest
+    needs: build-node
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+      - run: npm ci
+      - run: npm run build
+      - run: npm run test
+
+  test-bun:
+    runs-on: ubuntu-latest
+    needs: build-bun
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest
+      - run: bun install
+      - run: bun run build
+      - run: bun run test
 
