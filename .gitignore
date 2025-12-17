@@ -15,9 +15,10 @@ src/wasm-core-build/
 src/wasm-codecs-build/
 *.wasm
 Cargo.lock
+src\zig-codecs\zig-out
 
 # IDE
-.vscode/
+
 .idea/
 *.swp
 *.swo
@@ -61,3 +62,4 @@ scripts/results/*
 # Temporary files
 *.tmp
 .cache/
+src\zig-codecs\.zig-cache/
