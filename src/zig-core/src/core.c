@@ -143,4 +143,56 @@ WASM_EXPORT const uint8_t* parse_time(const uint8_t* input, size_t len) {
     return g_time;
 }
 
+// ==================== DS (Decimal String) ====================
+
+WASM_EXPORT double parse_ds(const uint8_t* s, size_t len) {
+    if (len == 0) return 0.0;
+    double res = 0.0;
+    int sign = 1;
+    size_t i = 0;
+    
+    // Skip whitespace
+    while (i < len && is_ws(s[i])) i++;
+    if (i >= len) return 0.0;
+    
+    if (s[i] == '-') { sign = -1; i++; }
+    else if (s[i] == '+') { i++; }
+    
+    while (i < len && s[i] >= '0' && s[i] <= '9') {
+        res = res * 10.0 + (s[i] - '0');
+        i++;
+    }
+    
+    if (i < len && s[i] == '.') {
+        i++;
+        double frac = 0.1;
+        while (i < len && s[i] >= '0' && s[i] <= '9') {
+            res += (s[i] - '0') * frac;
+            frac *= 0.1;
+            i++;
+        }
+    }
+    
+    if (i < len && (s[i] == 'e' || s[i] == 'E')) {
+        i++;
+        int esign = 1;
+        if (i < len && s[i] == '-') { esign = -1; i++; }
+        else if (i < len && s[i] == '+') { i++; }
+        
+        int exp = 0;
+        while (i < len && s[i] >= '0' && s[i] <= '9') {
+            exp = exp * 10 + (s[i] - '0');
+            i++;
+        }
+        
+        while (exp > 0) {
+            if (esign == 1) res *= 10.0;
+            else res /= 10.0;
+            exp--;
+        }
+    }
+    
+    return sign * res;
+}
+
 int main(void) { return 0; }

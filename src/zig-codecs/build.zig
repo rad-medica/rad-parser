@@ -15,29 +15,23 @@ pub fn build(b: *std.Build) void {
             .optimize = optimize,
         }),
     });
-    
+
     lib_jpeg.addCSourceFile(.{ .file = b.path("src/jpeg.cpp"), .flags = &.{ "-std=c++11", "-O3", "-DNDEBUG" } });
-    
+
     lib_jpeg.addIncludePath(b.path("deps/libjpeg-turbo/src"));
-    lib_jpeg.addIncludePath(b.path("deps/libjpeg-turbo")); 
+    lib_jpeg.addIncludePath(b.path("deps/libjpeg-turbo"));
     lib_jpeg.addIncludePath(b.path("src/include")); // Mock setjmp
-    
-    addSources(b, lib_jpeg, "deps/libjpeg-turbo/src", &.{".c"}, &.{
-        "test", "bench", "example", "turbojpeg", "tj", 
-        "rd", "wr", "cdjpeg", "cjpeg.c", "djpeg.c", 
-        "jpegtran.c", "md5", "java", "simd", "transupp.c",
-        "jstdhuff.c", "jdmrgext.c", "jdmrg565.c", 
-        "jdcol565.c", "jdcolext.c", "jccolext.c"
-    }) catch |err| std.debug.print("Error adding JPG sources: {}\n", .{err});
-    
+
+    addSources(b, lib_jpeg, "deps/libjpeg-turbo/src", &.{".c"}, &.{ "test", "bench", "example", "turbojpeg", "tj", "rd", "wr", "cdjpeg", "cjpeg.c", "djpeg.c", "jpegtran.c", "md5", "java", "simd", "transupp.c", "jstdhuff.c", "jdmrgext.c", "jdmrg565.c", "jdcol565.c", "jdcolext.c", "jccolext.c" }) catch |err| std.debug.print("Error adding JPG sources: {}\n", .{err});
+
     // Add specific TJ files
     const tj_flags = &.{ "-DINLINE=inline", "-O3", "-DNDEBUG" };
     lib_jpeg.addCSourceFile(.{ .file = b.path("deps/libjpeg-turbo/src/turbojpeg.c"), .flags = tj_flags });
     lib_jpeg.addCSourceFile(.{ .file = b.path("deps/libjpeg-turbo/src/transupp.c"), .flags = tj_flags });
-    
+
     // Add 12-bit function stubs for 8-bit only build
     lib_jpeg.addCSourceFile(.{ .file = b.path("src/j12_stubs.c"), .flags = tj_flags });
-    
+
     // Add TurboJPEG memory source/destination handlers
     lib_jpeg.addCSourceFile(.{ .file = b.path("deps/libjpeg-turbo/src/jdatasrc-tj.c"), .flags = tj_flags });
     lib_jpeg.addCSourceFile(.{ .file = b.path("deps/libjpeg-turbo/src/jdatadst-tj.c"), .flags = tj_flags });
@@ -74,13 +68,12 @@ pub fn build(b: *std.Build) void {
     });
 
     lib_j2k.addCSourceFile(.{ .file = b.path("src/jpeg2000.cpp"), .flags = &.{ "-std=c++11", "-O3", "-DNDEBUG" } });
-    
+
     lib_j2k.addIncludePath(b.path("deps/openjpeg/src/lib/openjp2"));
     lib_j2k.root_module.addCMacro("OPJ_STATIC", "");
-    
-    addSources(b, lib_j2k, "deps/openjpeg/src/lib/openjp2", &.{".c"}, &.{
-        "test", "bench", "opj_clock.c", "cidx_manager.c", "phix_manager.c", "ppix_manager.c", "thix_manager.c", "tpix_manager.c"
-    }) catch |err| std.debug.print("Error adding OPJ sources: {}\n", .{err});
+    lib_j2k.addCSourceFile(.{ .file = b.path("src/overrides/opj_clock.c"), .flags = &.{ "-O3", "-DNDEBUG" } });
+
+    addSources(b, lib_j2k, "deps/openjpeg/src/lib/openjp2", &.{".c"}, &.{ "test", "bench", "opj_clock.c", "cidx_manager.c", "phix_manager.c", "ppix_manager.c", "thix_manager.c", "tpix_manager.c" }) catch |err| std.debug.print("Error adding OPJ sources: {}\n", .{err});
     lib_j2k.addCSourceFile(.{ .file = b.path("src/opj_dummy.c"), .flags = &.{} });
 
     lib_j2k.linkLibC();
@@ -97,18 +90,16 @@ pub fn build(b: *std.Build) void {
             .optimize = optimize,
         }),
     });
-    
+
     // Note: CharLS requires C++14/17
     lib_jpegls.addCSourceFile(.{ .file = b.path("src/jpegls.cpp"), .flags = &.{ "-std=c++17", "-O3", "-DNDEBUG" } });
     lib_jpegls.addCSourceFile(.{ .file = b.path("src/cxx_stubs.cpp"), .flags = &.{ "-std=c++17", "-O3", "-DNDEBUG" } });
-    
+
     lib_jpegls.addIncludePath(b.path("deps/charls/include"));
     lib_jpegls.addIncludePath(b.path("deps/charls/src"));
     lib_jpegls.root_module.addCMacro("CHARLS_STATIC", "");
-    
-    addSources(b, lib_jpegls, "deps/charls/src", &.{".cpp"}, &.{
-        "test", "bench", "fuzz"
-    }) catch |err| std.debug.print("Error adding CharLS sources: {}\n", .{err});
+
+    addSources(b, lib_jpegls, "deps/charls/src", &.{".cpp"}, &.{ "test", "bench", "fuzz" }) catch |err| std.debug.print("Error adding CharLS sources: {}\n", .{err});
 
     lib_jpegls.linkLibC();
     lib_jpegls.linkLibCpp();
@@ -124,9 +115,9 @@ pub fn build(b: *std.Build) void {
             .optimize = optimize,
         }),
     });
-    
+
     lib_rle.addCSourceFile(.{ .file = b.path("src/rle.cpp"), .flags = &.{ "-std=c++11", "-O3", "-DNDEBUG" } });
-    
+
     lib_rle.linkLibC();
     lib_rle.linkLibCpp();
     lib_rle.rdynamic = true;
@@ -164,16 +155,13 @@ fn addSources(b: *std.Build, lib: *std.Build.Step.Compile, root: []const u8, ext
             }
         }
         if (excluded) continue;
-        
+
         // Check for specific flags needed per file
         var flags: []const []const u8 = &.{ "-O3", "-DNDEBUG", "-fno-sanitize=all", "-DINLINE=inline" };
         if (std.mem.eql(u8, ext, ".cpp")) {
-             flags = &.{ "-O3", "-DNDEBUG", "-fno-sanitize=all", "-DINLINE=inline", "-std=c++17" };
+            flags = &.{ "-O3", "-DNDEBUG", "-fno-sanitize=all", "-DINLINE=inline", "-std=c++17" };
         }
 
-        lib.addCSourceFile(.{
-            .file = b.path(b.pathJoin(&.{root, entry.path})),
-            .flags = flags
-        });
+        lib.addCSourceFile(.{ .file = b.path(b.pathJoin(&.{ root, entry.path })), .flags = flags });
     }
 }

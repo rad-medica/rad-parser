@@ -7,13 +7,14 @@ pub fn build(b: *std.Build) void {
             .os_tag = .freestanding,
         },
     });
-    const optimize = b.standardOptimizeOption(.{ .preferred_optimize_mode = .ReleaseSmall });
+    const optimize = b.standardOptimizeOption(.{ .preferred_optimize_mode = .ReleaseFast });
+    _ = optimize;
 
     const lib_core = b.addExecutable(.{
         .name = "rad-core",
         .root_module = b.createModule(.{
             .target = target,
-            .optimize = optimize,
+            .optimize = .ReleaseFast,
         }),
     });
 
@@ -22,7 +23,9 @@ pub fn build(b: *std.Build) void {
         .flags = &.{ "-O3", "-DNDEBUG", "-fno-builtin" },
     });
 
-    lib_core.rdynamic = true;
+    lib_core.rdynamic = false;
     lib_core.entry = .disabled;
+    lib_core.root_module.strip = true;
+    lib_core.root_module.single_threaded = true;
     b.installArtifact(lib_core);
 }
