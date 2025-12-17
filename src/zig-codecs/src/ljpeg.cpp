@@ -1,5 +1,4 @@
 
-
 #include <cstdlib>
 #include <cstring>
 #include <vector>
@@ -11,6 +10,7 @@
 #include "interface/tagitem.hpp"
 #include "interface/parameters.hpp"
 #include "interface/jpeg.hpp"
+#include "tools/traits.hpp"
 #include "cmd/bitmaphook.hpp" // Reusing BitmapHook for output
 
 // Define WASM_EXPORT

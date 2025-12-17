@@ -170,17 +170,22 @@ pub fn build(b: *std.Build) void {
         }),
     });
 
-    const ljpeg_flags = &.{ "-std=c++11", "-O3", "-DNDEBUG" };
+    const ljpeg_flags = &.{ "-std=c++17", "-O3", "-DNDEBUG", "-fno-sanitize=all", "-DINLINE=inline" };
     lib_ljpeg.addCSourceFile(.{ .file = b.path("src/ljpeg.cpp"), .flags = ljpeg_flags });
+    lib_ljpeg.addCSourceFile(.{ .file = b.path("src/cxx_stubs.cpp"), .flags = ljpeg_flags });
     lib_ljpeg.addIncludePath(b.path("deps/libjpeg-lj"));
+    lib_ljpeg.addIncludePath(b.path("src/include"));
+    lib_ljpeg.root_module.addCMacro("BUILD_LIB", "1");
 
     // Use addSources for libjpeg-lj to include all files
-    const ljpeg_dirs = [_][]const u8{ "deps/libjpeg-lj/codestream", "deps/libjpeg-lj/coding", "deps/libjpeg-lj/boxes", "deps/libjpeg-lj/io" };
+    const ljpeg_dirs = [_][]const u8{ "deps/libjpeg-lj/codestream", "deps/libjpeg-lj/coding", "deps/libjpeg-lj/boxes", "deps/libjpeg-lj/io", "deps/libjpeg-lj/interface" };
     for (ljpeg_dirs) |dir| {
         addSources(b, lib_ljpeg, dir, &.{".cpp"}, &.{ "test", "bench", "fuzz", "Makefile" }) catch |err| std.debug.print("Error adding LJPEG sources from {s}: {}\n", .{ dir, err });
     }
-    lib_ljpeg.addCSourceFile(.{ .file = b.path("deps/libjpeg-lj/cmd/bitmaphook.cpp"), .flags = ljpeg_flags });
-    lib_ljpeg.addCSourceFile(.{ .file = b.path("src/cxx_stubs.cpp"), .flags = ljpeg_flags });
+
+    // Commands helper - ensure only one bitmaphook is used. interface/bitmaphook.cpp is added by addSources.
+    // cmd/bitmaphook.cpp is NOT added.
+
     lib_ljpeg.linkLibC();
     lib_ljpeg.linkLibCpp();
     lib_ljpeg.entry = .disabled;
