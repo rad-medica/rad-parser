@@ -5,7 +5,7 @@ pub fn build(b: *std.Build) void {
         .cpu_arch = .wasm32,
         .os_tag = .wasi,
     });
-    const optimize = .ReleaseSmall;
+    const optimize = .ReleaseFast;
 
     // --- JPEG (LibJPEG-Turbo) ---
     const lib_jpeg = b.addExecutable(.{
@@ -13,6 +13,8 @@ pub fn build(b: *std.Build) void {
         .root_module = b.createModule(.{
             .target = target,
             .optimize = optimize,
+            .strip = true,
+            .single_threaded = true,
         }),
     });
 
@@ -64,6 +66,8 @@ pub fn build(b: *std.Build) void {
         .root_module = b.createModule(.{
             .target = target,
             .optimize = optimize,
+            .strip = true,
+            .single_threaded = true,
         }),
     });
 
@@ -88,6 +92,8 @@ pub fn build(b: *std.Build) void {
         .root_module = b.createModule(.{
             .target = target,
             .optimize = optimize,
+            .strip = true,
+            .single_threaded = true,
         }),
     });
 
@@ -113,6 +119,8 @@ pub fn build(b: *std.Build) void {
         .root_module = b.createModule(.{
             .target = target,
             .optimize = optimize,
+            .strip = true,
+            .single_threaded = true,
         }),
     });
 
