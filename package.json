@@ -52,12 +52,12 @@
     "license": "MIT",
     "repository": {
         "type": "git",
-        "url": "https://github.com/AjRoAs/rad-parse.git"
+        "url": "https://github.com/rad-medica/rad-parse.git"
     },
     "bugs": {
-        "url": "https://github.com/AjRoAs/rad-parse/issues"
+        "url": "https://github.com/rad-medica/rad-parse/issues"
     },
-    "homepage": "https://github.com/AjRoAs/rad-parse#readme",
+    "homepage": "https://github.com/rad-medica/rad-parse#readme",
     "files": [
         "dist/**/*",
         "docs/**/*.md",
@@ -95,10 +95,12 @@
         "benchmark:streaming": "bun run --bun scripts/benchmark-streaming.ts",
         "lint": "eslint .",
         "lint:fix": "eslint . --fix",
+        "lint:md": "markdownlint '**/*.md' '!src/zig-codecs/deps/**/*'",
+        "lint:md:fix": "markdownlint '**/*.md' '!src/zig-codecs/deps/**/*' --fix",
         "format": "prettier --write \"**/*.{ts,js,json,md}\"",
         "format:check": "prettier --check \"**/*.{ts,js,json,md}\"",
-        "check": "bun run type-check && bun run lint && bun run format:check",
-        "fix": "bun run lint:fix && bun run format",
+        "check": "bun run type-check && bun run lint && bun run lint:md && bun run format:check",
+        "fix": "bun run lint:fix && bun run lint:md:fix && bun run format",
         "docs:check": "echo 'Checking documentation...' && test -f docs/API.md && test -f docs/CODEC_TUTORIAL.md && test -f docs/UTILITIES.md && echo 'All docs present!'",
         "prepublishOnly": "bun run release"
     },
@@ -111,12 +113,12 @@
         "typescript": "^5.0.0"
     },
     "devDependencies": {
-        "binaryen": "^118.0.0",
         "@cornerstonejs/codec-charls": "^1.2.3",
         "@cornerstonejs/codec-libjpeg-turbo-8bit": "^1.2.2",
         "@cornerstonejs/codec-openjpeg": "^1.3.0",
         "@types/node": "^24.10.2",
         "@vitest/coverage-v8": "^4.0.15",
+        "binaryen": "^118.0.0",
         "dcmjs": "^0.45.0",
         "dicom-parser": "^1.8.21",
         "efferent-dicom": "^1.3.0",
@@ -124,6 +126,7 @@
         "eslint": "^9.39.2",
         "eslint-config-prettier": "^10.1.8",
         "eslint-plugin-prettier": "^5.5.4",
+        "markdownlint-cli": "^0.47.0",
         "prettier": "^3.7.4",
         "tsx": "^4.7.0",
         "typescript-eslint": "^8.50.0",
