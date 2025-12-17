@@ -1,9 +1,13 @@
 /**
- * Generate comprehensive comparison report from benchmark results
+ * Generate Comprehensive Comparison Report (JS vs WASM)
+ *
+ * Reads results from the comprehensive benchmark and generates
+ * a detailed Markdown report comparing JS and WASM versions
+ * across different test sets (TEST_STUDY, EDGE_CASES).
  */
 
-import { readFileSync, writeFileSync, existsSync } from "fs";
-import { join, dirname } from "path";
+import { existsSync, readFileSync, writeFileSync } from "fs";
+import { dirname, join } from "path";
 import { fileURLToPath } from "url";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -11,6 +15,7 @@ const __dirname = dirname(__filename);
 
 interface ParserStats {
     parser: string;
+    testSet: string;
     totalFiles: number;
     successful: number;
     failed: number;
@@ -25,283 +30,110 @@ interface ParserStats {
     errors: string[];
 }
 
-function formatBytes(bytes: number): string {
-    if (bytes === 0) return "0 B";
-    const k = 1024;
-    const sizes = ["B", "KB", "MB", "GB"];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return `${(bytes / Math.pow(k, i)).toFixed(2)} ${sizes[i]}`;
-}
-
 function formatTime(ms: number): string {
     if (ms < 1) return `${(ms * 1000).toFixed(2)} μs`;
     if (ms < 1000) return `${ms.toFixed(2)} ms`;
     return `${(ms / 1000).toFixed(2)} s`;
 }
 
-function generateReport() {
-    const resultsPath = join(
-        __dirname,
-        "results",
-        "comprehensive-benchmark-stats.json"
-    );
+async function main() {
+    const resultsDir = join(__dirname, "results");
+    const statsPath = join(resultsDir, "comprehensive-benchmark-stats.json");
 
-    if (!existsSync(resultsPath)) {
+    if (!existsSync(statsPath)) {
         console.error(
-            "Benchmark results not found. Please run benchmark:comprehensive first."
+            "Benchmark stats not found. Please run the benchmark first."
         );
-        process.exit(1);
+        return;
     }
 
-    const stats: ParserStats[] = JSON.parse(readFileSync(resultsPath, "utf-8"));
+    const stats: ParserStats[] = JSON.parse(readFileSync(statsPath, "utf-8"));
+    const testSets = [...new Set(stats.map(s => s.testSet))];
 
-    // Sort by success rate, then speed
-    const sorted = [...stats].sort((a, b) => {
-        const aRate = a.successful / a.totalFiles;
-        const bRate = b.successful / b.totalFiles;
-        if (Math.abs(aRate - bRate) > 0.01) {
-            return bRate - aRate;
-        }
-        return a.averageTime - b.averageTime;
-    });
+    let report = "# Comprehensive DICOM Parser Comparison Report\n\n";
+    report +=
+        "This report compares various modes of `rad-parser` (in both pure JavaScript and WASM-accelerated versions) against other popular DICOM parsing libraries across different datasets.\n\n";
 
-    const fastest =
-        sorted.find(s => s.successful === s.totalFiles) || sorted[0];
-    const mostReliable = sorted[0]; // Already sorted by success rate
+    for (const testSet of testSets) {
+        const testSetStats = stats.filter(s => s.testSet === testSet);
+        const sectionTitle =
+            testSet === "TEST_STUDY"
+                ? "Standard Study Performance"
+                : "Edge Case Reliability & Performance";
 
-    let report = `# Comprehensive DICOM Parser Comparison
+        report += `## ${sectionTitle} (${testSet})\n\n`;
 
-**Date:** ${new Date().toISOString().split("T")[0]}  
-**Test Files:** ${stats[0]?.totalFiles || 0} DICOM files  
-**Parsers:** rad-parser (fast, shallow, medium, full, wasm, streaming), dcmjs, dicom-parser, efferent-dicom
+        // JS vs WASM Comparison Section for this test set
+        const modes = ["fast", "shallow", "medium", "full", "streaming"];
+        report += "### JS vs WASM Performance Comparison\n\n";
+        report += "| Mode | JS Avg Time | WASM Avg Time | Speedup |\n";
+        report += "| :--- | :--- | :--- | :--- |\n";
 
----
+        for (const mode of modes) {
+            const jsName = `rad-${mode}-js`;
+            const wasmName = `rad-${mode}-wasm`;
+            const jsStat = testSetStats.find(s => s.parser === jsName);
+            const wasmStat = testSetStats.find(s => s.parser === wasmName);
 
-## Executive Summary
-
-### 🏆 Overall Winner: ${mostReliable.parser}
-
-**Key Highlights:**
-- **Most Reliable:** ${mostReliable.parser} (${((mostReliable.successful / mostReliable.totalFiles) * 100).toFixed(1)}% success rate)
-- **Fastest (100% success):** ${fastest.parser} (${formatTime(fastest.averageTime)} average)
-- **Most Elements:** ${sorted.reduce((max, s) => (s.averageElements > max.averageElements ? s : max), sorted[0]).parser} (${sorted.reduce((max, s) => (s.averageElements > max.averageElements ? s : max), sorted[0]).averageElements.toFixed(0)} elements/file)
-
----
-
-## Performance Comparison
-
-### Success Rates
-
-| Parser | Success Rate | Files Parsed | Failures |
-|--------|-------------|--------------|----------|
-`;
-
-    for (const stat of sorted) {
-        const rate = ((stat.successful / stat.totalFiles) * 100).toFixed(1);
-        const bar = "█".repeat(
-            Math.round((stat.successful / stat.totalFiles) * 20)
-        );
-        report += `| **${stat.parser}** | ${rate}% ${bar} | ${stat.successful}/${stat.totalFiles} | ${stat.failed} |\n`;
-    }
-
-    report += `\n### Parse Speed\n\n`;
-    report += `| Parser | Avg Time | Min Time | Max Time | Throughput | Speed vs Fastest |\n`;
-    report += `|--------|----------|----------|----------|------------|------------------|\n`;
-
-    for (const stat of sorted) {
-        const speedup =
-            fastest.averageTime > 0
-                ? stat.averageTime / fastest.averageTime
-                : 1;
-        const throughput =
-            stat.successful > 0 ? (1000 / stat.averageTime).toFixed(0) : "0";
-        report += `| **${stat.parser}** | ${formatTime(stat.averageTime)} | ${formatTime(stat.minTime)} | ${formatTime(stat.maxTime)} | ${throughput} files/s | ${speedup.toFixed(2)}x |\n`;
-    }
-
-    report += `\n### Element Parsing Depth\n\n`;
-    report += `| Parser | Avg Elements | Total Elements | Coverage |\n`;
-    report += `|--------|--------------|---------------|----------|\n`;
-
-    for (const stat of sorted) {
-        const coverage = stat.averageElements > 0 ? "Good" : "Basic";
-        report += `| **${stat.parser}** | ${stat.averageElements.toFixed(0)} | ${stat.totalElements.toLocaleString()} | ${coverage} |\n`;
-    }
-
-    report += `\n---\n\n## Capability Matrix\n\n`;
-    report += `| Feature | rad-fast | rad-shallow | rad-medium | rad-full | rad-wasm | rad-streaming | dcmjs | dicom-parser | efferent |\n`;
-    report += `|---------|----------|-------------|------------|----------|----------|---------------|-------|--------------|----------|\n`;
-
-    const capabilities = [
-        {
-            feature: "Core Parsing",
-            radFast: "✅",
-            radShallow: "✅",
-            radMedium: "✅",
-            radFull: "✅",
-            radWasm: "✅",
-            radStreaming: "✅",
-            dcmjs: "✅",
-            dicomParser: "✅",
-            efferent: "✅",
-        },
-        {
-            feature: "Streaming",
-            radFast: "❌",
-            radShallow: "❌",
-            radMedium: "❌",
-            radFull: "❌",
-            radWasm: "❌",
-            radStreaming: "✅",
-            dcmjs: "❌",
-            dicomParser: "❌",
-            efferent: "❌",
-        },
-        {
-            feature: "Serialization",
-            radFast: "❌",
-            radShallow: "❌",
-            radMedium: "❌",
-            radFull: "✅",
-            radWasm: "✅",
-            radStreaming: "❌",
-            dcmjs: "❌",
-            dicomParser: "❌",
-            efferent: "❌",
-        },
-        {
-            feature: "Anonymization",
-            radFast: "❌",
-            radShallow: "❌",
-            radMedium: "✅",
-            radFull: "✅",
-            radWasm: "✅",
-            radStreaming: "❌",
-            dcmjs: "❌",
-            dicomParser: "❌",
-            efferent: "❌",
-        },
-        {
-            feature: "Pixel Data",
-            radFast: "❌",
-            radShallow: "❌",
-            radMedium: "❌",
-            radFull: "✅",
-            radWasm: "✅",
-            radStreaming: "✅",
-            dcmjs: "✅",
-            dicomParser: "⚠️",
-            efferent: "⚠️",
-        },
-        {
-            feature: "Sequences",
-            radFast: "⚠️",
-            radShallow: "⚠️",
-            radMedium: "✅",
-            radFull: "✅",
-            radWasm: "✅",
-            radStreaming: "✅",
-            dcmjs: "✅",
-            dicomParser: "⚠️",
-            efferent: "⚠️",
-        },
-        {
-            feature: "100% Reliability",
-            radFast: "✅",
-            radShallow: "✅",
-            radMedium: "✅",
-            radFull: "✅",
-            radWasm: "✅",
-            radStreaming: "⚠️",
-            dcmjs: "❌",
-            dicomParser: "❌",
-            efferent: "⚠️",
-        },
-    ];
-
-    for (const cap of capabilities) {
-        report += `| ${cap.feature} | ${cap.radFast} | ${cap.radShallow} | ${cap.radMedium} | ${cap.radFull} | ${cap.radWasm} | ${cap.radStreaming} | ${cap.dcmjs} | ${cap.dicomParser} | ${cap.efferent} |\n`;
-    }
-
-    report += `\n---\n\n## Detailed Statistics\n\n`;
-
-    for (const stat of sorted) {
-        const successRate = ((stat.successful / stat.totalFiles) * 100).toFixed(
-            1
-        );
-        report += `### ${stat.parser}\n\n`;
-        report += `- **Success Rate:** ${successRate}% (${stat.successful}/${stat.totalFiles})\n`;
-        report += `- **Average Time:** ${formatTime(stat.averageTime)}\n`;
-        report += `- **Min/Max Time:** ${formatTime(stat.minTime)} / ${formatTime(stat.maxTime)}\n`;
-        report += `- **Average Elements:** ${stat.averageElements.toFixed(0)}\n`;
-        report += `- **Total Size Processed:** ${formatBytes(stat.totalSize)}\n`;
-        if (stat.errors.length > 0) {
-            report += `- **Errors:** ${stat.errors.length} files failed\n`;
-            if (stat.errors.length <= 10) {
-                report += `  - ${stat.errors.slice(0, 5).join("\n  - ")}\n`;
-            } else {
-                report += `  - ${stat.errors.slice(0, 5).join("\n  - ")}\n  - ... and ${stat.errors.length - 5} more\n`;
+            if (jsStat && wasmStat && wasmStat.averageTime > 0) {
+                const speedup = jsStat.averageTime / wasmStat.averageTime;
+                report += `| ${mode} | ${formatTime(jsStat.averageTime)} | ${formatTime(wasmStat.averageTime)} | **${speedup.toFixed(2)}x** |\n`;
             }
         }
-        report += `\n`;
+        report += "\n";
+
+        // Summary Table for this test set
+        report += "### Benchmark Summary\n\n";
+        report +=
+            "| Parser | Files | Success % | Avg Time | Min Time | Avg Elements |\n";
+        report += "| :--- | :--- | :--- | :--- | :--- | :--- |\n";
+
+        const sortedStats = [...testSetStats].sort((a, b) => {
+            const aRate = a.successful / a.totalFiles;
+            const bRate = b.successful / b.totalFiles;
+            if (Math.abs(aRate - bRate) > 0.01) return bRate - aRate;
+            return a.averageTime - b.averageTime;
+        });
+
+        for (const s of sortedStats) {
+            const rate = ((s.successful / s.totalFiles) * 100).toFixed(1);
+            report += `| ${s.parser} | ${s.totalFiles} | ${rate}% | ${formatTime(s.averageTime)} | ${formatTime(s.minTime)} | ${Math.round(s.averageElements)} |\n`;
+        }
+        report += "\n";
     }
 
-    report += `---\n\n## Recommendations\n\n`;
+    // Capability Matrix (Updated)
+    report += "## Capability Matrix\n\n";
+    report +=
+        "| Feature | rad-fast | rad-shallow | rad-medium | rad-full | rad-streaming | dcmjs | dicom-parser | effererent-dicom |\n";
+    report +=
+        "| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |\n";
+    report += "| **Core Parsing** | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |\n";
+    report += "| **WASM Support** | ✅ | ✅ | ✅ | ✅ | ✅ | ❌ | ❌ | ❌ |\n";
+    report += "| **Streaming** | ❌ | ❌ | ❌ | ❌ | ✅ | ❌ | ❌ | ❌ |\n";
+    report +=
+        "| **100% Reliability** | ✅ | ✅ | ✅ | ✅ | ⚠️ | ❌ | ❌ | ⚠️ |\n";
+    report += "| **Pixel Data** | ❌ | ❌ | ❌ | ✅ | ✅ | ✅ | ⚠️ | ⚠️ |\n";
+    report += "| **Sequences** | ⚠️ | ⚠️ | ✅ | ✅ | ✅ | ✅ | ⚠️ | ⚠️ |\n";
+    report += "\n";
 
-    report += `### Choose rad-parser-fast when:\n`;
-    report += `- ⚡ Maximum speed required\n`;
-    report += `- 📋 Header/metadata extraction only\n`;
-    report += `- 🎯 Tag filtering needed\n\n`;
+    // Recommendations
+    report += "## Recommendations\n\n";
+    report +=
+        "1. **For Maximum Speed**: Use `rad-fast-wasm`. It provides the fastest parsing for basic tags.\n";
+    report +=
+        "2. **For General Use**: Use `rad-full-wasm`. It offers the best balance of features, performance, and 100% reliability.\n";
+    report +=
+        "3. **For Large Files**: Use `rad-streaming-wasm` to process files in chunks without loading everything into memory.\n";
+    report +=
+        "4. **For Compatibility**: `rad-full` provides the most comprehensive dataset compatible with other libraries.\n";
 
-    report += `### Choose rad-parser-shallow when:\n`;
-    report += `- ⚡ Fast scanning/indexing\n`;
-    report += `- 📊 Database indexing\n`;
-    report += `- ✅ Still need 100% reliability\n\n`;
-
-    report += `### Choose rad-parser-medium when:\n`;
-    report += `- ⚖️ Balance speed and completeness\n`;
-    report += `- 🏥 Metadata extraction (skip pixel data)\n`;
-    report += `- 🔒 Anonymization workflows\n\n`;
-
-    report += `### Choose rad-parser when:\n`;
-    report += `- 🏆 Complete data extraction needed\n`;
-    report += `- 🖼️ Pixel data required\n`;
-    report += `- ✅ 100% reliability essential\n`;
-    report += `- 🔧 Production systems\n\n`;
-
-    report += `### Choose rad-parser-streaming when:\n`;
-    report += `- 📡 Network/file streams\n`;
-    report += `- 💾 Large files (>100MB)\n`;
-    report += `- 🧠 Memory-efficient processing\n`;
-    report += `- ⚡ Real-time parsing\n\n`;
-
-    report += `### Choose dicom-parser when:\n`;
-    const dicomParserStat = sorted.find(s => s.parser === "dicom-parser");
-    const dicomFailRate = dicomParserStat
-        ? ((dicomParserStat.failed / dicomParserStat.totalFiles) * 100).toFixed(
-              0
-          )
-        : "0";
-    report += `- ⚡ Maximum speed (accepts ${dicomFailRate}% failures)\n`;
-    report += `- 📝 Simple use cases\n\n`;
-
-    report += `### Choose dcmjs when:\n`;
-    const dcmjsStat = sorted.find(s => s.parser === "dcmjs");
-    const dcmjsFailRate = dcmjsStat
-        ? ((dcmjsStat.failed / dcmjsStat.totalFiles) * 100).toFixed(0)
-        : "0";
-    report += `- 🔄 Existing codebase integration\n`;
-    report += `- 📝 Simple parsing needs\n`;
-    report += `- ⚠️ ${dcmjsFailRate}% failure rate acceptable\n\n`;
-
-    report += `---\n\n*Report generated from comprehensive benchmark results*\n`;
-
-    const outputPath = join(
-        __dirname,
-        "..",
+    const reportPath = join(
+        dirname(__dirname),
         "COMPREHENSIVE_COMPARISON_REPORT.md"
     );
-    writeFileSync(outputPath, report);
-    console.log(`Report generated: ${outputPath}`);
+    writeFileSync(reportPath, report);
+    console.log(`Report generated successfully: ${reportPath}`);
 }
 
-generateReport();
+main().catch(console.error);

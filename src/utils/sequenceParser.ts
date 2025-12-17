@@ -4,11 +4,8 @@
  * Parses sequences and nested data elements within sequences.
  */
 
-import type { DicomElement, SequenceItem } from "../core/types";
-import { SafeDataView } from "./SafeDataView";
-import { detectVR, requiresExplicitLength } from "./vrDetection";
-import { parseValueByVR } from "./valueParsers";
 import { createParseError } from "../core/errors";
+import type { DicomElement, SequenceItem } from "../core/types";
 import {
     parseDAWasm,
     parseDSWasm,
@@ -16,6 +13,9 @@ import {
     parsePNWasm,
     parseTMWasm,
 } from "../core/wasm-opt";
+import { SafeDataView } from "./SafeDataView";
+import { parseValueByVR } from "./valueParsers";
+import { detectVR, requiresExplicitLength } from "./vrDetection";
 
 /**
  * Parse a sequence item
@@ -254,8 +254,6 @@ function parseElement(
             enableWasm
         );
         const tagHex = `x${group.toString(16).padStart(4, "0")}${element.toString(16).padStart(4, "0")}`;
-        const tagComma = `${group.toString(16).padStart(4, "0")},${element.toString(16).padStart(4, "0")}`;
-        const tagPlain = `${group.toString(16).padStart(4, "0")}${element.toString(16).padStart(4, "0")}`;
 
         const elementData: DicomElement = {
             vr: "SQ",
@@ -275,13 +273,9 @@ function parseElement(
         return {
             dict: {
                 [tagHex]: elementData,
-                [tagComma]: elementData,
-                [tagPlain]: elementData,
             },
             normalizedElements: {
                 [tagHex]: elementData,
-                [tagComma]: elementData,
-                [tagPlain]: elementData,
             },
         };
     }
@@ -290,10 +284,11 @@ function parseElement(
     let value: unknown;
 
     if (length > 0 && view.getRemainingBytes() >= length) {
-        if (length > 1000000) {
-            // Safety check: skip very large values
-            view.readBytes(length);
-            return null;
+        const maxSize = 50000000;
+        if (length > maxSize) {
+            // Skip large element but continue
+            view.setPosition(view.getPosition() + length);
+            return { dict: {}, normalizedElements: {} };
         }
 
         try {
@@ -315,10 +310,8 @@ function parseElement(
         return null;
     }
 
-    // Format tag in multiple formats for compatibility
+    // Format tag
     const tagHex = `x${group.toString(16).padStart(4, "0")}${element.toString(16).padStart(4, "0")}`;
-    const tagComma = `${group.toString(16).padStart(4, "0")},${element.toString(16).padStart(4, "0")}`;
-    const tagPlain = `${group.toString(16).padStart(4, "0")}${element.toString(16).padStart(4, "0")}`;
 
     // Create element with both uppercase and lowercase keys
     const elementData: DicomElement = {
@@ -343,13 +336,9 @@ function parseElement(
     return {
         dict: {
             [tagHex]: elementData,
-            [tagComma]: elementData,
-            [tagPlain]: elementData,
         },
         normalizedElements: {
             [tagHex]: elementData,
-            [tagComma]: elementData,
-            [tagPlain]: elementData,
         },
     };
 }

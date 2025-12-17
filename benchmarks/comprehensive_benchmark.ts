@@ -1,9 +1,10 @@
 /**
- * Comprehensive DICOM Parser Benchmark
+ * Comprehensive DICOM Parser Benchmark (JS vs WASM)
  *
  * Compares all rad-parser modes (full, shallow, fast, medium) + streaming
+ * in both pure JavaScript and WASM-accelerated versions
  * against other parsers (dcmjs, dicom-parser, efferent-dicom)
- * Uses all available test files
+ * Grouped by test sets: TEST_STUDY and EDGE_CASES
  */
 
 import dcmjs from "dcmjs";
@@ -21,60 +22,13 @@ import { dirname, join } from "path";
 import { fileURLToPath } from "url";
 import { StreamingParser, initCoreWasm, parse } from "../src/index.js";
 
-// ... (keep existing imports)
-
-// ...
-
-// All parsers to benchmark
-// Note: rad-parser-wasm must come LAST or after rad-parser to avoid polluting the JS-only run
-const parsers = [
-    "rad-parser-fast",
-    "rad-parser-shallow",
-    "rad-parser-medium",
-    "rad-parser",
-    "rad-parser-streaming",
-    "dcmjs",
-    "dicom-parser",
-    "efferent-dicom",
-    "rad-parser-wasm",
-];
-
-function parseWithDcmjs(data: Uint8Array) {
-    const buffer = Buffer.from(
-        data.buffer,
-        data.byteOffset,
-        data.byteLength
-    ) as Buffer;
-    const dcmjsModule = dcmjs as unknown as {
-        data: {
-            DicomMessage: {
-                readFile: (buffer: Buffer) => {
-                    dict?: Record<string, unknown>;
-                };
-            };
-        };
-    };
-    const message = dcmjsModule.data.DicomMessage.readFile(buffer);
-    return { dict: message?.dict ?? {} };
-}
-
-function parseWithDicomParser(data: Uint8Array) {
-    const dataset = dicomParser.parseDicom(data);
-    return { dict: dataset.elements ?? {} };
-}
-
-function parseWithEfferentDicom(data: Uint8Array) {
-    const reader = new efferentDicom.DicomReader(data);
-    const dict = reader.DicomTags ?? {};
-    return { dict };
-}
-
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 interface BenchmarkResult {
     parser: string;
     file: string;
+    testSet: string;
     fileSize: number;
     success: boolean;
     parseTime: number;
@@ -84,6 +38,7 @@ interface BenchmarkResult {
 
 interface ParserStats {
     parser: string;
+    testSet: string;
     totalFiles: number;
     successful: number;
     failed: number;
@@ -120,14 +75,36 @@ function getAllDicomFiles(dir: string): string[] {
                         files.push(fullPath);
                     }
                 } catch {
-                    // Skip files we can't stat
+                    // Skip
                 }
             }
         }
     } catch {
-        // Skip directories we can't read
+        // Skip
     }
     return files;
+}
+
+function parseWithDcmjs(data: Uint8Array) {
+    const buffer = Buffer.from(
+        data.buffer,
+        data.byteOffset,
+        data.byteLength
+    ) as Buffer;
+    const dcmjsModule = dcmjs as any;
+    const message = dcmjsModule.data.DicomMessage.readFile(buffer);
+    return { dict: message?.dict ?? {} };
+}
+
+function parseWithDicomParser(data: Uint8Array) {
+    const dataset = dicomParser.parseDicom(data);
+    return { dict: dataset.elements ?? {} };
+}
+
+function parseWithEfferentDicom(data: Uint8Array) {
+    const reader = new (efferentDicom as any).DicomReader(data);
+    const dict = reader.DicomTags ?? {};
+    return { dict };
 }
 
 /**
@@ -136,7 +113,8 @@ function getAllDicomFiles(dir: string): string[] {
 function benchmarkParser(
     parserName: string,
     filePath: string,
-    fileData: Uint8Array
+    fileData: Uint8Array,
+    testSet: string
 ): BenchmarkResult {
     const startTime = performance.now();
     let success = false;
@@ -145,53 +123,44 @@ function benchmarkParser(
 
     try {
         let dataset;
-        switch (parserName) {
-            case "rad-parser":
-                dataset = parse(fileData, { type: "full" });
-                elementCount = Object.keys(dataset.dict || {}).length;
-                break;
-            case "rad-parser-wasm":
-                dataset = parse(fileData, { type: "full", enableWasm: true });
-                elementCount = Object.keys(dataset.dict || {}).length;
-                break;
-            case "rad-parser-fast":
-                dataset = parse(fileData, { type: "fast" });
-                elementCount = Object.keys(dataset).length;
-                break;
-            case "rad-parser-shallow":
-                dataset = parse(fileData, { type: "shallow" });
-                elementCount = Object.keys(dataset).length;
-                break;
-            case "rad-parser-medium":
-                dataset = parse(fileData, { type: "light" });
-                elementCount = Object.keys(dataset.dict || {}).length;
-                break;
-            case "rad-parser-streaming":
-                // Simulate streaming by splitting into chunks (optimized with timeout)
-                const chunkSize = 32768; // Larger chunks for better performance
+        // Check if this is a rad-parser variant
+        if (parserName.startsWith("rad-")) {
+            const isWasm = parserName.endsWith("-wasm");
+            const mode = parserName.includes("-fast")
+                ? "fast"
+                : parserName.includes("-shallow")
+                  ? "shallow"
+                  : parserName.includes("-medium")
+                    ? "light"
+                    : parserName.includes("-full") ||
+                        parserName === "rad-parser"
+                      ? "full"
+                      : "full";
+
+            if (parserName.includes("-streaming")) {
+                const chunkSize = 32768;
                 let streamingSuccess = false;
                 let streamingElements = 0;
                 let streamingError: string | undefined;
+
                 const parser = new StreamingParser({
-                    maxBufferSize: 50 * 1024 * 1024, // 50MB max
-                    maxIterations: 500, // Limit iterations per chunk
-                    onElement: element => {
+                    maxBufferSize: 50 * 1024 * 1024,
+                    maxIterations: 500,
+                    enableWasm: isWasm,
+                    onElement: (element: { dict: any }) => {
                         streamingElements += Object.keys(
                             element.dict || {}
                         ).length;
                         streamingSuccess = true;
                     },
-                    onError: err => {
+                    onError: (err: { message: string }) => {
                         streamingError = err.message;
-                        // Don't fail completely on streaming errors
                     },
                 });
 
                 try {
                     const streamStartTime = performance.now();
-                    const maxStreamTime = 5000; // 5 second timeout per file
-
-                    // Split file into chunks
+                    const maxStreamTime = 5000;
                     for (let i = 0; i < fileData.length; i += chunkSize) {
                         if (
                             performance.now() - streamStartTime >
@@ -213,41 +182,53 @@ function benchmarkParser(
                     parser.finalize();
                     success = streamingSuccess || streamingElements > 0;
                     elementCount = streamingElements;
-                    if (streamingError && !success) {
-                        error = streamingError;
-                    }
+                    if (streamingError && !success) error = streamingError;
                 } catch (e) {
                     error = e instanceof Error ? e.message : String(e);
                     success = false;
                 }
-                break;
-            case "dcmjs":
-                dataset = parseWithDcmjs(fileData);
-                elementCount = Object.keys(dataset.dict || {}).length;
-                break;
-            case "dicom-parser":
-                dataset = parseWithDicomParser(fileData);
-                elementCount = Object.keys(dataset.dict || {}).length;
-                break;
-            case "efferent-dicom":
-                dataset = parseWithEfferentDicom(fileData);
-                elementCount = Object.keys(dataset.dict || {}).length;
-                break;
-            default:
-                throw new Error(`Unknown parser: ${parserName}`);
+            } else {
+                dataset = parse(fileData, {
+                    type: mode as any,
+                    enableWasm: isWasm,
+                });
+                elementCount = Object.keys(
+                    mode === "fast" || mode === "shallow"
+                        ? dataset
+                        : (dataset as any).dict || {}
+                ).length;
+                success = true;
+            }
+        } else {
+            // Competitors
+            switch (parserName) {
+                case "dcmjs":
+                    dataset = parseWithDcmjs(fileData);
+                    elementCount = Object.keys(dataset.dict || {}).length;
+                    break;
+                case "dicom-parser":
+                    dataset = parseWithDicomParser(fileData);
+                    elementCount = Object.keys(dataset.dict || {}).length;
+                    break;
+                case "efferent-dicom":
+                    dataset = parseWithEfferentDicom(fileData);
+                    elementCount = Object.keys(dataset.dict || {}).length;
+                    break;
+                default:
+                    throw new Error(`Unknown parser: ${parserName}`);
+            }
+            success = true;
         }
-
-        success = true;
     } catch (e) {
         error = e instanceof Error ? e.message : String(e);
         success = false;
     }
 
     const parseTime = performance.now() - startTime;
-
     return {
         parser: parserName,
         file: filePath.split(/[/\\]/).pop() || filePath,
+        testSet,
         fileSize: fileData.length,
         success,
         parseTime,
@@ -256,11 +237,9 @@ function benchmarkParser(
     };
 }
 
-/**
- * Calculate statistics for a parser
- */
 function calculateStats(
     parserName: string,
+    testSet: string,
     results: BenchmarkResult[]
 ): ParserStats {
     const successful = results.filter(r => r.success);
@@ -272,46 +251,26 @@ function calculateStats(
     );
     const totalSize = results.reduce((sum, r) => sum + r.fileSize, 0);
     const times = successful.map(r => r.parseTime);
-    const averageTime =
-        successful.length > 0 ? totalTime / successful.length : 0;
-    const minTime = times.length > 0 ? Math.min(...times) : 0;
-    const maxTime = times.length > 0 ? Math.max(...times) : 0;
-    const averageElements =
-        successful.length > 0 ? totalElements / successful.length : 0;
-    const averageSize = results.length > 0 ? totalSize / results.length : 0;
-    const errors = failed.map(r => `${r.file}: ${r.error || "Unknown error"}`);
 
     return {
         parser: parserName,
+        testSet,
         totalFiles: results.length,
         successful: successful.length,
         failed: failed.length,
         totalTime,
-        averageTime,
-        minTime,
-        maxTime,
+        averageTime: successful.length > 0 ? totalTime / successful.length : 0,
+        minTime: times.length > 0 ? Math.min(...times) : 0,
+        maxTime: times.length > 0 ? Math.max(...times) : 0,
         totalElements,
-        averageElements,
+        averageElements:
+            successful.length > 0 ? totalElements / successful.length : 0,
         totalSize,
-        averageSize,
-        errors,
+        averageSize: results.length > 0 ? totalSize / results.length : 0,
+        errors: failed.map(r => `${r.file}: ${r.error || "Unknown"}`),
     };
 }
 
-/**
- * Format file size
- */
-function formatBytes(bytes: number): string {
-    if (bytes === 0) return "0 B";
-    const k = 1024;
-    const sizes = ["B", "KB", "MB", "GB"];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return `${(bytes / Math.pow(k, i)).toFixed(2)} ${sizes[i]}`;
-}
-
-/**
- * Format time
- */
 function formatTime(ms: number): string {
     if (ms < 1) return `${(ms * 1000).toFixed(2)} μs`;
     if (ms < 1000) return `${ms.toFixed(2)} ms`;
@@ -323,281 +282,126 @@ function formatTime(ms: number): string {
  */
 async function main() {
     console.log("\n" + "=".repeat(80));
-    console.log("Comprehensive DICOM Parser Benchmark");
+    console.log("Comprehensive DICOM Parser Benchmark (JS vs WASM)");
     console.log("=".repeat(80) + "\n");
 
-    // Find all test data directories
-    const testDataPaths = [join(__dirname, "..", "test_data")];
-
-    const allFiles: string[] = [];
-    for (const path of testDataPaths) {
-        try {
-            const files = getAllDicomFiles(path);
-            allFiles.push(...files);
-            console.log(`Found ${files.length} files in ${path}`);
-        } catch (error) {
-            console.log(`Skipping ${path}: ${error}`);
-        }
+    // Initialize WASM once
+    console.log("Initializing Wasm...");
+    try {
+        await initCoreWasm();
+        console.log("Wasm initialized successfully.\n");
+    } catch (err) {
+        console.error("Failed to initialize Wasm:", err);
     }
 
-    console.log(`\nTotal files found: ${allFiles.length}`);
-    console.log("Using all files for benchmarking\n");
+    const testSets = ["TEST_STUDY", "EDGE_CASES"];
+    const testDataDir = join(__dirname, "..", "test_data");
 
-    // Load all files
-    const fileData: Array<{ path: string; data: Uint8Array }> = [];
-    for (const filePath of allFiles) {
-        try {
-            const data = readFileSync(filePath);
-            fileData.push({ path: filePath, data: new Uint8Array(data) });
-        } catch {
-            // Skip files we can't read
-        }
-    }
-
-    console.log(`Loaded ${fileData.length} files\n`);
-
-    // All parsers to benchmark
+    const allResults: BenchmarkResult[] = [];
     const parsers = [
-        "rad-parser-fast",
-        "rad-parser-shallow",
-        "rad-parser-medium",
-        "rad-parser",
-        "rad-parser-streaming",
+        "rad-fast-js",
+        "rad-fast-wasm",
+        "rad-shallow-js",
+        "rad-shallow-wasm",
+        "rad-medium-js",
+        "rad-medium-wasm",
+        "rad-full-js",
+        "rad-full-wasm",
+        "rad-streaming-js",
+        "rad-streaming-wasm",
         "dcmjs",
         "dicom-parser",
         "efferent-dicom",
-        "rad-parser-wasm",
     ];
 
-    const allResults: BenchmarkResult[] = [];
+    for (const testSetName of testSets) {
+        const testSetPath = join(testDataDir, testSetName);
+        if (!existsSync(testSetPath)) {
+            console.log(`Skipping missing test set: ${testSetName}`);
+            continue;
+        }
 
-    // Benchmark each parser
-    for (const parserName of parsers) {
-        if (parserName === "rad-parser-wasm") {
-            console.log("\nInitializing Wasm...");
+        const files = getAllDicomFiles(testSetPath);
+        console.log(`\nFound ${files.length} files in ${testSetName}`);
+
+        const fileData: Array<{ path: string; data: Uint8Array }> = [];
+        for (const filePath of files) {
             try {
-                await initCoreWasm();
-                console.log("Wasm initialized successfully.");
-            } catch (err) {
-                console.error("Failed to initialize Wasm:", err);
-            }
+                const data = readFileSync(filePath);
+                fileData.push({ path: filePath, data: new Uint8Array(data) });
+            } catch {}
         }
 
-        console.log(`\nBenchmarking ${parserName}...`);
-        const parserResults: BenchmarkResult[] = [];
-        let processed = 0;
-        const startParserTime = performance.now();
+        console.log(`Loaded ${fileData.length} files for ${testSetName}`);
 
-        for (const { path, data } of fileData) {
-            processed++;
-            // Show progress more frequently (every 25 files)
-            if (processed % 25 === 0 || processed === fileData.length) {
-                const elapsed = (performance.now() - startParserTime) / 1000;
-                const rate = elapsed > 0 ? processed / elapsed : 0;
-                const remaining = fileData.length - processed;
-                const eta = rate > 0 ? remaining / rate : 0;
-                const fileName = path.split(/[/\\]/).pop() || "unknown";
-                console.log(
-                    `  [${processed}/${fileData.length}] ${fileName.substring(0, 30)}... (${rate.toFixed(1)} files/s${eta > 0 ? `, ETA: ${eta.toFixed(0)}s` : ""})`
+        for (const parserName of parsers) {
+            console.log(`\nBenchmarking ${parserName} on ${testSetName}...`);
+            const startParserTime = performance.now();
+            let processed = 0;
+
+            for (const { path, data } of fileData) {
+                processed++;
+                if (processed % 50 === 0 || processed === fileData.length) {
+                    const elapsed =
+                        (performance.now() - startParserTime) / 1000;
+                    const rate = elapsed > 0 ? processed / elapsed : 0;
+                    console.log(
+                        `  [${processed}/${fileData.length}] (${rate.toFixed(1)} files/s)`
+                    );
+                }
+                allResults.push(
+                    benchmarkParser(parserName, path, data, testSetName)
                 );
             }
-
-            // Add timeout protection
-            const fileStartTime = performance.now();
-            const result = benchmarkParser(parserName, path, data);
-            const fileTime = performance.now() - fileStartTime;
-
-            // Warn if a single file takes too long
-            if (fileTime > 10000) {
-                console.log(
-                    `  ⚠ Warning: ${path.split(/[/\\]/).pop()} took ${(fileTime / 1000).toFixed(1)}s`
-                );
-            }
-
-            parserResults.push(result);
-            allResults.push(result);
+            console.log(
+                `  ✓ Completed ${testSetName} in ${((performance.now() - startParserTime) / 1000).toFixed(1)}s`
+            );
         }
-        const parserTime = (performance.now() - startParserTime) / 1000;
-        console.log(
-            `  ✓ Completed ${fileData.length} files in ${parserTime.toFixed(1)}s`
-        );
     }
 
-    // Calculate statistics
     const stats: ParserStats[] = [];
-    for (const parserName of parsers) {
-        const parserResults = allResults.filter(r => r.parser === parserName);
-        stats.push(calculateStats(parserName, parserResults));
-    }
-
-    // Print results
-    console.log("\n" + "=".repeat(80));
-    console.log("Comprehensive Benchmark Results");
-    console.log("=".repeat(80) + "\n");
-
-    // Summary table
-    console.log("Summary:");
-    console.log("-".repeat(80));
-    console.log(
-        `${"Parser".padEnd(25)} ${"Files".padEnd(8)} ${"Success".padEnd(10)} ${"Success %".padEnd(12)} ${"Avg Time".padEnd(12)} ${"Min Time".padEnd(12)} ${"Max Time".padEnd(12)} ${"Avg Elements".padEnd(15)}`
-    );
-    console.log("-".repeat(80));
-
-    // Sort by success rate, then by speed
-    const sorted = [...stats].sort((a, b) => {
-        const aRate = a.successful / a.totalFiles;
-        const bRate = b.successful / b.totalFiles;
-        if (Math.abs(aRate - bRate) > 0.01) {
-            return bRate - aRate; // Higher success rate first
+    for (const testSetName of testSets) {
+        for (const parserName of parsers) {
+            const groupResults = allResults.filter(
+                r => r.parser === parserName && r.testSet === testSetName
+            );
+            if (groupResults.length > 0) {
+                stats.push(
+                    calculateStats(parserName, testSetName, groupResults)
+                );
+            }
         }
-        return a.averageTime - b.averageTime; // Then faster
-    });
-
-    for (const stat of sorted) {
-        const successRate = ((stat.successful / stat.totalFiles) * 100).toFixed(
-            1
-        );
-        const successStr = `${stat.successful}/${stat.totalFiles}`;
-        console.log(
-            `${stat.parser.padEnd(25)} ${stat.totalFiles.toString().padEnd(8)} ${successStr.padEnd(10)} ${successRate.padEnd(11)}% ${formatTime(stat.averageTime).padEnd(12)} ${formatTime(stat.minTime).padEnd(12)} ${formatTime(stat.maxTime).padEnd(12)} ${stat.averageElements.toFixed(0).padEnd(15)}`
-        );
     }
 
-    // Performance comparison
-    console.log("\n" + "-".repeat(80));
-    console.log("Performance Comparison (relative to fastest):");
-    console.log("-".repeat(80));
-
-    const fastest =
-        sorted.find(s => s.successful === s.totalFiles) || sorted[0];
-    for (const stat of sorted) {
-        const speedup =
-            fastest.averageTime > 0
-                ? stat.averageTime / fastest.averageTime
-                : 1;
-        const bar = "█".repeat(Math.min(50, Math.round(speedup * 5)));
-        const successRate = ((stat.successful / stat.totalFiles) * 100).toFixed(
-            1
-        );
+    console.log("\nSummary by Test Set:\n" + "-".repeat(120));
+    for (const testSetName of testSets) {
+        console.log(`\n--- ${testSetName} ---`);
         console.log(
-            `${stat.parser.padEnd(25)} ${speedup.toFixed(2)}x ${bar} ${formatTime(stat.averageTime)} (${successRate}% success)`
+            `${"Parser".padEnd(25)} ${"Files".padEnd(8)} ${"Success %".padEnd(12)} ${"Avg Time".padEnd(12)} ${"Min Time".padEnd(12)} ${"Avg Elements"}`
         );
+
+        stats
+            .filter(s => s.testSet === testSetName)
+            .sort(
+                (a, b) =>
+                    b.successful / b.totalFiles - a.successful / a.totalFiles ||
+                    a.averageTime - b.averageTime
+            )
+            .forEach(s => {
+                const rate = ((s.successful / s.totalFiles) * 100).toFixed(1);
+                console.log(
+                    `${s.parser.padEnd(25)} ${s.totalFiles.toString().padEnd(8)} ${rate.padEnd(11)}% ${formatTime(s.averageTime).padEnd(12)} ${formatTime(s.minTime).padEnd(12)} ${s.averageElements.toFixed(0)}`
+                );
+            });
     }
 
-    // Capability matrix
-    console.log("\n" + "=".repeat(80));
-    console.log("Capability Matrix");
-    console.log("=".repeat(80) + "\n");
-
-    const capabilities = [
-        {
-            feature: "Core Parsing",
-            radFast: "✅",
-            radShallow: "✅",
-            radMedium: "✅",
-            radFull: "✅",
-            radStreaming: "✅",
-            dcmjs: "✅",
-            dicomParser: "✅",
-            efferent: "✅",
-        },
-        {
-            feature: "Streaming",
-            radFast: "❌",
-            radShallow: "❌",
-            radMedium: "❌",
-            radFull: "❌",
-            radStreaming: "✅",
-            dcmjs: "❌",
-            dicomParser: "❌",
-            efferent: "❌",
-        },
-        {
-            feature: "Serialization",
-            radFast: "❌",
-            radShallow: "❌",
-            radMedium: "❌",
-            radFull: "✅",
-            radStreaming: "❌",
-            dcmjs: "❌",
-            dicomParser: "❌",
-            efferent: "❌",
-        },
-        {
-            feature: "Anonymization",
-            radFast: "❌",
-            radShallow: "❌",
-            radMedium: "✅",
-            radFull: "✅",
-            radStreaming: "❌",
-            dcmjs: "❌",
-            dicomParser: "❌",
-            efferent: "❌",
-        },
-        {
-            feature: "Pixel Data",
-            radFast: "❌",
-            radShallow: "❌",
-            radMedium: "❌",
-            radFull: "✅",
-            radStreaming: "✅",
-            dcmjs: "✅",
-            dicomParser: "⚠️",
-            efferent: "⚠️",
-        },
-        {
-            feature: "Sequences",
-            radFast: "⚠️",
-            radShallow: "⚠️",
-            radMedium: "✅",
-            radFull: "✅",
-            radStreaming: "✅",
-            dcmjs: "✅",
-            dicomParser: "⚠️",
-            efferent: "⚠️",
-        },
-        {
-            feature: "100% Reliability",
-            radFast: "✅",
-            radShallow: "✅",
-            radMedium: "✅",
-            radFull: "✅",
-            radStreaming: "⚠️",
-            dcmjs: "❌",
-            dicomParser: "❌",
-            efferent: "⚠️",
-        },
-    ];
-
-    console.log(
-        `${"Feature".padEnd(20)} ${"rad-fast".padEnd(12)} ${"rad-shallow".padEnd(12)} ${"rad-medium".padEnd(12)} ${"rad-full".padEnd(12)} ${"rad-streaming".padEnd(14)} ${"dcmjs".padEnd(8)} ${"dicom-parser".padEnd(14)} ${"efferent".padEnd(10)}`
-    );
-    console.log("-".repeat(120));
-    for (const cap of capabilities) {
-        console.log(
-            `${cap.feature.padEnd(20)} ${cap.radFast.padEnd(12)} ${cap.radShallow.padEnd(12)} ${cap.radMedium.padEnd(12)} ${cap.radFull.padEnd(12)} ${cap.radStreaming.padEnd(14)} ${cap.dcmjs.padEnd(8)} ${cap.dicomParser.padEnd(14)} ${cap.efferent.padEnd(10)}`
-        );
-    }
-
-    // Save detailed results
     const resultsDir = join(__dirname, "results");
-    if (!existsSync(resultsDir)) {
-        mkdirSync(resultsDir, { recursive: true });
-    }
+    if (!existsSync(resultsDir)) mkdirSync(resultsDir, { recursive: true });
 
     const replacer = (key: string, value: any) => {
-        if (typeof value === "bigint") {
-            return value.toString();
-        }
-        if (
-            value instanceof Uint8Array ||
-            value instanceof ArrayBuffer ||
-            (value && value.type === "Buffer")
-        ) {
-            return `[Binary data: ${value.byteLength || value.length} bytes]`;
-        }
-        if (key === "dataSet" && value && typeof value === "object")
-            return "[Circular]";
+        if (typeof value === "bigint") return value.toString();
+        if (value instanceof Uint8Array)
+            return `[Binary: ${value.length} bytes]`;
         return value;
     };
 
@@ -608,10 +412,6 @@ async function main() {
     writeFileSync(
         join(resultsDir, "comprehensive-benchmark-results.json"),
         JSON.stringify(allResults, replacer, 2)
-    );
-
-    console.log(
-        `\nDetailed results saved to: ${join(resultsDir, "comprehensive-benchmark-*.json")}`
     );
 }
 

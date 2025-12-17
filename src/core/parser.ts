@@ -12,7 +12,6 @@
  * - dictionary: Tag dictionary and lookup
  */
 
-import { isPrivateTag } from "../utils/dictionary";
 import { extractPixelDataFromView } from "../utils/pixelData";
 import { SafeDataView } from "../utils/SafeDataView";
 import { parseSequence } from "../utils/sequenceParser";
@@ -245,12 +244,13 @@ export function parseWithMetadata(
         pixelDataPlugin: options.pixelDataPlugin,
     };
 
-    let dict: Record<string, DicomElement>;
+    const dict: Record<string, DicomElement> = detection.metaElements || {};
     let detectedCharacterSet: string | undefined;
 
     try {
         const parseResult = parseDataElements(view, parseContext);
-        dict = parseResult.dict;
+        // Merge meta elements with data elements
+        Object.assign(dict, parseResult.dict);
         detectedCharacterSet = parseResult.detectedCharacterSet;
     } catch (error) {
         // If it's already a DicomParseError, it usually has tag/offset context
@@ -301,6 +301,7 @@ interface FormatDetection {
     explicitVR: boolean;
     littleEndian: boolean;
     characterSet: string;
+    metaElements?: Record<string, DicomElement>;
 }
 
 /**
@@ -311,6 +312,7 @@ function detectDicomFormat(
     buffer: ArrayBuffer
 ): FormatDetection {
     let offset = 0;
+    let metaElements: Record<string, DicomElement> | undefined;
     let isDicomPart10 = false;
     let transferSyntax = TRANSFER_SYNTAX_EXPLICIT_VR_LITTLE_ENDIAN;
     let explicitVR = true;
@@ -337,7 +339,7 @@ function detectDicomFormat(
             } else {
                 throw new Error("Invalid DICOM file format");
             }
-        } catch (e) {
+        } catch (_e) {
             throw new Error("Invalid DICOM file format");
         }
     }
@@ -350,6 +352,9 @@ function detectDicomFormat(
             const metaInfo = readMetaInformation(metaView);
             transferSyntax = metaInfo.transferSyntax || transferSyntax;
             offset += metaView.getPosition();
+
+            // Return found elements
+            metaElements = metaInfo.elements;
 
             // Determine endianness and VR type from transfer syntax
             if (transferSyntax === TRANSFER_SYNTAX_IMPLICIT_VR_LITTLE_ENDIAN) {
@@ -382,6 +387,7 @@ function detectDicomFormat(
         explicitVR,
         littleEndian,
         characterSet,
+        metaElements,
     };
 }
 
@@ -391,75 +397,112 @@ function detectDicomFormat(
 function readMetaInformation(metaView: SafeDataView): {
     transferSyntax?: string;
     characterSet?: string;
+    elements: Record<string, DicomElement>;
 } {
-    const result: { transferSyntax?: string; characterSet?: string } = {};
+    const result: {
+        transferSyntax?: string;
+        characterSet?: string;
+        elements: Record<string, DicomElement>;
+    } = { elements: {} };
 
-    // Read meta information group length (0002,0000)
-    const metaGroup = metaView.readUint16();
-    const metaElement = metaView.readUint16();
+    while (metaView.getRemainingBytes() >= 8) {
+        const startPos = metaView.getPosition();
+        const group = metaView.readUint16();
+        const element = metaView.readUint16();
 
-    if (metaGroup !== 0x0002 || metaElement !== 0x0000) {
-        return result;
-    }
-
-    // Read VR and length
-    const vrBytes = metaView.readBytes(2);
-    const [vr0, vr1] = vrBytes;
-    const vr = String.fromCharCode(vr0, vr1);
-    let length: number;
-    if (requiresExplicitLength(vr)) {
-        metaView.readUint16(); // Skip reserved bytes
-        length = metaView.readUint32();
-    } else {
-        length = metaView.readUint16();
-    }
-    metaView.readBytes(length); // Skip group length value
-
-    // Scan through meta information elements
-    const maxMetaElements = 20;
-    let metaIterations = 0;
-
-    while (
-        metaView.getRemainingBytes() >= 8 &&
-        metaIterations < maxMetaElements
-    ) {
-        metaIterations++;
-        const tsGroup = metaView.readUint16();
-        const tsElement = metaView.readUint16();
-
-        if (tsGroup === 0x0002 && tsElement === 0x0010) {
-            // Transfer syntax UID
-            const tsVrBytes = metaView.readBytes(2);
-            const [tsVr0, tsVr1] = tsVrBytes;
-            const tsVr = String.fromCharCode(tsVr0, tsVr1);
-            let tsLength: number;
-            if (requiresExplicitLength(tsVr)) {
-                metaView.readUint16();
-                tsLength = metaView.readUint32();
-            } else {
-                tsLength = metaView.readUint16();
-            }
-            result.transferSyntax = metaView
-                .readString(tsLength)
-                .replace(/\u0000/g, "")
-                .trim();
-        } else if (tsGroup === 0x0002) {
-            // Still in meta information group, skip this element
-            const tsVrBytes = metaView.readBytes(2);
-            const [tsVr0, tsVr1] = tsVrBytes;
-            const tsVr = String.fromCharCode(tsVr0, tsVr1);
-            let tsLength: number;
-            if (requiresExplicitLength(tsVr)) {
-                metaView.readUint16();
-                tsLength = metaView.readUint32();
-            } else {
-                tsLength = metaView.readUint16();
-            }
-            metaView.readBytes(tsLength);
-        } else {
-            // Left meta information group
-            metaView.setPosition(metaView.getPosition() - 4);
+        // Only process Group 0002
+        if (group !== 0x0002) {
+            metaView.setPosition(startPos);
             break;
+        }
+
+        const vrBytes = metaView.readBytes(2);
+        const vr = String.fromCharCode(vrBytes[0], vrBytes[1]);
+        let length: number;
+
+        if (requiresExplicitLength(vr)) {
+            metaView.readUint16(); // reserved
+            length = metaView.readUint32();
+        } else {
+            length = metaView.readUint16();
+        }
+
+        const dataStart = metaView.getPosition();
+        let value: string | number | string[] | Uint8Array | undefined =
+            undefined;
+
+        if (length > 0 && length !== 0xffffffff) {
+            if (vr === "UI") {
+                value = metaView
+                    .readString(length)
+                    .replace(/\u0000/g, "")
+                    .trim()
+                    .split("\\");
+                if (value.length === 1) value = value[0];
+            } else if (vr === "UL") {
+                value = metaView.readUint32();
+            } else if (vr === "SL" || vr === "SS" || vr === "US") {
+                const str = metaView.readString(length).replace(/\u0000/g, "");
+                const num = parseInt(str, 10);
+                value = isNaN(num) ? str : num;
+            } else if (vr === "OB" || vr === "OW" || vr === "UN") {
+                value = new Uint8Array(metaView.readBytes(length));
+            } else {
+                value = metaView
+                    .readString(length)
+                    .replace(/\u0000/g, "")
+                    .trim();
+            }
+        } else if (length === 0xffffffff) {
+            // Sequence or undefined length in meta info? Rare but possible.
+            // Attempt to skip until delimiter (xFFFEE0DD)
+            let found = false;
+            while (metaView.getRemainingBytes() >= 8) {
+                const g = metaView.readUint16();
+                const e = metaView.readUint16();
+                if (g === 0xfffe && e === 0xe0dd) {
+                    metaView.readUint32(); // length 0
+                    found = true;
+                    break;
+                }
+                metaView.setPosition(metaView.getPosition() - 2); // back up element
+            }
+            if (!found) break; // Could not find delimiter, stop
+            continue; // Continue to next meta element
+        }
+
+        const tag = formatTag(group, element);
+
+        // Wrap value in array if it's not already an array or Uint8Array
+        let normalizedValue = value;
+        if (
+            normalizedValue !== undefined &&
+            !Array.isArray(normalizedValue) &&
+            !(normalizedValue instanceof Uint8Array)
+        ) {
+            normalizedValue = [normalizedValue];
+        }
+
+        result.elements[tag] = {
+            vr: vr,
+            VR: vr,
+            value: normalizedValue as any,
+            Value: normalizedValue as any,
+            length: length,
+            Length: length,
+        };
+
+        if (group === 0x0002 && element === 0x0010) {
+            if (Array.isArray(value)) {
+                result.transferSyntax = String(value[0]);
+            } else if (typeof value === "string") {
+                result.transferSyntax = value;
+            }
+        }
+
+        // Ensure we moved forward
+        if (metaView.getPosition() === dataStart && length > 0) {
+            metaView.setPosition(dataStart + length);
         }
     }
 
@@ -495,7 +538,7 @@ function parseDataElements(
 } {
     const dict: Record<string, DicomElement> = {};
     let detectedCharacterSet: string | undefined;
-    const maxIterations = 10000;
+    const maxIterations = 100000;
     let iterations = 0;
 
     while (view.getRemainingBytes() >= 8 && iterations < maxIterations) {
@@ -594,7 +637,7 @@ function parseElement(
         length = view.readUint32();
 
         // Check if private tag and use enhanced detection
-        if (isPrivateTag(tagHex)) {
+        if (group % 2 === 1) {
             vr = detectVRForPrivateTag(group, element, length);
         } else {
             vr = detectVR(group, element);
@@ -752,10 +795,11 @@ function parseElement(
             }
         }
     } else if (length > 0 && view.getRemainingBytes() >= length) {
-        const maxSize = 10000000;
+        const maxSize = 50000000; // 50MB limit for loading into memory
         if (length > maxSize) {
-            view.readBytes(maxSize);
-            return null;
+            // Skip large element but continue parsing others
+            view.setPosition(view.getPosition() + length);
+            return { dict: {} };
         }
         try {
             value = parseElementValue(
@@ -970,14 +1014,21 @@ function createLazyDataSet(
         const meta = shallow[tag];
         if (!meta) return undefined;
 
-        view.setPosition(meta.dataOffset);
         const vr = meta.vr;
         const length = meta.length;
 
         if (length === 0) return undefined;
+
+        // If meta element already has a value, return it
+        if ((meta as any).Value !== undefined) return (meta as any).Value;
+        if ((meta as any).value !== undefined) return (meta as any).value;
+
         if (length === 0xffffffff) return undefined; // Lazy doesn't support encapsulated/undefined length values well yet
 
+        if (meta.dataOffset === undefined) return undefined;
+
         try {
+            view.setPosition(meta.dataOffset);
             return parseElementValue(
                 view,
                 vr,
@@ -1103,7 +1154,7 @@ function fastParse(
     view.setPosition(detection.offset);
 
     const result: ShallowDicomDataSet = {};
-    const maxIterations = 50000;
+    const maxIterations = 100000;
     let iterations = 0;
     const explicitVR = detection.explicitVR;
 
@@ -1348,7 +1399,7 @@ function shallowParse(
     view.setEndianness(detection.littleEndian);
     view.setPosition(detection.offset);
 
-    const result: ShallowDicomDataSet = {};
+    const result: ShallowDicomDataSet = (detection.metaElements as any) || {};
     const maxIterations = 100000;
     let iterations = 0;
     const explicitVR = detection.explicitVR;
@@ -1486,6 +1537,34 @@ function shallowParse(
                     const e = view.readUint16();
                     if (g === 0xfffe && e === 0xe0dd) {
                         view.readUint32();
+                        break;
+                    }
+                    view.setPosition(view.getPosition() - 4 + 2);
+                    skipped += 2;
+                }
+            } else {
+                // Other undefined length (Sequences, UN, etc.)
+                // Try Wasm optimization if enabled
+                if (enableWasm) {
+                    const buffer = new Uint8Array(
+                        view["view"].buffer,
+                        view["view"].byteOffset + view.getPosition(),
+                        view.getRemainingBytes()
+                    );
+                    const offset = findSequenceDelimiterWasm(buffer);
+                    if (offset !== null) {
+                        view.setPosition(view.getPosition() + offset + 8);
+                        continue;
+                    }
+                }
+
+                // Fallback to JS loop
+                let skipped = 0;
+                while (view.getRemainingBytes() >= 8 && skipped < 1000000) {
+                    const g = view.readUint16();
+                    const e = view.readUint16();
+                    if (g === 0xfffe && e === 0xe0dd) {
+                        view.readUint32(); // Read length (should be 0)
                         break;
                     }
                     view.setPosition(view.getPosition() - 4 + 2);

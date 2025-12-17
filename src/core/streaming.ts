@@ -14,6 +14,13 @@ import {
     requiresExplicitLength,
 } from "../utils/vrDetection";
 import type { DicomElement } from "./types";
+import {
+    parseDAWasm,
+    parseDSWasm,
+    parseISWasm,
+    parsePNWasm,
+    parseTMWasm,
+} from "./wasm-opt";
 
 /**
  * Hex string cache for fast tag formatting (module-level for reuse)
@@ -43,6 +50,7 @@ interface StreamingState {
         bytesRead: number;
         data: Uint8Array;
     };
+    enableWasm: boolean;
 }
 
 /**
@@ -61,6 +69,7 @@ export interface StreamingOptions {
     onError?: (error: Error) => void;
     maxBufferSize?: number; // Maximum buffer size before flushing (default: 10MB)
     maxIterations?: number; // Maximum elements to parse per chunk (default: 1000)
+    enableWasm?: boolean;
 }
 
 /**
@@ -69,7 +78,7 @@ export interface StreamingOptions {
 export class StreamingParser {
     private state: StreamingState;
     private options: Required<
-        Pick<StreamingOptions, "maxBufferSize" | "maxIterations">
+        Pick<StreamingOptions, "maxBufferSize" | "maxIterations" | "enableWasm">
     > &
         Pick<StreamingOptions, "onElement" | "onError">;
 
@@ -79,6 +88,7 @@ export class StreamingParser {
             maxIterations: options.maxIterations ?? 1000,
             onElement: options.onElement,
             onError: options.onError,
+            enableWasm: options.enableWasm ?? false,
         };
 
         this.state = {
@@ -89,6 +99,7 @@ export class StreamingParser {
             characterSet: "ISO_IR 192",
             isDicomPart10: false,
             initialized: false,
+            enableWasm: this.options.enableWasm,
         };
     }
 
@@ -508,7 +519,6 @@ export class StreamingParser {
             length = view.readUint32();
 
             // Fast VR detection - use numeric tag comparison
-            const tagNum = (group << 16) | element;
             const isPrivate = group % 2 !== 0;
             if (isPrivate) {
                 vr = detectVRForPrivateTag(group, element, length);
@@ -522,8 +532,6 @@ export class StreamingParser {
         const elementHex =
             hexCache[element] || element.toString(16).padStart(4, "0");
         const tagHex = `x${groupHex}${elementHex}`;
-        const tagComma = `${groupHex},${elementHex}`;
-        const tagPlain = `${groupHex}${elementHex}`;
 
         // Handle sequences
         if (vr === "SQ" || length === 0xffffffff) {
@@ -535,7 +543,8 @@ export class StreamingParser {
                     this.state.explicitVR,
                     this.state.littleEndian,
                     this.state.characterSet,
-                    true
+                    true,
+                    this.state.enableWasm
                 );
 
                 const elementData: DicomElement = {
@@ -563,7 +572,8 @@ export class StreamingParser {
                     this.state.explicitVR,
                     this.state.littleEndian,
                     this.state.characterSet,
-                    false
+                    false,
+                    this.state.enableWasm
                 );
 
                 const elementData: DicomElement = {
@@ -700,7 +710,12 @@ export class StreamingParser {
             }
 
             try {
-                value = this.parseElementValue(view, vr, length);
+                value = this.parseElementValue(
+                    view,
+                    vr,
+                    length,
+                    this.state.enableWasm
+                );
             } catch {
                 view.readBytes(length);
                 return null;
@@ -751,7 +766,8 @@ export class StreamingParser {
     private parseElementValue(
         view: SafeDataView,
         vr: string,
-        length: number
+        length: number,
+        enableWasm?: boolean
     ):
         | string
         | number
@@ -782,7 +798,63 @@ export class StreamingParser {
             return tags;
         }
 
-        const str = view.readString(length, this.state.characterSet);
+        const characterSet = this.state.characterSet || "ISO_IR 192";
+
+        // WASM-accelerated parsing
+        if (enableWasm) {
+            if (vr === "PN") {
+                const value = view.readString(length, characterSet);
+                const res = parsePNWasm(value);
+                if (res) return res as any;
+                return value;
+            }
+            if (vr === "DA") {
+                const value = view.readString(length, characterSet);
+                const res = parseDAWasm(value);
+                if (res) return res as any;
+                return value;
+            }
+            if (vr === "TM") {
+                const value = view.readString(length, characterSet);
+                const res = parseTMWasm(value);
+                if (res) return res as any;
+                return value;
+            }
+            if (vr === "DS") {
+                const bytes = view.readBytes(length);
+                const res = parseDSWasm(bytes);
+                if (res) return Array.from(res);
+                // Fallback
+                const str = new TextDecoder().decode(bytes);
+                const parts = str.split("\\").filter(p => p.trim());
+                if (parts.length === 1) {
+                    const num = parseFloat(parts[0]);
+                    return isNaN(num) ? parts[0] || "" : num;
+                }
+                return parts.map(p => {
+                    const num = parseFloat(p.trim());
+                    return isNaN(num) ? p.trim() || "" : num;
+                });
+            }
+            if (vr === "IS") {
+                const bytes = view.readBytes(length);
+                const res = parseISWasm(bytes);
+                if (res) return Array.from(res);
+                // Fallback
+                const str = new TextDecoder().decode(bytes);
+                const parts = str.split("\\").filter(p => p.trim());
+                if (parts.length === 1) {
+                    const num = parseFloat(parts[0]);
+                    return isNaN(num) ? parts[0] || "" : Math.floor(num);
+                }
+                return parts.map(p => {
+                    const num = parseFloat(p.trim());
+                    return isNaN(num) ? p.trim() || "" : Math.floor(num);
+                });
+            }
+        }
+
+        const str = view.readString(length, characterSet);
 
         if (
             vr === "IS" ||
@@ -798,7 +870,7 @@ export class StreamingParser {
             }
             return parts.map(p => {
                 const num = parseFloat(p.trim());
-                return isNaN(num) ? p.trim() : num;
+                return isNaN(num) ? p.trim() || "" : num;
             });
         }
 
@@ -810,7 +882,7 @@ export class StreamingParser {
             }
             return parts.map(p => {
                 const num = parseFloat(p.trim());
-                return isNaN(num) ? p.trim() : num;
+                return isNaN(num) ? p.trim() || "" : num;
             });
         }
 
