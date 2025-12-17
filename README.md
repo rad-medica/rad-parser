@@ -228,6 +228,39 @@ A head-to-head comparison of capabilities, ecosystem, and performance.
 -   [Image decoding examples](docs/CODEC_TUTORIAL.md#basic-image-decoding)
 -   [Wasm optimization](docs/CODEC_TUTORIAL.md#wasm-optimization)
 
+## Building from Source
+
+To build the project and its WASM dependencies from source, you need [Zig](https://ziglang.org/) (tested with 0.13.0) installed.
+
+1.  **Clone the repository with submodules:**
+
+    ```bash
+    git clone --recursive https://github.com/rad-medica/rad-parser.git
+    cd rad-parser
+    ```
+
+    If you already cloned it without submodules, initialize them:
+
+    ```bash
+    git submodule update --init --recursive
+    ```
+
+2.  **Build the WASM codecs:**
+
+    ```bash
+    cd src/zig-codecs
+    zig build -p zig-out -Doptimize=ReleaseSmall
+    ```
+
+    This will compile `libjpeg-turbo`, `openjpeg`, `charls`, and the `rad-codecs` wrappers into `src/zig-codecs/zig-out/bin`.
+
+3.  **Build Core WASM:**
+
+    ```bash
+    cd ../zig-core
+    zig build -p zig-out -Doptimize=ReleaseFast
+    ```
+
 ---
 
 For a deep dive into the library's features, including advanced codec registration, encoding examples, and handling encapsulated data like PDFs and ECGs, please see our **[Full API Documentation](./docs/api.md)**.

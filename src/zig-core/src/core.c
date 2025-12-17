@@ -195,4 +195,77 @@ WASM_EXPORT double parse_ds(const uint8_t* s, size_t len) {
     return sign * res;
 }
 
+// ==================== PN (Person Name) ====================
+
+static size_t g_pn_offsets[5];
+static size_t g_pn_lengths[5];
+
+WASM_EXPORT void parse_pn(const uint8_t* input, size_t len) {
+    // Reset
+    for (int i = 0; i < 5; i++) {
+        g_pn_offsets[i] = 0;
+        g_pn_lengths[i] = 0;
+    }
+    
+    // Check for empty
+    if (len == 0) return;
+
+    size_t comp_idx = 0;
+    size_t current_start = 0;
+    size_t i = 0;
+
+    while (i < len && comp_idx < 5) {
+        if (input[i] == '^') {
+            // End of component
+            // Trim trailing whitespace? Standard says significant chars. 
+            // usually we just return the raw range minus the delimiter.
+            g_pn_offsets[comp_idx] = current_start;
+            g_pn_lengths[comp_idx] = i - current_start;
+            
+            comp_idx++;
+            current_start = i + 1;
+        } else if (input[i] == '=') {
+            // End of checking this group (we only parse the first representation group for now)
+            break;
+        }
+        i++;
+    }
+
+    // Last component (if we didn't hit '=' or max components)
+    if (comp_idx < 5 && current_start < len) {
+        g_pn_offsets[comp_idx] = current_start;
+        // If we hit loop end or '=', i is where we stopped
+        g_pn_lengths[comp_idx] = i - current_start;
+    }
+}
+
+WASM_EXPORT size_t get_pn_offset(int idx) {
+    if (idx < 0 || idx >= 5) return 0;
+    return g_pn_offsets[idx];
+}
+
+WASM_EXPORT size_t get_pn_length(int idx) {
+    if (idx < 0 || idx >= 5) return 0;
+    return g_pn_lengths[idx];
+}
+
+// ==================== UID Validation ====================
+
+WASM_EXPORT int validate_uid(const uint8_t* input, size_t len) {
+    if (len == 0 || len > 64) return 0;
+    
+    for (size_t i = 0; i < len; i++) {
+        uint8_t c = input[i];
+        // Allow 0-9 and .
+        // Standard allows trailing null, usually stripped before here.
+        if (c == 0 && i == len - 1) continue; 
+        if (!((c >= '0' && c <= '9') || c == '.')) {
+            return 0;
+        }
+    }
+    // UID components cannot start with 0 unless it's just "0" (simplified check)
+    // Detailed validation is complex, basic char check is usually sufficient for core.
+    return 1;
+}
+
 int main(void) { return 0; }

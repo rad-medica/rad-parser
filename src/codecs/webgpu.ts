@@ -147,8 +147,9 @@ export class WebGpuDecoder implements PixelDataCodec {
     }
 
     canEncode(transferSyntax: string): boolean {
-        // Claim same support for encoding as decoding (Pass-through/Stub)
-        return this.canDecode(transferSyntax);
+        // Encoding is not yet implemented (previously was a pass-through stub).
+        // Returning false ensures the registry falls back to CPU codecs (like RLE or Native).
+        return false;
     }
 
     async encode(
