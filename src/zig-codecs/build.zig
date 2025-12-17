@@ -72,19 +72,179 @@ pub fn build(b: *std.Build) void {
     });
 
     lib_j2k.addCSourceFile(.{ .file = b.path("src/jpeg2000.cpp"), .flags = &.{ "-std=c++11", "-O3", "-DNDEBUG" } });
-
     lib_j2k.addIncludePath(b.path("deps/openjpeg/src/lib/openjp2"));
-    // lib_j2k.root_module.addCMacro("OPJ_STATIC", ""); // Defined in opj_config.h
+
+    const openjpeg_srcs = [_][]const u8{
+        "deps/openjpeg/src/lib/openjp2/thread.c",
+        "deps/openjpeg/src/lib/openjp2/bio.c",
+        "deps/openjpeg/src/lib/openjp2/cio.c",
+        "deps/openjpeg/src/lib/openjp2/dwt.c",
+        "deps/openjpeg/src/lib/openjp2/event.c",
+        "deps/openjpeg/src/lib/openjp2/image.c",
+        "deps/openjpeg/src/lib/openjp2/invert.c",
+        "deps/openjpeg/src/lib/openjp2/j2k.c",
+        "deps/openjpeg/src/lib/openjp2/jp2.c",
+        "deps/openjpeg/src/lib/openjp2/mct.c",
+        "deps/openjpeg/src/lib/openjp2/mqc.c",
+        "deps/openjpeg/src/lib/openjp2/openjpeg.c",
+        // "deps/openjpeg/src/lib/openjp2/opj_clock.c", // Replaced by overrides
+        "deps/openjpeg/src/lib/openjp2/pi.c",
+        "deps/openjpeg/src/lib/openjp2/t1.c",
+        "deps/openjpeg/src/lib/openjp2/t2.c",
+        "deps/openjpeg/src/lib/openjp2/tcd.c",
+        "deps/openjpeg/src/lib/openjp2/tgt.c",
+        "deps/openjpeg/src/lib/openjp2/function_list.c",
+        "deps/openjpeg/src/lib/openjp2/opj_malloc.c",
+        "deps/openjpeg/src/lib/openjp2/sparse_array.c",
+    };
+    for (openjpeg_srcs) |src| {
+        lib_j2k.addCSourceFile(.{ .file = b.path(src), .flags = &.{ "-std=c99", "-O3", "-DNDEBUG" } });
+    }
     lib_j2k.addCSourceFile(.{ .file = b.path("src/overrides/opj_clock.c"), .flags = &.{ "-O3", "-DNDEBUG" } });
-
-    addSources(b, lib_j2k, "deps/openjpeg/src/lib/openjp2", &.{".c"}, &.{ "test", "bench", "opj_clock.c", "cidx_manager.c", "phix_manager.c", "ppix_manager.c", "thix_manager.c", "tpix_manager.c" }) catch |err| std.debug.print("Error adding OPJ sources: {}\n", .{err});
-    // lib_j2k.addCSourceFile(.{ .file = b.path("src/opj_dummy.c"), .flags = &.{} });
-
-    lib_j2k.linkLibC();
     lib_j2k.linkLibCpp();
-    lib_j2k.rdynamic = true;
     lib_j2k.entry = .disabled;
+    lib_j2k.rdynamic = true;
     b.installArtifact(lib_j2k);
+
+    // --- HTJ2K (OpenJPH) ---
+    const lib_htj2k = b.addExecutable(.{
+        .name = "rad-codecs-htj2k",
+        .root_module = b.createModule(.{
+            .target = target,
+            .optimize = optimize,
+            .strip = true,
+            .single_threaded = true,
+        }),
+    });
+
+    const htj2k_flags = &.{ "-std=c++11", "-O3", "-DNDEBUG", "-DOJPH_DISABLE_INTEL_SIMD" };
+    lib_htj2k.addCSourceFile(.{ .file = b.path("src/htj2k.cpp"), .flags = htj2k_flags });
+    lib_htj2k.addIncludePath(b.path("deps/openjph/src/core/common"));
+
+    const openjph_srcs = [_][]const u8{
+        // Codestream
+        "deps/openjph/src/core/codestream/ojph_codeblock.cpp",
+        "deps/openjph/src/core/codestream/ojph_codeblock_fun.cpp",
+        "deps/openjph/src/core/codestream/ojph_codestream.cpp",
+        "deps/openjph/src/core/codestream/ojph_codestream_gen.cpp",
+        "deps/openjph/src/core/codestream/ojph_codestream_local.cpp",
+        "deps/openjph/src/core/codestream/ojph_params.cpp",
+        "deps/openjph/src/core/codestream/ojph_precinct.cpp",
+        "deps/openjph/src/core/codestream/ojph_resolution.cpp",
+        "deps/openjph/src/core/codestream/ojph_subband.cpp",
+        "deps/openjph/src/core/codestream/ojph_tile.cpp",
+        "deps/openjph/src/core/codestream/ojph_tile_comp.cpp",
+        // Coding
+        "deps/openjph/src/core/coding/ojph_block_common.cpp",
+        "deps/openjph/src/core/coding/ojph_block_decoder32.cpp",
+        "deps/openjph/src/core/coding/ojph_block_decoder64.cpp",
+        "deps/openjph/src/core/coding/ojph_block_encoder.cpp",
+        // Others
+        "deps/openjph/src/core/others/ojph_arch.cpp",
+        "deps/openjph/src/core/others/ojph_file.cpp",
+        "deps/openjph/src/core/others/ojph_mem.cpp",
+        "deps/openjph/src/core/others/ojph_message.cpp",
+        // Transform
+        "deps/openjph/src/core/transform/ojph_colour.cpp",
+        "deps/openjph/src/core/transform/ojph_transform.cpp",
+    };
+    for (openjph_srcs) |src| {
+        lib_htj2k.addCSourceFile(.{ .file = b.path(src), .flags = htj2k_flags });
+    }
+    lib_htj2k.linkLibCpp();
+    lib_htj2k.entry = .disabled;
+    lib_htj2k.rdynamic = true;
+    b.installArtifact(lib_htj2k);
+
+    // --- JPEG Lossless (libjpeg-lj) ---
+    const lib_ljpeg = b.addExecutable(.{
+        .name = "rad-codecs-ljpeg",
+        .root_module = b.createModule(.{
+            .target = target,
+            .optimize = optimize,
+            .strip = true,
+            .single_threaded = true,
+        }),
+    });
+
+    const ljpeg_flags = &.{ "-std=c++11", "-O3", "-DNDEBUG" };
+    lib_ljpeg.addCSourceFile(.{ .file = b.path("src/ljpeg.cpp"), .flags = ljpeg_flags });
+    lib_ljpeg.addIncludePath(b.path("deps/libjpeg-lj"));
+
+    const ljpeg_srcs = [_][]const u8{
+        // Cmd (helper)
+        "deps/libjpeg-lj/cmd/bitmaphook.cpp",
+        // Codestream
+        "deps/libjpeg-lj/codestream/aclosslessscan.cpp",
+        "deps/libjpeg-lj/codestream/acrefinementscan.cpp",
+        "deps/libjpeg-lj/codestream/acsequentialscan.cpp",
+        "deps/libjpeg-lj/codestream/decoder.cpp",
+        "deps/libjpeg-lj/codestream/encoder.cpp",
+        "deps/libjpeg-lj/codestream/entropyparser.cpp",
+        "deps/libjpeg-lj/codestream/image.cpp",
+        "deps/libjpeg-lj/codestream/jpeglsscan.cpp",
+        "deps/libjpeg-lj/codestream/lineinterleavedlsscan.cpp",
+        "deps/libjpeg-lj/codestream/losslessscan.cpp",
+        "deps/libjpeg-lj/codestream/predictivescan.cpp",
+        "deps/libjpeg-lj/codestream/predictor.cpp",
+        "deps/libjpeg-lj/codestream/predictorbase.cpp",
+        "deps/libjpeg-lj/codestream/rectanglerequest.cpp",
+        "deps/libjpeg-lj/codestream/refinementscan.cpp",
+        "deps/libjpeg-lj/codestream/sampleinterleavedlsscan.cpp",
+        "deps/libjpeg-lj/codestream/sequentialscan.cpp",
+        "deps/libjpeg-lj/codestream/singlecomponentlsscan.cpp",
+        "deps/libjpeg-lj/codestream/tables.cpp",
+        // Coding
+        "deps/libjpeg-lj/coding/actemplate.cpp",
+        "deps/libjpeg-lj/coding/arithmeticdecoder.cpp",
+        "deps/libjpeg-lj/coding/arithmeticencoder.cpp",
+        "deps/libjpeg-lj/coding/huffmandecoder.cpp",
+        "deps/libjpeg-lj/coding/huffmanencoder.cpp",
+        "deps/libjpeg-lj/coding/huffmantable.cpp",
+        "deps/libjpeg-lj/coding/huffmantemplate.cpp",
+        "deps/libjpeg-lj/coding/losslesstraits.cpp",
+        "deps/libjpeg-lj/coding/mockarithmeticdecoder.cpp",
+        "deps/libjpeg-lj/coding/scandecoder.cpp",
+        "deps/libjpeg-lj/coding/scanencoder.cpp",
+        "deps/libjpeg-lj/coding/template.cpp",
+        // Boxes
+        "deps/libjpeg-lj/boxes/alphabox.cpp",
+        "deps/libjpeg-lj/boxes/box.cpp",
+        "deps/libjpeg-lj/boxes/checksumbox.cpp",
+        "deps/libjpeg-lj/boxes/colortrafobox.cpp",
+        "deps/libjpeg-lj/boxes/databox.cpp",
+        "deps/libjpeg-lj/boxes/dctbox.cpp",
+        "deps/libjpeg-lj/boxes/filetypebox.cpp",
+        "deps/libjpeg-lj/boxes/floattonemappingbox.cpp",
+        "deps/libjpeg-lj/boxes/floattransformationbox.cpp",
+        "deps/libjpeg-lj/boxes/inversetonemappingbox.cpp",
+        "deps/libjpeg-lj/boxes/lineartransformationbox.cpp",
+        "deps/libjpeg-lj/boxes/matrixbox.cpp",
+        "deps/libjpeg-lj/boxes/mergingspecbox.cpp",
+        "deps/libjpeg-lj/boxes/namespace.cpp",
+        "deps/libjpeg-lj/boxes/nonlineartrafobox.cpp",
+        "deps/libjpeg-lj/boxes/outputconversionbox.cpp",
+        "deps/libjpeg-lj/boxes/parametrictonemappingbox.cpp",
+        "deps/libjpeg-lj/boxes/refinementspecbox.cpp",
+        "deps/libjpeg-lj/boxes/superbox.cpp",
+        "deps/libjpeg-lj/boxes/tonemapperbox.cpp",
+        // IO
+        "deps/libjpeg-lj/io/bitstream.cpp",
+        "deps/libjpeg-lj/io/bytestream.cpp",
+        "deps/libjpeg-lj/io/checksumadapter.cpp",
+        "deps/libjpeg-lj/io/decoderstream.cpp",
+        "deps/libjpeg-lj/io/iostream.cpp",
+        "deps/libjpeg-lj/io/memorystream.cpp",
+        "deps/libjpeg-lj/io/randomaccessstream.cpp",
+        "deps/libjpeg-lj/io/staticstream.cpp",
+    };
+    for (ljpeg_srcs) |src| {
+        lib_ljpeg.addCSourceFile(.{ .file = b.path(src), .flags = ljpeg_flags });
+    }
+    lib_ljpeg.linkLibCpp();
+    lib_ljpeg.entry = .disabled;
+    lib_ljpeg.rdynamic = true;
+    b.installArtifact(lib_ljpeg);
 
     // --- JPEG-LS (CharLS) ---
     const lib_jpegls = b.addExecutable(.{

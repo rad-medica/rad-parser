@@ -58,6 +58,10 @@ interface CodecExports {
         height: number,
         components: number,
     ) => number;
+    // HTJ2K (OpenJPH)
+    decode_htj2k?: (ptr: number, len: number) => number;
+    // JPEG Lossless (libjpeg-lj)
+    decode_ljpeg?: (ptr: number, len: number) => number;
 }
 
 export class ZigCodecs {
@@ -362,6 +366,56 @@ export class ZigCodecs {
         const output = this.readBuffer(memory, outPtr, outLen);
 
         exports.free(ptr, pixels.length);
+        exports.free(outPtr, outLen);
+        return output;
+    }
+
+    // ==================== HTJ2K ====================
+
+    public async decodeHtj2k(data: Uint8Array): Promise<Uint8Array> {
+        const exports = await this.getCodecExports("htj2k");
+        const memory = this.getMemory("htj2k");
+
+        const ptr = exports.alloc(data.length);
+        if (ptr === 0) throw new Error("WASM alloc failed");
+        this.writeBuffer(memory, ptr, data);
+
+        const res = exports.decode_htj2k!(ptr, data.length);
+        if (res !== 0) {
+            exports.free(ptr, data.length);
+            throw new Error(`HTJ2K decode failed: ${res}`);
+        }
+
+        const outPtr = exports.get_result_ptr();
+        const outLen = exports.get_result_len();
+        const output = this.readBuffer(memory, outPtr, outLen);
+
+        exports.free(ptr, data.length);
+        exports.free(outPtr, outLen);
+        return output;
+    }
+
+    // ==================== JPEG Lossless ====================
+
+    public async decodeLJpeg(data: Uint8Array): Promise<Uint8Array> {
+        const exports = await this.getCodecExports("ljpeg");
+        const memory = this.getMemory("ljpeg");
+
+        const ptr = exports.alloc(data.length);
+        if (ptr === 0) throw new Error("WASM alloc failed");
+        this.writeBuffer(memory, ptr, data);
+
+        const res = exports.decode_ljpeg!(ptr, data.length);
+        if (res !== 0) {
+            exports.free(ptr, data.length);
+            throw new Error(`JPEG Lossless decode failed: ${res}`);
+        }
+
+        const outPtr = exports.get_result_ptr();
+        const outLen = exports.get_result_len();
+        const output = this.readBuffer(memory, outPtr, outLen);
+
+        exports.free(ptr, data.length);
         exports.free(outPtr, outLen);
         return output;
     }

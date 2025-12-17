@@ -1870,7 +1870,8 @@ function createDataSet(dict: Record<string, DicomElement>): DicomDataSet {
                     ) {
                         // Cache the parsed result to avoid re-parsing
                         elem.Value = wasmParsed;
-                        return (wasmParsed as { Alphanumeric?: string }).Alphanumeric;
+                        return (wasmParsed as { Alphanumeric?: string })
+                            .Alphanumeric;
                     }
                     // Fallback to JS parsing
                     const parsed = parseValueByVR(vr, val);

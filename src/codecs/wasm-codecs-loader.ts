@@ -8,7 +8,7 @@
  * - rle: RLE Lossless
  */
 
-export type CodecType = "jpeg" | "j2k" | "jpegls" | "rle";
+export type CodecType = "jpeg" | "j2k" | "jpegls" | "rle" | "htj2k" | "ljpeg";
 
 interface CodecModule {
     instance: WebAssembly.Instance;
@@ -177,7 +177,7 @@ export class ZigWasmCodecLoader {
             case "1.2.840.10008.1.2.4.54":
             case "1.2.840.10008.1.2.4.55":
             case "1.2.840.10008.1.2.4.56":
-            case "1.2.840.10008.1.2.4.57":
+
             case "1.2.840.10008.1.2.4.58":
             case "1.2.840.10008.1.2.4.59":
             case "1.2.840.10008.1.2.4.60":
@@ -198,6 +198,15 @@ export class ZigWasmCodecLoader {
             case "1.2.840.10008.1.2.4.202":
             case "1.2.840.10008.1.2.4.203":
                 return "j2k";
+
+            // HTJ2K
+            case "1.2.840.10008.1.2.4.178":
+                return "htj2k";
+
+            // JPEG Lossless (Process 14) and Process 14 SV1
+            case "1.2.840.10008.1.2.4.57":
+            case "1.2.840.10008.1.2.4.70":
+                return "ljpeg";
 
             // JPEG-LS
             case "1.2.840.10008.1.2.4.80":

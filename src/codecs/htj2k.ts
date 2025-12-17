@@ -1,15 +1,13 @@
 /**
- * JPEG Lossless Decoder Plugin
- * Transfer Syntaxes: 1.2.840.10008.1.2.4.57 (Process 14), 1.2.840.10008.1.2.4.70 (Process 14 SV1)
- *
- * Note: JPEG Lossless uses the same LibJPEG-Turbo decoder as baseline JPEG.
+ * HTJ2K (High-Throughput JPEG 2000) Decoder Plugin
+ * Transfer Syntaxes: 1.2.840.10008.1.2.4.178
  */
 import { CodecInfo, PixelDataCodec, registry } from "../core/registry";
 import { concatFragments } from "../utils/bufferUtils";
 import { ZigCodecs } from "./zig-codecs";
 
-export class JpegLosslessDecoder implements PixelDataCodec {
-    name = "jpeglossless-wasm";
+export class Htj2kDecoder implements PixelDataCodec {
+    name = "htj2k-wasm";
     priority = 20;
     codecInfo: CodecInfo = {
         multiFrame: false,
@@ -25,9 +23,9 @@ export class JpegLosslessDecoder implements PixelDataCodec {
 
     private async initWasm(): Promise<void> {
         try {
-            await this.zigCodecs.initCodec("ljpeg");
+            await this.zigCodecs.initCodec("htj2k");
         } catch (e) {
-            console.warn("Failed to init JPEG Lossless Zig WASM codec", e);
+            console.warn("Failed to init HTJ2K Zig WASM codec", e);
         }
     }
 
@@ -36,14 +34,11 @@ export class JpegLosslessDecoder implements PixelDataCodec {
     }
 
     canDecode(transferSyntax: string): boolean {
-        return [
-            "1.2.840.10008.1.2.4.57", // JPEG Lossless, Non-Hierarchical (Process 14)
-            "1.2.840.10008.1.2.4.70", // JPEG Lossless, Non-Hierarchical, First-Order Prediction
-        ].includes(transferSyntax);
+        return transferSyntax === "1.2.840.10008.1.2.4.178";
     }
 
     canEncode(transferSyntax: string): boolean {
-        return false; // JPEG Lossless encoding not currently supported
+        return false;
     }
 
     async decode(encodedBuffer: Uint8Array[], info: any): Promise<Uint8Array> {
@@ -53,7 +48,7 @@ export class JpegLosslessDecoder implements PixelDataCodec {
             await this.initPromise;
         }
 
-        return await this.zigCodecs.decodeJpeg(combined);
+        return await this.zigCodecs.decodeHtj2k(combined);
     }
 
     async encode(
@@ -64,9 +59,9 @@ export class JpegLosslessDecoder implements PixelDataCodec {
         samples: number,
         bits: number,
     ): Promise<Uint8Array[]> {
-        throw new Error("JPEG Lossless encoding not implemented");
+        throw new Error("HTJ2K encoding not implemented");
     }
 }
 
 // Auto-register
-registry.register(new JpegLosslessDecoder());
+registry.register(new Htj2kDecoder());
