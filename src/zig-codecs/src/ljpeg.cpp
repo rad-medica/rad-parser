@@ -1,4 +1,5 @@
 
+
 #include <cstdlib>
 #include <cstring>
 #include <vector>
@@ -23,6 +24,9 @@
 // Global result buffer management
 static uint8_t* g_result_data = nullptr;
 static size_t g_result_len = 0;
+
+// Dummy main for WASI executable build
+int main() { return 0; }
 
 extern "C" {
 

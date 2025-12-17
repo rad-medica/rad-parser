@@ -81,6 +81,7 @@ pub fn build(b: *std.Build) void {
         "deps/openjpeg/src/lib/openjp2/dwt.c",
         "deps/openjpeg/src/lib/openjp2/event.c",
         "deps/openjpeg/src/lib/openjp2/image.c",
+        "deps/openjpeg/src/lib/openjp2/ht_dec.c",
         "deps/openjpeg/src/lib/openjp2/invert.c",
         "deps/openjpeg/src/lib/openjp2/j2k.c",
         "deps/openjpeg/src/lib/openjp2/jp2.c",
@@ -148,9 +149,11 @@ pub fn build(b: *std.Build) void {
         "deps/openjph/src/core/transform/ojph_colour.cpp",
         "deps/openjph/src/core/transform/ojph_transform.cpp",
     };
+    lib_htj2k.addCSourceFile(.{ .file = b.path("src/cxx_stubs.cpp"), .flags = htj2k_flags });
     for (openjph_srcs) |src| {
         lib_htj2k.addCSourceFile(.{ .file = b.path(src), .flags = htj2k_flags });
     }
+    lib_htj2k.linkLibC();
     lib_htj2k.linkLibCpp();
     lib_htj2k.entry = .disabled;
     lib_htj2k.rdynamic = true;
@@ -171,76 +174,14 @@ pub fn build(b: *std.Build) void {
     lib_ljpeg.addCSourceFile(.{ .file = b.path("src/ljpeg.cpp"), .flags = ljpeg_flags });
     lib_ljpeg.addIncludePath(b.path("deps/libjpeg-lj"));
 
-    const ljpeg_srcs = [_][]const u8{
-        // Cmd (helper)
-        "deps/libjpeg-lj/cmd/bitmaphook.cpp",
-        // Codestream
-        "deps/libjpeg-lj/codestream/aclosslessscan.cpp",
-        "deps/libjpeg-lj/codestream/acrefinementscan.cpp",
-        "deps/libjpeg-lj/codestream/acsequentialscan.cpp",
-        "deps/libjpeg-lj/codestream/decoder.cpp",
-        "deps/libjpeg-lj/codestream/encoder.cpp",
-        "deps/libjpeg-lj/codestream/entropyparser.cpp",
-        "deps/libjpeg-lj/codestream/image.cpp",
-        "deps/libjpeg-lj/codestream/jpeglsscan.cpp",
-        "deps/libjpeg-lj/codestream/lineinterleavedlsscan.cpp",
-        "deps/libjpeg-lj/codestream/losslessscan.cpp",
-        "deps/libjpeg-lj/codestream/predictivescan.cpp",
-        "deps/libjpeg-lj/codestream/predictor.cpp",
-        "deps/libjpeg-lj/codestream/predictorbase.cpp",
-        "deps/libjpeg-lj/codestream/rectanglerequest.cpp",
-        "deps/libjpeg-lj/codestream/refinementscan.cpp",
-        "deps/libjpeg-lj/codestream/sampleinterleavedlsscan.cpp",
-        "deps/libjpeg-lj/codestream/sequentialscan.cpp",
-        "deps/libjpeg-lj/codestream/singlecomponentlsscan.cpp",
-        "deps/libjpeg-lj/codestream/tables.cpp",
-        // Coding
-        "deps/libjpeg-lj/coding/actemplate.cpp",
-        "deps/libjpeg-lj/coding/arithmeticdecoder.cpp",
-        "deps/libjpeg-lj/coding/arithmeticencoder.cpp",
-        "deps/libjpeg-lj/coding/huffmandecoder.cpp",
-        "deps/libjpeg-lj/coding/huffmanencoder.cpp",
-        "deps/libjpeg-lj/coding/huffmantable.cpp",
-        "deps/libjpeg-lj/coding/huffmantemplate.cpp",
-        "deps/libjpeg-lj/coding/losslesstraits.cpp",
-        "deps/libjpeg-lj/coding/mockarithmeticdecoder.cpp",
-        "deps/libjpeg-lj/coding/scandecoder.cpp",
-        "deps/libjpeg-lj/coding/scanencoder.cpp",
-        "deps/libjpeg-lj/coding/template.cpp",
-        // Boxes
-        "deps/libjpeg-lj/boxes/alphabox.cpp",
-        "deps/libjpeg-lj/boxes/box.cpp",
-        "deps/libjpeg-lj/boxes/checksumbox.cpp",
-        "deps/libjpeg-lj/boxes/colortrafobox.cpp",
-        "deps/libjpeg-lj/boxes/databox.cpp",
-        "deps/libjpeg-lj/boxes/dctbox.cpp",
-        "deps/libjpeg-lj/boxes/filetypebox.cpp",
-        "deps/libjpeg-lj/boxes/floattonemappingbox.cpp",
-        "deps/libjpeg-lj/boxes/floattransformationbox.cpp",
-        "deps/libjpeg-lj/boxes/inversetonemappingbox.cpp",
-        "deps/libjpeg-lj/boxes/lineartransformationbox.cpp",
-        "deps/libjpeg-lj/boxes/matrixbox.cpp",
-        "deps/libjpeg-lj/boxes/mergingspecbox.cpp",
-        "deps/libjpeg-lj/boxes/namespace.cpp",
-        "deps/libjpeg-lj/boxes/nonlineartrafobox.cpp",
-        "deps/libjpeg-lj/boxes/outputconversionbox.cpp",
-        "deps/libjpeg-lj/boxes/parametrictonemappingbox.cpp",
-        "deps/libjpeg-lj/boxes/refinementspecbox.cpp",
-        "deps/libjpeg-lj/boxes/superbox.cpp",
-        "deps/libjpeg-lj/boxes/tonemapperbox.cpp",
-        // IO
-        "deps/libjpeg-lj/io/bitstream.cpp",
-        "deps/libjpeg-lj/io/bytestream.cpp",
-        "deps/libjpeg-lj/io/checksumadapter.cpp",
-        "deps/libjpeg-lj/io/decoderstream.cpp",
-        "deps/libjpeg-lj/io/iostream.cpp",
-        "deps/libjpeg-lj/io/memorystream.cpp",
-        "deps/libjpeg-lj/io/randomaccessstream.cpp",
-        "deps/libjpeg-lj/io/staticstream.cpp",
-    };
-    for (ljpeg_srcs) |src| {
-        lib_ljpeg.addCSourceFile(.{ .file = b.path(src), .flags = ljpeg_flags });
+    // Use addSources for libjpeg-lj to include all files
+    const ljpeg_dirs = [_][]const u8{ "deps/libjpeg-lj/codestream", "deps/libjpeg-lj/coding", "deps/libjpeg-lj/boxes", "deps/libjpeg-lj/io" };
+    for (ljpeg_dirs) |dir| {
+        addSources(b, lib_ljpeg, dir, &.{".cpp"}, &.{ "test", "bench", "fuzz", "Makefile" }) catch |err| std.debug.print("Error adding LJPEG sources from {s}: {}\n", .{ dir, err });
     }
+    lib_ljpeg.addCSourceFile(.{ .file = b.path("deps/libjpeg-lj/cmd/bitmaphook.cpp"), .flags = ljpeg_flags });
+    lib_ljpeg.addCSourceFile(.{ .file = b.path("src/cxx_stubs.cpp"), .flags = ljpeg_flags });
+    lib_ljpeg.linkLibC();
     lib_ljpeg.linkLibCpp();
     lib_ljpeg.entry = .disabled;
     lib_ljpeg.rdynamic = true;
