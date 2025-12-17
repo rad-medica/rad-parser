@@ -1,40 +1,95 @@
 #!/usr/bin/env node
 
-import { createRequire } from "module";
-import { fileURLToPath } from "url";
-import { dirname, join } from "path";
-import fs from "fs";
 import { spawnSync } from "child_process";
+import fs from "fs";
+import { dirname, join } from "path";
+import { fileURLToPath } from "url";
 
-const require = createRequire(import.meta.url);
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-// Try to use the built version first, otherwise fallback to TS via ts-node if dev
 const distPath = join(__dirname, "../dist/index.cjs");
 const srcPath = join(__dirname, "../src/cli.ts");
 
-if (fs.existsSync(distPath)) {
-    // Check if we can run the src directly via tsx (Development / Repo mode)
-    // If dist exists, we might be in a package environment, but if src exists we prefer src for dev testing?
-    // Actually, properly we should run the built CLI if it exists.
-    // BUT I haven't built a CLI bundle. Only `index.cjs`.
-    // My CLI implementation is in `src/cli.ts`.
-    // So distinct CLI build IS needed for production usage, OR `ts-node`.
+// Detect Runtime
+const isBun = typeof Bun !== "undefined";
+// @ts-ignore
+const isDeno = typeof Deno !== "undefined";
+const isNode = !isBun && !isDeno;
 
-    // For this context (dev), we assume `tsx` is available via npx.
-    const result = spawnSync(
-        "npx",
-        ["tsx", srcPath, ...process.argv.slice(2)],
-        { stdio: "inherit", shell: true }
-    );
-    process.exit(result.status ?? 0);
-} else {
-    // If no dist, definitely dev.
-    const result = spawnSync(
-        "npx",
-        ["tsx", srcPath, ...process.argv.slice(2)],
-        { stdio: "inherit", shell: true }
-    );
-    process.exit(result.status ?? 0);
+function run() {
+    // 1. Production / Dist mode
+    if (fs.existsSync(distPath)) {
+        // In dist mode, we prefer running the compiled JS.
+        // For Node/Bun/Deno, we can try to rely on their standard execution capabilities.
+
+        if (isBun) {
+            const result = spawnSync(
+                "bun",
+                ["run", distPath, ...process.argv.slice(2)],
+                {
+                    stdio: "inherit",
+                }
+            );
+            process.exit(result.status ?? 0);
+        } else if (isDeno) {
+            // Deno compat check
+            const result = spawnSync(
+                "deno",
+                ["run", "--allow-all", distPath, ...process.argv.slice(2)],
+                {
+                    stdio: "inherit",
+                }
+            );
+            process.exit(result.status ?? 0);
+        } else {
+            // Node
+            const result = spawnSync(
+                "node",
+                [distPath, ...process.argv.slice(2)],
+                {
+                    stdio: "inherit",
+                }
+            );
+            process.exit(result.status ?? 0);
+        }
+        return;
+    }
+
+    // 2. Development / Src mode
+    // We need to run TypeScript directly.
+    if (isBun) {
+        const result = spawnSync(
+            "bun",
+            ["run", srcPath, ...process.argv.slice(2)],
+            {
+                stdio: "inherit",
+            }
+        );
+        process.exit(result.status ?? 0);
+    } else if (isDeno) {
+        // Deno might need specific perms or config to run TS from src if it has imports
+        // Assuming srcPath is compatible or Deno can handle it
+        const result = spawnSync(
+            "deno",
+            ["run", "--allow-all", srcPath, ...process.argv.slice(2)],
+            {
+                stdio: "inherit",
+            }
+        );
+        process.exit(result.status ?? 0);
+    } else {
+        // Node - assume 'npx tsx' is available
+        const result = spawnSync(
+            "npx",
+            ["tsx", srcPath, ...process.argv.slice(2)],
+            {
+                stdio: "inherit",
+                shell: true,
+            }
+        );
+        process.exit(result.status ?? 0);
+    }
 }
+
+run();

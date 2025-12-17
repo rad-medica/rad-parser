@@ -2,7 +2,7 @@
  * DICOM Parser Benchmark
  *
  * Compares performance of different DICOM parsers using test data files.
- * Run from the SmallVis project root: npm run benchmark (from rad-parser directory)
+ * Run from the SmallVis project root: bun run benchmark (from rad-parser directory)
  */
 
 import {

@@ -27,7 +27,7 @@ JPEG 2000 (Transfer Syntaxes `1.2.840.10008.1.2.4.90` and `.91`) is a common for
 **Installation:**
 
 ```bash
-npm install openjpeg-js
+bun install openjpeg-js
 ```
 
 **Integration Code:**
@@ -69,7 +69,7 @@ async function configureOpenjpeg() {
 **Installation:**
 
 ```bash
-npm install jpeg2000-js
+bun install jpeg2000-js
 ```
 
 **Integration Code:**
@@ -111,7 +111,7 @@ JPEG-LS (Transfer Syntaxes `1.2.840.10008.1.2.4.80` and `.81`) is a standard for
 **Installation:**
 
 ```bash
-npm install charls-js
+bun install charls-js
 ```
 
 **Integration Code:**

@@ -19,7 +19,7 @@ Parse a DICOM file buffer into a dataset.
 ## Installation
 
 ```bash
-npm install rad-parser
+bun install rad-parser
 ```
 
 ---

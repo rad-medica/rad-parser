@@ -11,7 +11,8 @@ typedef int int32_t;
 typedef unsigned long size_t;
 
 // Simple bump allocator
-static uint8_t heap[65536]; // 64KB
+// Increased to 16MB to handle typical DICOM frames (512x512x2 = 512KB, plus overhead)
+static uint8_t heap[16 * 1024 * 1024];
 static size_t heap_offset = 0;
 
 WASM_EXPORT void* alloc(size_t size) {
@@ -19,6 +20,12 @@ WASM_EXPORT void* alloc(size_t size) {
     void* ptr = &heap[heap_offset];
     heap_offset = (heap_offset + size + 7) & ~7;
     return ptr;
+}
+
+WASM_EXPORT void reset_memory(void) {
+    heap_offset = 0;
+    g_result_ptr = 0;
+    g_result_len = 0;
 }
 
 WASM_EXPORT void free_ptr(void* ptr) { (void)ptr; }

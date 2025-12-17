@@ -44,6 +44,16 @@ function freeMemory(ptr: number, size: number): void {
     free_ptr(ptr, size);
 }
 
+export function resetWasmMemory(): void {
+    if (!isWasmInitialized || !coreExports) return;
+    try {
+        const reset = coreExports.reset_memory as () => void;
+        if (reset) reset();
+    } catch (e) {
+        console.warn("Failed to reset WASM memory:", e);
+    }
+}
+
 export function parseDSWasm(input: Uint8Array): Float64Array | null {
     if (!isWasmInitialized || !coreExports) return null;
     try {

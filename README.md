@@ -27,7 +27,7 @@ More docs:
 ## Installation
 
 ```bash
-npm install rad-parser
+bun install rad-parser
 ```
 
 ---

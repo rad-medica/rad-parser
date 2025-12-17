@@ -8,12 +8,12 @@ RAD-Parser is a zero-dependency DICOM parser that works in browsers and Node.js.
 
 - The parser's goals (safety, performance, zero dependencies).
 - The supported transfer syntaxes and VR types.
-- How to integrate the parser into downstream projects (CDN, npm, or as a git dependency).
+- How to integrate the parser into downstream projects (CDN, bun, or as a git dependency).
 
 ## Release Checklist
 
 1. Update the `version` field in `package.json`.
-2. Run `npm run release` to regenerate `dist/`, `rad-parser.js`, and `rad-parser.min.js`.
+2. Run `bun run release` to regenerate `dist/`, `rad-parser.js`, and `rad-parser.min.js`.
 3. Create or update release notes.
 4. Tag the main branch (e.g., `git tag v1.0.1`) and push the tag.
 5. The GitHub `Release` workflow publishes to npm and creates release assets automatically.

@@ -71,7 +71,7 @@
     "scripts": {
         "build": "bun run tsc && bun run build:cjs",
         "build:cjs": "bun run esbuild src/index.ts --bundle --format=cjs --platform=node --target=node16 --outfile=dist/index.cjs --log-level=info && bun run esbuild src/index-core.ts --bundle --format=cjs --platform=node --target=node16 --outfile=dist/index-core.cjs --log-level=info && bun run esbuild src/index-codecs.ts --bundle --format=cjs --platform=node --target=node16 --outfile=dist/index-codecs.cjs --log-level=info",
-        "build:wasm:core": "cd src/wasm-core && wasm-pack build --target web --out-dir ../wasm-core-build --release",
+        "build:wasm:core": "cd src/zig-core && zig build -Doptimize=ReleaseFast",
         "build:wasm:codecs": "cd src/wasm-codecs && wasm-pack build --target web --out-dir ../wasm-codecs-build --release",
         "build:zig-codecs": "cd src/zig-codecs && zig build --release=fast -p zig-out",
         "optimize:zig-codecs": "bun run scripts/optimize_wasm_codecs.mjs",

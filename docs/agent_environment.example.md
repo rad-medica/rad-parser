@@ -18,7 +18,7 @@ Copy this file to `agent_environment.md` in the root directory and customize it 
 ### Runtime & Key Tools
 
 - **Runtime**: [Node.js | Bun | Deno]
-- **Package Manager**: [npm | yarn | pnpm | bun]
+- **Package Manager**: [bun | npm | yarn | pnpm]
 
 ### Path & Directory Structure
 
