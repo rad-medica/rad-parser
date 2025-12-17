@@ -109,6 +109,7 @@
         "bun": ">=1.0.0",
         "deno": ">=1.30.0"
     },
+    "packageManager": "bun@1.1.0",
     "peerDependencies": {
         "typescript": "^5.0.0"
     },

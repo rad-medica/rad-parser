@@ -2,13 +2,25 @@ export interface CodecInfo {
     multiFrame: boolean; // Does the codec handle multi-frame fragments individually?
 }
 
+export interface CodecContext {
+    transferSyntax: string;
+    width?: number;
+    height?: number;
+    bitsAllocated?: number;
+    samplesPerPixel?: number;
+    [key: string]: any;
+}
+
 export interface PixelDataCodec {
     name: string;
     priority: number;
     codecInfo: CodecInfo;
     isSupported(): Promise<boolean> | boolean;
     canDecode(transferSyntax: string): boolean;
-    decode(encodedBuffer: Uint8Array[], info: any): Promise<Uint8Array>;
+    decode(
+        encodedBuffer: Uint8Array[],
+        context: CodecContext
+    ): Promise<Uint8Array>;
 
     // Encoding Support
     canEncode?(transferSyntax: string): boolean;
@@ -32,7 +44,10 @@ export interface FunctionalCodecConfig {
     transferSyntaxes: string[];
     priority: number;
     isSupported?: () => Promise<boolean> | boolean;
-    decode: (encodedBuffer: Uint8Array[], info: any) => Promise<Uint8Array>;
+    decode: (
+        encodedBuffer: Uint8Array[],
+        context: CodecContext
+    ) => Promise<Uint8Array>;
     encode?: (
         pixelData: Uint8Array,
         transferSyntax: string,
@@ -56,7 +71,7 @@ class FunctionalCodec implements PixelDataCodec {
     private isSupportedFn: () => Promise<boolean> | boolean;
     private decodeFn: (
         encodedBuffer: Uint8Array[],
-        info: any
+        context: CodecContext
     ) => Promise<Uint8Array>;
     private encodeFn?: (
         pixelData: Uint8Array,

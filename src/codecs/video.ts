@@ -8,26 +8,47 @@
  * Supports MPEG-2, MPEG-4 AVC/H.264
  */
 
-import { CodecInfo, PixelDataCodec } from "../core/registry";
+import { CodecContext, CodecInfo, PixelDataCodec } from "../core/registry";
 import { concatFragments } from "../utils/bufferUtils";
+
+/**
+ * External Decoder Interface
+ * Expects a concatenated bitstream (e.g., MPEG-2, H.264 elementary stream).
+ * Returns decoded raw pixel data (RGB/RGBA/Gray).
+ */
+export type ExternalVideoDecoder = (
+    buffer: Uint8Array,
+    context?: any
+) => Promise<Uint8Array>;
+
+/**
+ * External Encoder Interface
+ * Takes raw pixel data and encoding parameters.
+ * Returns an array of fragments (e.g. frames or chunks).
+ */
+export type ExternalVideoEncoder = (
+    pixelData: Uint8Array,
+    transferSyntax: string,
+    width: number,
+    height: number,
+    samples: number,
+    bits: number
+) => Promise<Uint8Array[]>;
 
 export class VideoDecoder implements PixelDataCodec {
     name = "video-adapter";
     priority = 10; // Fallback
     codecInfo: CodecInfo = {
-        multiFrame: false,
+        multiFrame: true, // Video is typically multi-frame
     };
 
+    /**
+     * @param externalDecoder Function to decode video streams
+     * @param externalEncoder Function to encode video streams
+     */
     constructor(
-        private externalDecoder?: (buffer: Uint8Array) => Promise<Uint8Array>,
-        private externalEncoder?: (
-            pixelData: Uint8Array,
-            ts: string,
-            w: number,
-            h: number,
-            s: number,
-            b: number
-        ) => Promise<Uint8Array[]>
+        private externalDecoder?: ExternalVideoDecoder,
+        private externalEncoder?: ExternalVideoEncoder
     ) {}
 
     canEncode(transferSyntax: string): boolean {
@@ -44,20 +65,29 @@ export class VideoDecoder implements PixelDataCodec {
         bits: number
     ): Promise<Uint8Array[]> {
         if (!this.externalEncoder)
-            throw new Error("Video encoder not configured.");
-        return this.externalEncoder(
-            pixelData,
-            transferSyntax,
-            width,
-            height,
-            samples,
-            bits
-        );
+            throw new Error(
+                `Video encoder not configured for Transfer Syntax ${transferSyntax}`
+            );
+
+        try {
+            return await this.externalEncoder(
+                pixelData,
+                transferSyntax,
+                width,
+                height,
+                samples,
+                bits
+            );
+        } catch (error) {
+            throw new Error(
+                `Video Encoding Failed: ${error instanceof Error ? error.message : String(error)}`
+            );
+        }
     }
 
     isSupported(): boolean {
         // Rely on injection for standard adapter pattern.
-        return !!this.externalDecoder;
+        return !!this.externalDecoder || !!this.externalEncoder;
     }
 
     canDecode(transferSyntax: string): boolean {
@@ -72,15 +102,26 @@ export class VideoDecoder implements PixelDataCodec {
         ].includes(transferSyntax);
     }
 
-    async decode(encodedBuffer: Uint8Array[], info: any): Promise<Uint8Array> {
+    async decode(
+        encodedBuffer: Uint8Array[],
+        context: CodecContext
+    ): Promise<Uint8Array> {
         if (!this.externalDecoder) {
-            throw new Error("Video decoder not configured.");
+            throw new Error(
+                `Video decoder not configured for Transfer Syntax ${context.transferSyntax}`
+            );
         }
 
         // Video frames are typically encapsulated differently.
         // The external decoder is expected to handle the full concatenated stream.
         const combined = concatFragments(encodedBuffer);
 
-        return this.externalDecoder(combined);
+        try {
+            return await this.externalDecoder(combined, context);
+        } catch (error) {
+            throw new Error(
+                `Video Decoding Failed: ${error instanceof Error ? error.message : String(error)}`
+            );
+        }
     }
 }

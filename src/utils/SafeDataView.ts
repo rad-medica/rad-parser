@@ -213,22 +213,98 @@ export class SafeDataView {
  */
 const decoderCache = new Map<string, TextDecoder>();
 
+const DICOM_CHARSET_MAPPING: Record<string, string> = {
+    // Default
+    "ISO_IR 6": "utf-8", // Default (ASCII), mapped to UTF-8 for compatibility
+    "ISO_IR 192": "utf-8",
+    "UTF-8": "utf-8",
+
+    // Latin 1-5 (Western, Eastern, Southern, Northern, Turkish)
+    "ISO_IR 100": "windows-1252", // Latin1
+    "ISO 2022 IR 100": "windows-1252",
+    "ISO_IR 101": "iso-8859-2", // Latin2
+    "ISO 2022 IR 101": "iso-8859-2",
+    "ISO_IR 109": "iso-8859-3", // Latin3
+    "ISO 2022 IR 109": "iso-8859-3",
+    "ISO_IR 110": "iso-8859-4", // Latin4
+    "ISO 2022 IR 110": "iso-8859-4",
+    "ISO_IR 148": "iso-8859-9", // Latin5
+    "ISO 2022 IR 148": "iso-8859-9",
+
+    // Cyrillic
+    "ISO_IR 144": "iso-8859-5",
+    "ISO 2022 IR 144": "iso-8859-5",
+
+    // Arabic
+    "ISO_IR 127": "iso-8859-6",
+    "ISO 2022 IR 127": "iso-8859-6",
+
+    // Greek
+    "ISO_IR 126": "iso-8859-7",
+    "ISO 2022 IR 126": "iso-8859-7",
+
+    // Hebrew
+    "ISO_IR 138": "iso-8859-8",
+    "ISO 2022 IR 138": "iso-8859-8",
+
+    // Thai
+    "ISO_IR 166": "iso-8859-11", // Might need 'windows-874' in some envs
+    "ISO 2022 IR 166": "iso-8859-11",
+
+    // Japanese
+    "ISO_IR 13": "shift_jis",
+    "ISO 2022 IR 13": "shift_jis",
+    "ISO_IR 87": "iso-2022-jp", // JIS X 0208
+    "ISO 2022 IR 87": "iso-2022-jp",
+
+    // Chinese
+    GB18030: "gb18030",
+    "ISO_IR 58": "gb2312",
+
+    // Korean
+    "ISO_IR 149": "euc-kr",
+    "ISO 2022 IR 149": "euc-kr",
+};
+
 function getDecoder(characterSet: string): TextDecoder {
-    const key = characterSet.toUpperCase();
+    const key = characterSet.toUpperCase().trim();
+
+    // Check cache first
     if (decoderCache.has(key)) {
         return decoderCache.get(key)!;
     }
 
-    let label: string;
-    if (key.includes("ISO_IR 192") || key.includes("UTF-8")) {
-        label = "utf-8";
-    } else if (key.includes("ISO_IR 100") || key.includes("ISO 2022 IR 100")) {
-        label = "latin1";
+    // Resolve label
+    let label = "utf-8";
+
+    // Direct lookup
+    const mappedLabel = DICOM_CHARSET_MAPPING[key];
+    if (mappedLabel) {
+        label = mappedLabel;
     } else {
-        label = "utf-8";
+        // Fallback: try to find substring match (e.g. "ISO_IR 100" in "ISO 2022 IR 100")
+        for (const [mappingKey, mappingLabel] of Object.entries(
+            DICOM_CHARSET_MAPPING
+        )) {
+            if (key.includes(mappingKey)) {
+                label = mappingLabel;
+                break;
+            }
+        }
     }
 
-    const decoder = new TextDecoder(label);
+    let decoder: TextDecoder;
+    try {
+        decoder = new TextDecoder(label);
+    } catch {
+        // Fallback if environment doesn't support the encoding
+        // eslint-disable-next-line no-console
+        console.warn(
+            `TextDecoder encoding '${label}' not supported, falling back to UTF-8`
+        );
+        decoder = new TextDecoder("utf-8");
+    }
+
     decoderCache.set(key, decoder);
     return decoder;
 }
@@ -240,7 +316,8 @@ function decodeString(bytes: Uint8Array, characterSet: string): string {
         // Fallback to manual ASCII conversion
         let str = "";
         for (let i = 0; i < bytes.length; i++) {
-            str += String.fromCharCode(bytes[i]);
+            const b = bytes[i];
+            if (b !== undefined) str += String.fromCharCode(b);
         }
         return str;
     }

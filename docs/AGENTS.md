@@ -70,6 +70,11 @@ Antigravity receives detailed behavioral guidelines and technical specifications
 
 All AI agents are configured to maintain these standards:
 
+### 🌍 Environment Configuration
+
+> [!IMPORTANT]
+> **CRITICAL RULE**: All agents MUST check for the existence of `agent_environment.md` in the project root before starting work. This file contains specific environment details (OS, Shell, Paths) that supersede general defaults.
+
 ### Formatting & Style
 
 - **Quotes**: Double quotes (`"`) for all strings
