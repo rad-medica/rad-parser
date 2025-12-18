@@ -4,9 +4,9 @@
  * Each codec is loaded on demand, so no upfront init() is needed.
  */
 
-import { ZigCodecs } from "./zig-codecs";
 import * as path from "path";
 import * as url from "url";
+import { ZigCodecs } from "./zig-codecs";
 
 const __filename = url.fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -80,7 +80,14 @@ async function main() {
     // ==================== JPEG Test ====================
     console.log("\n=== Testing JPEG ===");
     try {
-        const jpegEncoded = await codecs.encodeJpeg(pixels, width, height, 90);
+        const jpegEncoded = await codecs.encodeJpeg(
+            pixels,
+            width,
+            height,
+            8,
+            3,
+            90
+        );
         console.log(`Encoded size: ${jpegEncoded.length}`);
 
         const jpegDecoded = await codecs.decodeJpeg(jpegEncoded);

@@ -54,27 +54,55 @@ WASM_EXPORT int decode_jpeg(const uint8_t* src, size_t src_len) {
     return 0;
 }
 
-WASM_EXPORT int encode_jpeg(const uint8_t* pixel_data, size_t len, uint32_t width, uint32_t height, int quality) {
-    tjhandle handle = tjInitCompress();
+WASM_EXPORT int encode_jpeg(const uint8_t* pixel_data, size_t len, uint32_t width, uint32_t height, int bits, int components, int quality) {
+    tjhandle handle = tj3Init(TJINIT_COMPRESS);
     if (!handle) return -1;
 
-    uint8_t* jpeg_buf = NULL;
-    unsigned long jpeg_size = 0;
+    tj3Set(handle, TJPARAM_QUALITY, quality);
+    tj3Set(handle, TJPARAM_SUBSAMP, TJSAMP_444); // Default to no subsampling for max quality/compat
 
-    if (tjCompress2(handle, pixel_data, width, 0, height, TJPF_RGB, &jpeg_buf, &jpeg_size, TJSAMP_444, quality, TJFLAG_FASTDCT) != 0) {
-        tjDestroy(handle);
+    int pixelFormat = TJPF_RGB;
+    if (components == 1) pixelFormat = TJPF_GRAY;
+    else if (components == 3) pixelFormat = TJPF_RGB;
+    else if (components == 4) pixelFormat = TJPF_RGBA; // TurboJPEG assumes RGBA for 4 comp
+    else {
+        tj3Destroy(handle);
+        return -5; // Unsupported component count
+    }
+
+    uint8_t** jpegBufPtr = (uint8_t**)malloc(sizeof(uint8_t*));
+    size_t* jpegSizePtr = (size_t*)malloc(sizeof(size_t));
+    *jpegBufPtr = NULL;
+    *jpegSizePtr = 0;
+
+    int res = 0;
+    if (bits <= 8) {
+        res = tj3Compress8(handle, pixel_data, width, 0, height, pixelFormat, jpegBufPtr, jpegSizePtr);
+    } else if (bits <= 12) {
+        res = tj3Compress12(handle, (const short*)pixel_data, width, 0, height, pixelFormat, jpegBufPtr, jpegSizePtr);
+    } else {
+        res = tj3Compress16(handle, (const unsigned short*)pixel_data, width, 0, height, pixelFormat, jpegBufPtr, jpegSizePtr);
+    }
+
+    if (res != 0) {
+        if (*jpegBufPtr) tj3Free(*jpegBufPtr);
+        free(jpegBufPtr);
+        free(jpegSizePtr);
+        tj3Destroy(handle);
         return -2;
     }
 
-    tjDestroy(handle);
+    // Copy to result buffer using generic malloc to be safe and consistent
+    size_t size = *jpegSizePtr;
+    uint8_t* result = (uint8_t*)malloc(size);
+    memcpy(result, *jpegBufPtr, size);
 
-    // Copy to own buffer to ensure compatibility with free_ptr/allocator if needed,
-    // although TJ uses its own allocator. We want unified memory management.
-    uint8_t* result = (uint8_t*)malloc(jpeg_size);
-    memcpy(result, jpeg_buf, jpeg_size);
-    tjFree(jpeg_buf);
+    tj3Free(*jpegBufPtr);
+    free(jpegBufPtr);
+    free(jpegSizePtr);
+    tj3Destroy(handle);
 
-    set_result(result, jpeg_size);
+    set_result(result, size);
     return 0;
 }
 

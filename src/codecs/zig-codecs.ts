@@ -6,7 +6,7 @@
  * the codecs that are actually needed.
  */
 
-import { ZigWasmCodecLoader, CodecType } from "./wasm-codecs-loader";
+import { CodecType, ZigWasmCodecLoader } from "./wasm-codecs-loader";
 
 interface CodecExports {
     memory: WebAssembly.Memory;
@@ -21,6 +21,8 @@ interface CodecExports {
         len: number,
         width: number,
         height: number,
+        bits: number,
+        components: number,
         quality: number
     ) => number;
     // JPEG 2000
@@ -148,6 +150,8 @@ export class ZigCodecs {
         pixels: Uint8Array,
         width: number,
         height: number,
+        bits: number,
+        components: number,
         quality: number
     ): Promise<Uint8Array> {
         const exports = await this.getCodecExports("jpeg");
@@ -157,11 +161,14 @@ export class ZigCodecs {
         if (ptr === 0) throw new Error("WASM alloc failed");
         this.writeBuffer(memory, ptr, pixels);
 
+        // Param order: pixel_data, len, width, height, bits, components, quality
         const res = exports.encode_jpeg!(
             ptr,
             pixels.length,
             width,
             height,
+            bits,
+            components,
             quality
         );
         if (res !== 0) {
