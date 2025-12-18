@@ -277,7 +277,7 @@ function writeDicom(
     const bot = new Uint8Array(0); // Empty Basic Offset Table
     const fragments = [bot, encodedData];
 
-    newDict["x7fe00010"] = {
+    newDict["x7FE00010"] = {
         vr: overrides.pixelDataVR || "OB",
         Value: fragments,
         // @ts-ignore - Custom property expected by writer.ts for encapsulated
