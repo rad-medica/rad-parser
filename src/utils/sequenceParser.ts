@@ -140,10 +140,10 @@ function parseUndefinedLengthItem(
 
         // Store element
         for (const tag in element.dict) {
-            elements[tag] = element.dict[tag];
+            elements[tag] = element.dict[tag]!;
         }
         for (const tag in element.normalizedElements) {
-            normalizedElements[tag] = element.normalizedElements[tag];
+            normalizedElements[tag] = element.normalizedElements[tag]!;
         }
     }
 
@@ -178,10 +178,10 @@ function parseItemElements(
 
         // Store element
         for (const tag in element.dict) {
-            elements[tag] = element.dict[tag];
+            elements[tag] = element.dict[tag]!;
         }
         for (const tag in element.normalizedElements) {
-            normalizedElements[tag] = element.normalizedElements[tag];
+            normalizedElements[tag] = element.normalizedElements[tag]!;
         }
     }
 
@@ -228,7 +228,7 @@ function parseElement(
 
     if (explicitVR) {
         const vrBytes = view.readBytes(2);
-        vr = String.fromCharCode(vrBytes[0], vrBytes[1]);
+        vr = String.fromCharCode(vrBytes[0]!, vrBytes[1]!);
 
         if (requiresExplicitLength(vr)) {
             view.readUint16(); // Skip reserved bytes
@@ -407,7 +407,7 @@ function parseElementValue(
             const str = new TextDecoder().decode(bytes);
             const parts = str.split("\\").filter(p => p.trim());
             if (parts.length === 1) {
-                const num = parseFloat(parts[0]);
+                const num = parseFloat(parts[0]!);
                 return isNaN(num) ? str : num;
             }
             return parts.map(p => {
@@ -423,7 +423,7 @@ function parseElementValue(
             const str = new TextDecoder().decode(bytes);
             const parts = str.split("\\").filter(p => p.trim());
             if (parts.length === 1) {
-                const num = parseFloat(parts[0]);
+                const num = parseFloat(parts[0]!);
                 return isNaN(num) ? str : Math.floor(num);
             }
             return parts.map(p => {
@@ -445,7 +445,7 @@ function parseElementValue(
         // Numeric types
         const parts = str.split("\\").filter(p => p.trim());
         if (parts.length === 1) {
-            const num = parseFloat(parts[0]);
+            const num = parseFloat(parts[0]!);
             return isNaN(num)
                 ? str
                 : vr === "US" || vr === "UL"
@@ -462,7 +462,7 @@ function parseElementValue(
         // Floating point types
         const parts = str.split("\\").filter(p => p.trim());
         if (parts.length === 1) {
-            const num = parseFloat(parts[0]);
+            const num = parseFloat(parts[0]!);
             return isNaN(num) ? str : num;
         }
         return parts.map(p => {
@@ -484,7 +484,7 @@ function parseElementValue(
 
     // String types
     const parts = str.split("\\");
-    return parts.length === 1 ? parts[0] : parts;
+    return parts.length === 1 ? parts[0]! : parts;
 }
 
 /**

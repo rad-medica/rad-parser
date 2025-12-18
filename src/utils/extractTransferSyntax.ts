@@ -68,7 +68,7 @@ function findTransferSyntaxInRawDicom(byteArray: Uint8Array): string | null {
 
     for (let i = 0; i < limit; i++) {
         // Little Endian reading
-        const group = byteArray[i] | (byteArray[i + 1] << 8);
+        const group = byteArray[i]! | (byteArray[i + 1]! << 8);
 
         // Optimization: If we passed group 0x0002, we can stop searching.
         // Tags are strictly monotonic in DICOM.
@@ -76,19 +76,19 @@ function findTransferSyntaxInRawDicom(byteArray: Uint8Array): string | null {
             return null;
         }
 
-        const element = byteArray[i + 2] | (byteArray[i + 3] << 8);
+        const element = byteArray[i + 2]! | (byteArray[i + 3]! << 8);
 
         if (group === 0x0002 && element === 0x0010) {
             // Found Transfer Syntax UID
             // VR is at +4, +5
-            const vrCode = (byteArray[i + 4] << 8) | byteArray[i + 5]; // Big Endian representation for readable hex?
+            const vrCode = (byteArray[i + 4]! << 8) | byteArray[i + 5]!; // Big Endian representation for readable hex?
             // Actually standard LE char codes: byteArray[4] is 1st char, byteArray[5] is 2nd.
             // Let's use combined 16-bit for fast lookup.
             // 'OB' -> O=0x4f, B=0x42. Little endian in file: 0x4f, 0x42.
             // As Uint16 LE: 0x424f. But simpler to just read bytes.
 
-            const vr0 = byteArray[i + 4];
-            const vr1 = byteArray[i + 5];
+            const vr0 = byteArray[i + 4]!;
+            const vr1 = byteArray[i + 5]!;
             const vrCodeBE = (vr0 << 8) | vr1;
 
             let length: number;
@@ -98,14 +98,14 @@ function findTransferSyntaxInRawDicom(byteArray: Uint8Array): string | null {
                 // Explicit VR long: Length is 32-bit at i+8
                 if (i + 12 > byteArray.length) return null;
                 length =
-                    byteArray[i + 8] |
-                    (byteArray[i + 9] << 8) |
-                    (byteArray[i + 10] << 16) |
-                    (byteArray[i + 11] << 24);
+                    byteArray[i + 8]! |
+                    (byteArray[i + 9]! << 8) |
+                    (byteArray[i + 10]! << 16) |
+                    (byteArray[i + 11]! << 24);
                 valueOffset = i + 12;
             } else {
                 // Explicit VR short: Length is 16-bit at i+6
-                length = byteArray[i + 6] | (byteArray[i + 7] << 8);
+                length = byteArray[i + 6]! | (byteArray[i + 7]! << 8);
                 valueOffset = i + 8;
             }
 
@@ -131,7 +131,7 @@ function readUIDInPlace(
     let end = offset + length;
     while (
         end > offset &&
-        (byteArray[end - 1] === 0 || byteArray[end - 1] === 32)
+        (byteArray[end - 1]! === 0 || byteArray[end - 1]! === 32)
     ) {
         end--;
     }
@@ -141,7 +141,7 @@ function readUIDInPlace(
     // Using a loop for short ASCII strings (UIDs) is faster than TextDecoder overhead often.
     let uid = "";
     for (let k = offset; k < end; k++) {
-        uid += String.fromCharCode(byteArray[k]);
+        uid += String.fromCharCode(byteArray[k]!);
     }
     return uid;
 }
@@ -174,7 +174,7 @@ export function extractTransferSyntax(byteArray: Uint8Array): string | null {
 
         while (offset < limit - 8) {
             // Little Endian reading of Group/Element
-            const group = byteArray[offset] | (byteArray[offset + 1] << 8);
+            const group = byteArray[offset]! | (byteArray[offset + 1]! << 8);
 
             // If we exited Group 2, the meta header is over
             if (group !== 0x0002) {
@@ -182,10 +182,10 @@ export function extractTransferSyntax(byteArray: Uint8Array): string | null {
             }
 
             const element =
-                byteArray[offset + 2] | (byteArray[offset + 3] << 8);
+                byteArray[offset + 2]! | (byteArray[offset + 3]! << 8);
 
-            const vr0 = byteArray[offset + 4];
-            const vr1 = byteArray[offset + 5];
+            const vr0 = byteArray[offset + 4]!;
+            const vr1 = byteArray[offset + 5]!;
             const vrCodeBE = (vr0 << 8) | vr1;
 
             let length: number;
@@ -197,15 +197,15 @@ export function extractTransferSyntax(byteArray: Uint8Array): string | null {
                 // Reserved (2b) + Length (4b)
                 if (offset + 12 > limit) break;
                 length =
-                    byteArray[offset + 8] |
-                    (byteArray[offset + 9] << 8) |
-                    (byteArray[offset + 10] << 16) |
-                    (byteArray[offset + 11] << 24);
+                    byteArray[offset + 8]! |
+                    (byteArray[offset + 9]! << 8) |
+                    (byteArray[offset + 10]! << 16) |
+                    (byteArray[offset + 11]! << 24);
                 valueOffset = offset + 12;
                 nextTagOffset = offset + 12 + length;
             } else {
                 // Length (2b)
-                length = byteArray[offset + 6] | (byteArray[offset + 7] << 8);
+                length = byteArray[offset + 6]! | (byteArray[offset + 7]! << 8);
                 valueOffset = offset + 8;
                 nextTagOffset = offset + 8 + length;
             }

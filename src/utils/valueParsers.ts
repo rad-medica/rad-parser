@@ -69,7 +69,7 @@ export function parseDate(value: string): Date | string | Array<Date | string> {
     // Handle multiple dates separated by backslash
     const dates = value.split("\\");
     if (dates.length === 1) {
-        return parseSingleDate(dates[0]);
+        return parseSingleDate(dates[0]!);
     }
 
     return dates.map(d => parseSingleDate(d));
@@ -104,7 +104,7 @@ export function parseTime(value: string): Date | string | Array<Date | string> {
 
     const times = value.split("\\");
     if (times.length === 1) {
-        return parseSingleTime(times[0]);
+        return parseSingleTime(times[0]!);
     }
 
     return times.map(t => parseSingleTime(t));
@@ -147,7 +147,7 @@ export function parseDateTime(
 
     const dateTimes = value.split("\\");
     if (dateTimes.length === 1) {
-        return parseSingleDateTime(dateTimes[0]);
+        return parseSingleDateTime(dateTimes[0]!);
     }
 
     return dateTimes.map(dt => parseSingleDateTime(dt));
@@ -156,7 +156,7 @@ export function parseDateTime(
 function parseSingleDateTime(dateTimeStr: string): Date | string {
     // Remove timezone if present (format: YYYYMMDDHHMMSS.FFFFFF&ZZZZ)
     const parts = dateTimeStr.split("&");
-    const mainPart = parts[0];
+    const mainPart = parts[0]!;
 
     if (mainPart.length >= 14) {
         const year = parseInt(mainPart.substring(0, 4), 10);
@@ -201,7 +201,7 @@ export function parseAgeString(
 
     const ages = value.split("\\");
     if (ages.length === 1) {
-        return parseSingleAge(ages[0]);
+        return parseSingleAge(ages[0]!);
     }
 
     return ages.map(a => parseSingleAge(a));
@@ -212,8 +212,8 @@ function parseSingleAge(
 ): { value: number; unit: "D" | "W" | "M" | "Y" } | string {
     const match = ageStr.match(/^(\d{3})([DWMY])$/);
     if (match) {
-        const value = parseInt(match[1], 10);
-        const unit = match[2] as "D" | "W" | "M" | "Y";
+        const value = parseInt(match[1]!, 10);
+        const unit = match[2]! as "D" | "W" | "M" | "Y";
         if (!isNaN(value)) {
             return { value, unit };
         }
@@ -250,21 +250,21 @@ export function parseValueByVR(
             const parsed = parseDate(value);
             // Convert arrays to first element or return as-is
             if (Array.isArray(parsed)) {
-                return parsed.length > 0 ? parsed[0] : value;
+                return parsed.length > 0 ? parsed[0]! : value;
             }
             return parsed;
         }
         case "TM": {
             const parsed = parseTime(value);
             if (Array.isArray(parsed)) {
-                return parsed.length > 0 ? parsed[0] : value;
+                return parsed.length > 0 ? parsed[0]! : value;
             }
             return parsed;
         }
         case "DT": {
             const parsed = parseDateTime(value);
             if (Array.isArray(parsed)) {
-                return parsed.length > 0 ? parsed[0] : value;
+                return parsed.length > 0 ? parsed[0]! : value;
             }
             return parsed;
         }
@@ -278,7 +278,7 @@ export function parseValueByVR(
                     typeof parsed[0] === "object" &&
                     parsed[0] !== null
                 ) {
-                    return parsed[0] as Record<string, unknown>;
+                    return parsed[0]! as Record<string, unknown>;
                 }
                 return parsed.map(p =>
                     typeof p === "object" ? p : String(p)

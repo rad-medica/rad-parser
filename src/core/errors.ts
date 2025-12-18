@@ -10,9 +10,9 @@ export class DicomParseError extends Error {
         message: string,
         public readonly tag?: string,
         public readonly offset?: number,
-        public readonly cause?: Error
+        cause?: Error
     ) {
-        super(message);
+        super(message, { cause });
         this.name = "DicomParseError";
     }
 }

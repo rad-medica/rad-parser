@@ -1,8 +1,8 @@
-import { DicomDataSet } from "../core/types";
-import { extractRescaledPixelData } from "./pixelDataExtractor"; // Reusing our handy tool
-import { encodePNG } from "../codecs/png"; // Native encoder
 import { JpegNativeCodec } from "../codecs/jpegNative"; // Wasm Native encoder
+import { encodePNG } from "../codecs/png"; // Native encoder
+import { DicomDataSet } from "../core/types";
 import { applyVoiLutWasm } from "../core/wasm-opt";
+import { extractRescaledPixelData } from "./pixelDataExtractor"; // Reusing our handy tool
 
 export interface ImageExportOptions {
     frame?: number;
@@ -75,7 +75,7 @@ export async function dicomToImage(
             let min = Infinity;
             let max = -Infinity;
             for (let i = 0; i < frameData.length; i++) {
-                const v = frameData[i];
+                const v = frameData[i]!;
                 if (v < min) min = v;
                 if (v > max) max = v;
             }
@@ -105,7 +105,7 @@ export async function dicomToImage(
         const upper = wc + halfWidth - 1; // inclusive?
 
         for (let i = 0; i < frameData.length; i++) {
-            let val = frameData[i];
+            let val = frameData[i]!;
 
             // Linear Windowing
             if (val <= lower) {
@@ -144,7 +144,7 @@ export async function dicomToImage(
             samples,
             8
         );
-        return frags[0];
+        return frags[0]!;
     }
 
     throw new Error(`Unsupported format: ${format}`);

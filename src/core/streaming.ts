@@ -485,7 +485,7 @@ export class StreamingParser {
             const vrBytes = view.readBytes(2);
             const vr0 = vrBytes[0];
             const vr1 = vrBytes[1];
-            vr = String.fromCharCode(vr0, vr1);
+            vr = String.fromCharCode(vrBytes[0]!, vrBytes[1]!);
 
             // Fast check for long VRs using char codes (avoid string comparison)
             const isLongVR =
@@ -828,7 +828,7 @@ export class StreamingParser {
                 const str = new TextDecoder().decode(bytes);
                 const parts = str.split("\\").filter(p => p.trim());
                 if (parts.length === 1) {
-                    const num = parseFloat(parts[0]);
+                    const num = parseFloat(parts[0]!);
                     return isNaN(num) ? parts[0] || "" : num;
                 }
                 return parts.map(p => {
@@ -844,7 +844,7 @@ export class StreamingParser {
                 const str = new TextDecoder().decode(bytes);
                 const parts = str.split("\\").filter(p => p.trim());
                 if (parts.length === 1) {
-                    const num = parseFloat(parts[0]);
+                    const num = parseFloat(parts[0]!);
                     return isNaN(num) ? parts[0] || "" : Math.floor(num);
                 }
                 return parts.map(p => {
@@ -865,7 +865,7 @@ export class StreamingParser {
         ) {
             const parts = str.split("\\").filter(p => p.trim());
             if (parts.length === 1) {
-                const num = parseFloat(parts[0]);
+                const num = parseFloat(parts[0]!);
                 return isNaN(num) ? str : Math.floor(num);
             }
             return parts.map(p => {
@@ -877,7 +877,7 @@ export class StreamingParser {
         if (vr === "DS" || vr === "FL" || vr === "FD") {
             const parts = str.split("\\").filter(p => p.trim());
             if (parts.length === 1) {
-                const num = parseFloat(parts[0]);
+                const num = parseFloat(parts[0]!);
                 return isNaN(num) ? str : num;
             }
             return parts.map(p => {
@@ -898,7 +898,7 @@ export class StreamingParser {
         }
 
         const parts = str.split("\\");
-        return parts.length === 1 ? parts[0] : parts;
+        return parts.length === 1 ? parts[0]! : parts;
     }
 
     /**
@@ -935,7 +935,7 @@ export class StreamingParser {
 
             // Meta Elements are always Explicit VR Little Endian
             const vrBytes = metaView.readBytes(2);
-            const vr = String.fromCharCode(vrBytes[0], vrBytes[1]);
+            const vr = String.fromCharCode(vrBytes[0]!, vrBytes[1]!);
             let length: number;
 
             if (requiresExplicitLength(vr)) {

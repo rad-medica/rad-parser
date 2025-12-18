@@ -15,6 +15,9 @@ typedef unsigned long size_t;
 static uint8_t heap[16 * 1024 * 1024];
 static size_t heap_offset = 0;
 
+static uint8_t* g_result_ptr = 0;
+static size_t g_result_len = 0;
+
 WASM_EXPORT void* alloc(size_t size) {
     if (heap_offset + size > sizeof(heap)) return 0;
     void* ptr = &heap[heap_offset];
@@ -29,9 +32,6 @@ WASM_EXPORT void reset_memory(void) {
 }
 
 WASM_EXPORT void free_ptr(void* ptr) { (void)ptr; }
-
-static uint8_t* g_result_ptr = 0;
-static size_t g_result_len = 0;
 
 WASM_EXPORT uint8_t* get_result_ptr(void) { return g_result_ptr; }
 WASM_EXPORT size_t get_result_len(void) { return g_result_len; }

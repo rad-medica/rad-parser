@@ -165,7 +165,7 @@ async function extractImage(inputFile: string, outputFile: string) {
             encodeOptions.bitsAllocated
         );
 
-        fs.writeFileSync(outputFile, pngFragments[0]);
+        fs.writeFileSync(outputFile, Buffer.from(pngFragments[0]!));
         console.log(`Successfully saved image to ${outputFile}`);
     } catch (e: any) {
         console.error(`Error extracting image: ${e.message}`);
@@ -255,7 +255,7 @@ async function convertFile(inputPath: string, outputPath: string) {
 
         // Re-write as Explicit VR Little Endian
         const targetTs = "1.2.840.10008.1.2.1";
-        dataset.dict["x00020010"].Value = [targetTs];
+        // Transfer Syntax is handled by write() options
 
         console.log(`Writing to ${outputPath}...`);
         const outBytes = write(dataset);

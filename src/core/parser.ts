@@ -417,7 +417,7 @@ function readMetaInformation(metaView: SafeDataView): {
         }
 
         const vrBytes = metaView.readBytes(2);
-        const vr = String.fromCharCode(vrBytes[0], vrBytes[1]);
+        const vr = String.fromCharCode(vrBytes[0]!, vrBytes[1]!);
         let length: number;
 
         if (requiresExplicitLength(vr)) {
@@ -428,8 +428,13 @@ function readMetaInformation(metaView: SafeDataView): {
         }
 
         const dataStart = metaView.getPosition();
-        let value: string | number | string[] | Uint8Array | undefined =
-            undefined;
+        let value:
+            | string
+            | number
+            | string[]
+            | number[]
+            | Uint8Array
+            | undefined = undefined;
 
         if (length > 0 && length !== 0xffffffff) {
             if (vr === "UI") {
@@ -438,7 +443,7 @@ function readMetaInformation(metaView: SafeDataView): {
                     .replace(/\u0000/g, "")
                     .trim()
                     .split("\\");
-                if (value.length === 1) value = value[0];
+                if (value.length === 1) value = value[0]!;
             } else if (vr === "UL") {
                 value = metaView.readUint32();
             } else if (vr === "SL" || vr === "SS" || vr === "US") {
@@ -480,7 +485,7 @@ function readMetaInformation(metaView: SafeDataView): {
             !Array.isArray(normalizedValue) &&
             !(normalizedValue instanceof Uint8Array)
         ) {
-            normalizedValue = [normalizedValue];
+            normalizedValue = [normalizedValue] as any;
         }
 
         result.elements[tag] = {
@@ -568,7 +573,7 @@ function parseDataElements(
                     if (typeof charSetValue === "string") {
                         const safeCharSetValue = charSetValue;
                         detectedCharacterSet = safeCharSetValue
-                            .split("\\")[0]
+                            .split("\\")[0]!
                             .trim();
                         context.characterSet = detectedCharacterSet;
                     } else if (
@@ -584,7 +589,7 @@ function parseDataElements(
 
             // Store in dict
             for (const tag in element.dict) {
-                dict[tag] = element.dict[tag];
+                dict[tag] = element.dict[tag]!;
             }
         } catch {
             break;
@@ -624,7 +629,7 @@ function parseElement(
 
     if (context.explicitVR) {
         const vrBytes = view.readBytes(2);
-        vr = String.fromCharCode(vrBytes[0], vrBytes[1]);
+        vr = String.fromCharCode(vrBytes[0]!, vrBytes[1]!);
 
         if (requiresExplicitLength(vr)) {
             view.readUint16(); // Skip reserved bytes
@@ -1208,8 +1213,8 @@ function fastParse(
 
         if (explicitVR && view.getRemainingBytes() >= 2) {
             const vrBytes = view.readBytes(2);
-            const vr0 = vrBytes[0];
-            const vr1 = vrBytes[1];
+            const vr0 = vrBytes[0]!;
+            const vr1 = vrBytes[1]!;
             vr = String.fromCharCode(vr0, vr1);
 
             // Fast check for long VRs using char codes (avoid string comparison)
@@ -1438,7 +1443,7 @@ function shallowParse(
 
         if (explicitVR) {
             const vrBytes = view.readBytes(2);
-            vr = String.fromCharCode(vrBytes[0], vrBytes[1]);
+            vr = String.fromCharCode(vrBytes[0]!, vrBytes[1]!);
 
             if (requiresExplicitLength(vr)) {
                 view.readUint16();
@@ -1651,7 +1656,7 @@ export function extractPixelData(byteArray: Uint8Array): PixelDataInfo | null {
 
             if (explicitVR) {
                 const vrBytes = view.readBytes(2);
-                vr = String.fromCharCode(vrBytes[0], vrBytes[1]);
+                vr = String.fromCharCode(vrBytes[0]!, vrBytes[1]!);
                 if (requiresExplicitLength(vr)) {
                     view.readUint16();
                     length = view.readUint32();
@@ -1694,7 +1699,7 @@ export function extractPixelData(byteArray: Uint8Array): PixelDataInfo | null {
 
             if (explicitVR) {
                 const vrBytes = view.readBytes(2);
-                vr = String.fromCharCode(vrBytes[0], vrBytes[1]);
+                vr = String.fromCharCode(vrBytes[0]!, vrBytes[1]!);
                 if (requiresExplicitLength(vr)) {
                     view.readUint16();
                     length = view.readUint32();
@@ -1846,7 +1851,7 @@ function parseElementValue(
         const str = new TextDecoder().decode(bytes);
         const parts = str.split("\\").filter(p => p.trim());
         if (parts.length === 1) {
-            const num = parseFloat(parts[0]);
+            const num = parseFloat(parts[0]!);
             return isNaN(num) ? str : num;
         }
         return parts.map(p => {
@@ -1865,7 +1870,7 @@ function parseElementValue(
         const str = new TextDecoder().decode(bytes);
         const parts = str.split("\\").filter(p => p.trim());
         if (parts.length === 1) {
-            const num = parseFloat(parts[0]);
+            const num = parseFloat(parts[0]!);
             return isNaN(num) ? str : Math.floor(num);
         }
         return parts.map(p => {
@@ -2018,7 +2023,7 @@ function createDataSet(dict: Record<string, DicomElement>): DicomDataSet {
                     val instanceof Float32Array) &&
                 val.length > 0
             ) {
-                return Math.floor(val[0]) & 0xffff;
+                return Math.floor(val[0]!) & 0xffff;
             }
             return undefined;
         },
@@ -2050,7 +2055,7 @@ function createDataSet(dict: Record<string, DicomElement>): DicomDataSet {
                     val instanceof Float32Array) &&
                 val.length > 0
             ) {
-                const num = Math.floor(val[0]);
+                const num = Math.floor(val[0]!);
                 return num >= -32768 && num <= 32767 ? num : undefined;
             }
             return undefined;
@@ -2103,7 +2108,7 @@ function createDataSet(dict: Record<string, DicomElement>): DicomDataSet {
                     val instanceof Float32Array) &&
                 val.length > 0
             ) {
-                return Math.floor(val[0]);
+                return Math.floor(val[0]!);
             }
             return undefined;
         },

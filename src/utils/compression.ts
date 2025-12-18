@@ -73,9 +73,9 @@ function decompressRLE(pixelData: PixelDataResult): Uint8Array | null {
         const decompressed: number[] = [];
 
         for (let seg = 0; seg < segmentCount; seg++) {
-            const segmentStart = segmentOffsets[seg];
+            const segmentStart = segmentOffsets[seg]!;
             const segmentEnd =
-                seg < segmentCount - 1 ? segmentOffsets[seg + 1] : data.length;
+                seg < segmentCount - 1 ? segmentOffsets[seg + 1]! : data.length;
 
             if (segmentStart >= data.length || segmentEnd > data.length) {
                 return null; // Invalid segment bounds
@@ -106,7 +106,7 @@ function decompressRLESegment(segment: Uint8Array): Uint8Array | null {
     let i = 0;
 
     while (i < segment.length) {
-        const byte = segment[i++];
+        const byte = segment[i++]!;
 
         if (byte >= 0 && byte <= 127) {
             // Literal run: copy next (byte + 1) bytes
@@ -115,7 +115,7 @@ function decompressRLESegment(segment: Uint8Array): Uint8Array | null {
                 return null; // Out of bounds
             }
             for (let j = 0; j < count; j++) {
-                result.push(segment[i++]);
+                result.push(segment[i++]!);
             }
         } else if (byte >= 129 && byte <= 255) {
             // Replicate run: replicate next byte (257 - byte) times
@@ -123,7 +123,7 @@ function decompressRLESegment(segment: Uint8Array): Uint8Array | null {
             if (i >= segment.length) {
                 return null; // Out of bounds
             }
-            const value = segment[i++];
+            const value = segment[i++]!;
             for (let j = 0; j < count; j++) {
                 result.push(value);
             }

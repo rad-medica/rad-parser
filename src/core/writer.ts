@@ -193,7 +193,7 @@ export function write(
 export function concatChunks(chunks: Uint8Array[]): Uint8Array {
     let totalLength = 0;
     for (let i = 0; i < chunks.length; i++) {
-        totalLength += chunks[i].length;
+        totalLength += chunks[i]!.length;
     }
     const result = new Uint8Array(totalLength);
     let offset = 0;

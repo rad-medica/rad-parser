@@ -5,12 +5,21 @@ import { serializeElement } from "./writer";
  * Creates a transformer that accepts DicomElements and emits Uint8Array chunks.
  * Handles automatic Preamble generation and File Meta Information (Group 0002) buffering/rewriting.
  */
-export function createDicomWriterStream() {
+export function createDicomWriterStream(
+    options: { explicitVR: boolean; littleEndian: boolean } = {
+        explicitVR: true,
+        littleEndian: true,
+    }
+) {
     let metaComplete = false;
     const metaBuffer: Record<string, DicomElement> = {};
     const PREAMBLE_LENGTH = 128;
 
     function flushMeta(controller: any) {
+        // ... (snip) ...
+        // Meta is always Explicit VR Little Endian
+        const metaContext = { explicitVR: true, littleEndian: true };
+
         // 1. Ensure mandatory meta elements
         // 0002,0001 File Meta Information Version
         if (!metaBuffer["x00020001"]) {
@@ -40,7 +49,7 @@ export function createDicomWriterStream() {
 
         for (const t of sortedMetaTags) {
             if (t === "x00020000") continue; // Skip existing length, we recount
-            const c = serializeElement(t, metaBuffer[t]);
+            const c = serializeElement(t, metaBuffer[t]!, metaContext);
             if (c) metaChunks.push(c);
         }
 
@@ -52,7 +61,8 @@ export function createDicomWriterStream() {
         };
         const groupLengthChunk = serializeElement(
             "x00020000",
-            groupLengthElement
+            groupLengthElement,
+            metaContext
         );
 
         if (groupLengthChunk) controller.enqueue(groupLengthChunk);
@@ -78,20 +88,7 @@ export function createDicomWriterStream() {
             element: DicomElement & { tag?: string; _tag?: string },
             controller: any
         ) {
-            // How do we know the tag? StreamingParser emits object { dict: { tag: element } } ?
-            // No, StreamingParser emits DicomElement, but inside an object structure?
-            // Let's check StreamingParser onElement.
-            // It emits `DicomElement` but the tag is usually the key in `dict`.
-            // Wait, StreamingParser `onElement` structure is `{ dict: { [tag]: element } }`.
-            // So the input to this writable stream must be `{ dict: { [tag]: element } }`?
-            // Or just `DicomElement` with a `tag` property attached?
-            // The `createDicomTransformer` emits what `StreamingParser` emits.
-            // `StreamingParser` emits `DicomDataSet` (partial)?
-            // streaming.ts: `this.options.onElement(partialDataset)` where partialDataset contains one element.
-            // So input is `DicomDataSet` (containing one element).
-
-            // Let's assume input is `{ dict: { [tag]: element } }`.
-
+            // ...
             const tag = Object.keys(element.dict || {})[0];
             if (!tag) return;
 
@@ -110,7 +107,7 @@ export function createDicomWriterStream() {
             }
 
             // Serialize and write current element
-            const chunk = serializeElement(tag, dicomElement);
+            const chunk = serializeElement(tag, dicomElement, options);
             if (chunk) {
                 controller.enqueue(chunk);
             }

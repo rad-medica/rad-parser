@@ -131,7 +131,7 @@ export class NodePngEncoder implements PixelDataCodec {
         const table = this.getCrcTable();
         let crc = 0 ^ -1;
         for (let i = 0; i < buf.length; i++) {
-            crc = (crc >>> 8) ^ table[(crc ^ buf[i]) & 0xff];
+            crc = (crc >>> 8) ^ table[(crc ^ buf[i]!) & 0xff]!;
         }
         return (crc ^ -1) >>> 0;
     }
@@ -177,5 +177,5 @@ export async function encodePNG(
         samples,
         options.bitDepth
     );
-    return fragments[0];
+    return fragments[0]!;
 }

@@ -52,20 +52,20 @@ export class JpegLosslessNativeDecoder implements PixelDataCodec {
 
         // Marker Loop
         while (pos < data.length) {
-            if (data[pos] !== 0xff) {
+            if (data[pos]! !== 0xff) {
                 // Entropy Coded Data (Scan)
                 break;
             }
 
-            const marker = data[pos + 1];
+            const marker = data[pos + 1]!;
             const segLen = view.getUint16(pos + 2);
 
             if (marker === 0xc3) {
                 // SOF3 (Lossless)
-                bits = data[pos + 4];
+                bits = data[pos + 4]!;
                 height = view.getUint16(pos + 5);
                 width = view.getUint16(pos + 7);
-                components = data[pos + 9];
+                components = data[pos + 9]!;
                 console.log(
                     `  - [Native Parser] SOF3: ${width}x${height}, ${bits} bits, ${components} comps`
                 );

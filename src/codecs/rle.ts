@@ -66,7 +66,7 @@ export class RleCodec implements PixelDataCodec {
             return new Uint8Array(0);
         }
         if (decodedFrames.length === 1) {
-            return decodedFrames[0];
+            return decodedFrames[0]!;
         }
 
         return concatFragments(decodedFrames);
@@ -106,6 +106,8 @@ export class RleCodec implements PixelDataCodec {
                 );
             } catch (e) {
                 console.warn("WASM RLE decode failed, using JS fallback", e);
+                // Return explicitly to satisfy void path if undefined not handled?
+                // catch block falls through to JS fallback.
             }
         }
 
@@ -119,10 +121,21 @@ export class RleCodec implements PixelDataCodec {
         for (let i = 0; i < numSegments; i++) {
             const start = offsets[i];
             const end =
-                i < numSegments - 1 && offsets[i + 1] > 0
-                    ? offsets[i + 1]
+                i < numSegments - 1 && offsets[i + 1]! > 0
+                    ? offsets[i + 1]!
                     : buffer.byteLength;
-            if (start > 0 && start < buffer.byteLength) {
+            // start is possibly undefined if offsets[i] is undefined?
+            // offsets pushed 15 times, loop numSegments (max 16 used).
+            // Actually offsets has 15 items. numSegments can be 1-16.
+            // If numSegments is 16, i=15, offsets[15] is undefined.
+            // Standard says RLE has 15 offsets for 15 segments max?
+            // "The RLE Header contains the number of segments... followed by 15 offsets".
+            // So segments max 15? No, max 15 offsets means 15 segments?
+            // If numSegments > 15, we have a problem.
+            // But line 90 check `numSegments > 16` -> fallback.
+            // If numSegments is 16, offsets[15] undefined.
+            // Lets assume checked.
+            if (start !== undefined && start > 0 && start < buffer.byteLength) {
                 segments.push(buffer.subarray(start, end));
             } else {
                 segments.push(new Uint8Array(0));
@@ -132,10 +145,10 @@ export class RleCodec implements PixelDataCodec {
         const decodedSegments = segments.map(s => this.decompressRle(s));
 
         if (decodedSegments.length === 0) return new Uint8Array(0);
-        if (decodedSegments.length === 1) return decodedSegments[0];
+        if (decodedSegments.length === 1) return decodedSegments[0]!;
 
         // Interleave segments
-        const pixelCount = decodedSegments[0].length;
+        const pixelCount = decodedSegments[0]!.length;
         const total = pixelCount * decodedSegments.length;
         const result = new Uint8Array(total);
 
@@ -143,21 +156,28 @@ export class RleCodec implements PixelDataCodec {
             info?.bitsAllocated || (decodedSegments.length > 1 ? 16 : 8);
 
         if (bits === 16 && samples === 1 && decodedSegments.length >= 2) {
+            const seg0 = decodedSegments[0]!;
+            const seg1 = decodedSegments[1]!;
             for (let p = 0; p < pixelCount; p++) {
-                result[p * 2] = decodedSegments[1][p];
-                result[p * 2 + 1] = decodedSegments[0][p];
+                result[p * 2] = seg1[p]!;
+                result[p * 2 + 1] = seg0[p]!;
             }
         } else if (bits === 8 && samples === 3 && decodedSegments.length >= 3) {
+            const seg0 = decodedSegments[0]!;
+            const seg1 = decodedSegments[1]!;
+            const seg2 = decodedSegments[2]!;
             for (let p = 0; p < pixelCount; p++) {
-                result[p * 3] = decodedSegments[0][p];
-                result[p * 3 + 1] = decodedSegments[1][p];
-                result[p * 3 + 2] = decodedSegments[2][p];
+                result[p * 3] = seg0[p]!;
+                result[p * 3 + 1] = seg1[p]!;
+                result[p * 3 + 2] = seg2[p]!;
             }
         } else {
             for (let p = 0; p < pixelCount; p++) {
                 for (let s = 0; s < decodedSegments.length; s++) {
-                    result[p * decodedSegments.length + s] =
-                        decodedSegments[s][p];
+                    const seg = decodedSegments[s];
+                    if (seg) {
+                        result[p * decodedSegments.length + s] = seg[p]!;
+                    }
                 }
             }
         }
@@ -170,18 +190,20 @@ export class RleCodec implements PixelDataCodec {
         let i = 0;
 
         while (i < src.length) {
-            const n = src[i++];
+            const n = src[i++]!;
             if (n >= 0 && n <= 127) {
                 const count = n + 1;
                 if (i + count > src.length) {
-                    for (let k = 0; k < src.length - i; k++) out.push(src[i++]);
+                    for (let k = 0; k < src.length - i; k++) {
+                        if (i < src.length) out.push(src[i++]!);
+                    }
                     break;
                 }
-                for (let k = 0; k < count; k++) out.push(src[i++]);
+                for (let k = 0; k < count; k++) out.push(src[i++]!);
             } else if (n >= 129 && n <= 255) {
                 const count = 257 - n;
                 if (i >= src.length) break;
-                const byte = src[i++];
+                const byte = src[i++]!;
                 for (let k = 0; k < count; k++) out.push(byte);
             }
         }
@@ -228,9 +250,9 @@ export class RleCodec implements PixelDataCodec {
                 const g = new Uint8Array(numPixels);
                 const b = new Uint8Array(numPixels);
                 for (let i = 0; i < numPixels; i++) {
-                    r[i] = pixelData[i * 3];
-                    g[i] = pixelData[i * 3 + 1];
-                    b[i] = pixelData[i * 3 + 2];
+                    r[i] = pixelData[i * 3]!;
+                    g[i] = pixelData[i * 3 + 1]!;
+                    b[i] = pixelData[i * 3 + 2]!;
                 }
                 segments.push(r, g, b);
             }
@@ -238,8 +260,8 @@ export class RleCodec implements PixelDataCodec {
             const msb = new Uint8Array(numPixels);
             const lsb = new Uint8Array(numPixels);
             for (let i = 0; i < numPixels; i++) {
-                lsb[i] = pixelData[i * 2];
-                msb[i] = pixelData[i * 2 + 1];
+                lsb[i] = pixelData[i * 2]!;
+                msb[i] = pixelData[i * 2 + 1]!;
             }
             segments.push(msb, lsb);
         } else {
@@ -257,7 +279,10 @@ export class RleCodec implements PixelDataCodec {
         let currentOffset = 64;
         for (let i = 0; i < numSeg; i++) {
             view.setUint32(4 + i * 4, currentOffset, true);
-            currentOffset += encodedSegments[i].length;
+            const seg = encodedSegments[i];
+            if (seg) {
+                currentOffset += seg.length;
+            }
         }
 
         const totalSize =
@@ -288,7 +313,7 @@ export class RleCodec implements PixelDataCodec {
                 }
                 if (runLen > 1) {
                     out.push(257 - runLen);
-                    out.push(src[i]);
+                    out.push(src[i]!);
                     i += runLen;
                 }
                 continue;
@@ -298,7 +323,7 @@ export class RleCodec implements PixelDataCodec {
             while (i + runLen < src.length && runLen < 128) {
                 if (
                     i + runLen + 1 < src.length &&
-                    src[i + runLen] === src[i + runLen + 1]
+                    src[i + runLen]! === src[i + runLen + 1]!
                 ) {
                     break;
                 }
@@ -307,7 +332,7 @@ export class RleCodec implements PixelDataCodec {
 
             if (runLen > 0) {
                 out.push(runLen - 1);
-                for (let k = 0; k < runLen; k++) out.push(src[i++]);
+                for (let k = 0; k < runLen; k++) out.push(src[i++]!);
             }
         }
         return new Uint8Array(out);

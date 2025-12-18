@@ -9,7 +9,6 @@
  * @returns Float32Array with rescaled pixel values
  */
 
-import type { DicomDataSet } from "../core/types";
 import { applyModalityLutWasm } from "../core/wasm-opt";
 
 // Assuming PixelDataInfo is defined elsewhere or will be added.
@@ -158,7 +157,7 @@ export function extractRescaledPixelData(dataset: any): Float32Array {
 
     // Apply rescale transformation: rescaled = stored * slope + intercept
     for (let i = 0; i < expectedLength; i++) {
-        const storedValue = pixelData[i];
+        const storedValue = pixelData[i]!;
         output[i] = storedValue * slope + intercept;
     }
 
