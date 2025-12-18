@@ -82,6 +82,7 @@ pub fn build(b: *std.Build) void {
     });
 
     lib_j2k.addCSourceFile(.{ .file = b.path("src/jpeg2000.cpp"), .flags = &.{ "-std=c++11", "-O3", "-DNDEBUG", "-ffunction-sections", "-fdata-sections" } });
+    lib_j2k.addIncludePath(b.path("src/include"));
     lib_j2k.addIncludePath(b.path("deps/openjpeg/src/lib/openjp2"));
 
     const openjpeg_c_flags = &.{ "-std=c99", "-O3", "-DNDEBUG", "-DOPJ_HAVE_FSEEKO=0", "-ffunction-sections", "-fdata-sections" };
