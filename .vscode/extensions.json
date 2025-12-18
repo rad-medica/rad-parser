@@ -18,31 +18,13 @@
         // WebAssembly
         "dtsvet.vscode-wasm",
 
-        // Git and GitHub
-        "github.copilot",
-        "github.copilot-chat",
-        "ms-vscode.vscode-github-issue-notebooks",
-        "github.vscode-github-actions",
-
         // Development tools
         "ms-vscode.vscode-json",
-        "redhat.vscode-yaml",
-        "ms-vscode.powershell",
         "davidanson.vscode-markdownlint",
         "ms-vscode.vscode-markdown-preview-enhanced",
         "christian-kohler.path-intellisense",
         "bradlc.vscode-tailwindcss",
-        "ms-vscode.vscode-css-peek",
-
-        // Docker (if needed for testing)
-        "ms-azuretools.vscode-docker",
-
-        // Performance and debugging
-        "ms-vscode.vscode-js-profile-flame",
-        "ms-vscode.hexeditor"
+        "ms-vscode.vscode-css-peek"
     ],
-    "unwantedRecommendations": [
-        "ms-vscode.vscode-nodejs-tsc",
-        "denoland.vscode-deno"
-    ]
+    "unwantedRecommendations": []
 }

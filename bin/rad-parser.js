@@ -8,7 +8,7 @@ import { fileURLToPath } from "url";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-const distPath = join(__dirname, "../dist/index.cjs");
+const distPath = join(__dirname, "../dist/package/cjs/cli.js");
 const srcPath = join(__dirname, "../src/cli.ts");
 
 // Detect Runtime

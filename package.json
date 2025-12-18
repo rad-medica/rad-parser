@@ -2,36 +2,36 @@
     "name": "rad-parser",
     "version": "2.0.0",
     "description": "A lightweight, performant, self-contained DICOM parser for Node.js, Bun, Deno, and browsers, built with TypeScript and with zero external dependencies",
-    "main": "./dist/index.cjs",
-    "module": "./dist/index.js",
+    "main": "./dist/package/cjs/index.js",
+    "module": "./dist/package/esm/index.js",
     "bin": {
         "rad-parser": "./bin/rad-parser.js"
     },
-    "types": "./dist/index.d.ts",
+    "types": "./dist/package/esm/index.d.ts",
     "exports": {
         ".": {
-            "types": "./dist/index.d.ts",
-            "import": "./dist/index.js",
-            "require": "./dist/index.cjs",
-            "default": "./dist/index.js"
+            "types": "./dist/package/esm/index.d.ts",
+            "import": "./dist/package/esm/index.js",
+            "require": "./dist/package/cjs/index.js",
+            "default": "./dist/package/esm/index.js"
         },
         "./core": {
-            "types": "./dist/index-core.d.ts",
-            "import": "./dist/index-core.js",
-            "require": "./dist/index-core.cjs",
-            "default": "./dist/index-core.js"
+            "types": "./dist/package/esm/index-core.d.ts",
+            "import": "./dist/package/esm/index-core.js",
+            "require": "./dist/package/cjs/index-core.js",
+            "default": "./dist/package/esm/index-core.js"
         },
         "./codecs": {
-            "types": "./dist/index-codecs.d.ts",
-            "import": "./dist/index-codecs.js",
-            "require": "./dist/index-codecs.cjs",
-            "default": "./dist/index-codecs.js"
+            "types": "./dist/package/esm/index-codecs.d.ts",
+            "import": "./dist/package/esm/index-codecs.js",
+            "require": "./dist/package/cjs/index-codecs.js",
+            "default": "./dist/package/esm/index-codecs.js"
         },
         "./dictionary": {
-            "types": "./dist/dictionary.d.ts",
-            "import": "./dist/dictionary.js",
-            "require": "./dist/dictionary.cjs",
-            "default": "./dist/dictionary.js"
+            "types": "./dist/package/esm/dictionary.d.ts",
+            "import": "./dist/package/esm/dictionary.js",
+            "require": "./dist/package/cjs/dictionary.js",
+            "default": "./dist/package/esm/dictionary.js"
         }
     },
     "type": "module",
@@ -59,31 +59,26 @@
     },
     "homepage": "https://github.com/rad-medica/rad-parse#readme",
     "files": [
-        "dist/**/*",
+        "dist/package/**/*",
         "docs/**/*.md",
-        "src/wasm-core-build/*.wasm",
-        "src/wasm-codecs-build/*.wasm",
         "README.md",
         "LICENSE",
         "package.json",
         "bin/**/*"
     ],
     "scripts": {
-        "build": "bun run tsc && bun run build:cjs",
-        "build:cjs": "bun run esbuild src/index.ts --bundle --format=cjs --platform=node --target=node16 --outfile=dist/index.cjs --log-level=info && bun run esbuild src/index-core.ts --bundle --format=cjs --platform=node --target=node16 --outfile=dist/index-core.cjs --log-level=info && bun run esbuild src/index-codecs.ts --bundle --format=cjs --platform=node --target=node16 --outfile=dist/index-codecs.cjs --log-level=info",
+        "build": "bun run tsc && bun run build:package && bun run build:standalone",
+        "build:standalone": "bun run scripts/build_standalone.ts",
+        "build:package": "bun run tsc --outDir dist/package/esm && bun run tsc --module commonjs --moduleResolution node --outDir dist/package/cjs --declaration false --declarationMap false && bun run scripts/post_build_package.ts",
         "build:wasm:core": "cd src/zig-core && zig build -Doptimize=ReleaseFast",
-        "build:wasm:codecs": "cd src/wasm-codecs && wasm-pack build --target web --out-dir ../wasm-codecs-build --release",
+        "build:wasm:codecs": "cd src/zig-codecs && zig build --release=fast -p zig-out",
         "build:zig-codecs": "cd src/zig-codecs && zig build --release=fast -p zig-out",
         "optimize:zig-codecs": "bun run scripts/optimize_wasm_codecs.mjs",
         "build:wasm": "bun run build:wasm:core && bun run build:wasm:codecs",
-        "bundle:full": "bun run esbuild src/index.ts --bundle --format=esm --target=es2022 --platform=neutral --outfile=dist/rad-parser.js --sourcemap --log-level=info --external:env && bun run esbuild src/index.ts --bundle --format=esm --target=es2022 --platform=neutral --outfile=dist/rad-parser.min.js --minify --log-level=info --external:env",
-        "bundle:core": "bun run esbuild src/index-core.ts --bundle --format=esm --target=es2022 --platform=neutral --outfile=dist/index-core.js --sourcemap --log-level=info",
-        "bundle:codecs": "bun run esbuild src/index-codecs.ts --bundle --format=esm --target=es2022 --platform=neutral --outfile=dist/index-codecs.js --sourcemap --log-level=info --external:env",
-        "bundle:dictionary": "bun run esbuild src/dictionary-entry.ts --bundle --format=esm --target=es2022 --platform=neutral --outfile=dist/dictionary.js --sourcemap --log-level=info",
-        "bundle:lite": "bun run bundle:core",
-        "copy:wasm": "copy src\\wasm-core-build\\*.wasm dist\\ && copy src\\wasm-codecs-build\\*.wasm dist\\",
-        "bundle": "bun run bundle:full && bun run bundle:core && bun run bundle:codecs && bun run bundle:lite && bun run bundle:dictionary && bun run copy:wasm",
-        "release": "bun run build:wasm && bun run build && bun run bundle",
+        "bundle:dictionary": "bun run esbuild src/dictionary-entry.ts --bundle --format=esm --target=es2022 --platform=neutral --outfile=dist/package/dictionary.js --sourcemap --log-level=info",
+        "copy:wasm": "bun run copy:wasm:package",
+        "copy:wasm:package": "bun run scripts/copy_wasm_package.ts",
+        "release": "bun run build:wasm && bun run build && bun run copy:wasm",
         "type-check": "bun run tsc --noEmit",
         "test": "bun run vitest run",
         "test:watch": "bun run vitest",

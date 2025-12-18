@@ -1,14 +1,14 @@
 import * as fs from "fs";
 import * as path from "path";
 import {
-    parse,
-    write,
-    anonymize,
-    registry,
-    formatTagWithComma,
-    parseAndDecode,
     NodePngEncoder,
+    anonymize,
+    formatTagWithComma,
     normalizeTag,
+    parse,
+    parseAndDecode,
+    registry,
+    write,
 } from "./index";
 
 // Manually register the PNG encoder for CLI use
@@ -81,7 +81,7 @@ A powerful command-line tool for inspecting, converting, and manipulating DICOM 
 
 Commands:
   dump <file>                  Parse and print all DICOM tags from a file.
-  get <file> <tag>             Get the value of a specific DICOM tag. 
+  get <file> <tag>             Get the value of a specific DICOM tag.
                                Tag can be in format 'x00100010' or '0010,0010'.
   anonymize <input> [output]   Anonymize a DICOM file. Defaults to '<input>_anon.dcm'.
   convert <input> <output>     Convert a DICOM file to an uncompressed format.
@@ -273,6 +273,7 @@ export { run };
 // Run if main
 import { fileURLToPath } from "url";
 // ESM check - works in both ESM and CJS environments
+// ESM check - works in both ESM and CJS environments
 try {
     if (import.meta.url && process.argv[1] === fileURLToPath(import.meta.url)) {
         run().catch(err => {
@@ -282,4 +283,17 @@ try {
     }
 } catch {
     // In CJS environments, import.meta doesn't exist, so don't run
+}
+
+// CJS check for bundled environment
+// @ts-ignore
+if (
+    typeof require !== "undefined" &&
+    typeof module !== "undefined" &&
+    require.main === module
+) {
+    run().catch(err => {
+        console.error(err);
+        process.exit(1);
+    });
 }

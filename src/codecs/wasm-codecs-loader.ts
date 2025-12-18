@@ -31,6 +31,8 @@ const WASI_IMPORTS = {
     fd_prestat_dir_name: () => 0,
     args_sizes_get: () => 0,
     args_get: () => 0,
+    random_get: (_buf: number, _buf_len: number) => 0,
+    fd_fdstat_set_flags: (_fd: number, _flags: number) => 0,
 };
 
 export class ZigWasmCodecLoader {
@@ -68,51 +70,146 @@ export class ZigWasmCodecLoader {
         const wasmFileName = `rad-codecs-${codec}.wasm`;
         let bytes: BufferSource;
 
-        if (typeof window === "undefined") {
-            // Node.js environment
-            const fs = await import("fs");
-            const path = await import("path");
-            const url = await import("url");
+        // Check for embedded WASM
+        // @ts-ignore
+        if (typeof __RAD_STANDALONE__ !== "undefined" && __RAD_STANDALONE__) {
+            let base64: string | undefined;
 
-            let wasmPath: string;
-            if (this.basePath) {
-                wasmPath = path.join(this.basePath, wasmFileName);
-            } else {
-                // Default path relative to this file - works in both development and bundled environments
-                try {
-                    const __filename = url.fileURLToPath(import.meta.url);
-                    const __dirname = path.dirname(__filename);
-                    // Try bundled location first (dist directory)
-                    wasmPath = path.resolve(__dirname, "../../", wasmFileName);
-                    if (!fs.existsSync(wasmPath)) {
-                        // Fallback to development location
-                        wasmPath = path.resolve(
+            switch (codec) {
+                case "jpeg":
+                    // @ts-ignore
+                    if (typeof __RAD_PARSER_CODEC_JPEG_WASM__ !== "undefined")
+                        base64 = __RAD_PARSER_CODEC_JPEG_WASM__;
+                    break;
+                case "j2k":
+                    // @ts-ignore
+                    if (typeof __RAD_PARSER_CODEC_J2K_WASM__ !== "undefined")
+                        base64 = __RAD_PARSER_CODEC_J2K_WASM__;
+                    break;
+                case "jpegls":
+                    // @ts-ignore
+                    if (typeof __RAD_PARSER_CODEC_JPEGLS_WASM__ !== "undefined")
+                        base64 = __RAD_PARSER_CODEC_JPEGLS_WASM__;
+                    break;
+                case "rle":
+                    // @ts-ignore
+                    if (typeof __RAD_PARSER_CODEC_RLE_WASM__ !== "undefined")
+                        base64 = __RAD_PARSER_CODEC_RLE_WASM__;
+                    break;
+                case "htj2k":
+                    // @ts-ignore
+                    if (typeof __RAD_PARSER_CODEC_HTJ2K_WASM__ !== "undefined")
+                        base64 = __RAD_PARSER_CODEC_HTJ2K_WASM__;
+                    break;
+                case "ljpeg":
+                    // @ts-ignore
+                    if (typeof __RAD_PARSER_CODEC_LJPEG_WASM__ !== "undefined")
+                        base64 = __RAD_PARSER_CODEC_LJPEG_WASM__;
+                    break;
+            }
+
+            if (base64) {
+                const binaryString = atob(base64);
+                const len = binaryString.length;
+                const u8 = new Uint8Array(len);
+                for (let i = 0; i < len; i++) {
+                    u8[i] = binaryString.charCodeAt(i);
+                }
+                bytes = u8.buffer;
+            }
+        }
+
+        if (!bytes!) {
+            // @ts-ignore
+            const isStandalone =
+                typeof __RAD_STANDALONE__ !== "undefined" && __RAD_STANDALONE__;
+
+            if (!isStandalone && typeof window === "undefined") {
+                // Node.js environment
+                const fs = await import("fs");
+                const path = await import("path");
+                const url = await import("url");
+
+                let wasmPath: string;
+                if (this.basePath) {
+                    wasmPath = path.join(this.basePath, wasmFileName);
+                } else {
+                    // Default path relative to this file - works in both development and bundled environments
+                    try {
+                        const __filename = url.fileURLToPath(import.meta.url);
+                        const __dirname = path.dirname(__filename);
+
+                        // Priority 0: dist/package/wasm-codecs (Package Distribution)
+                        const packagePath = path.resolve(
                             __dirname,
-                            "../zig-codecs/zig-out/bin",
+                            "wasm-codecs",
+                            wasmFileName
+                        );
+
+                        // Priority 1: dist/wasm-codecs (Bundle)
+                        const distPath = path.resolve(
+                            __dirname,
+                            "../../wasm-codecs",
+                            wasmFileName
+                        );
+
+                        // Priority 2: src/zig-codecs/zig-out/bin (Dev)
+                        const devPath = path.resolve(
+                            __dirname,
+                            "../../src/zig-codecs/zig-out/bin",
+                            wasmFileName
+                        );
+
+                        // Priority 3: ../wasm-codecs (Relative to index-codecs.js in dist)
+                        const relativeDist = path.resolve(
+                            __dirname,
+                            "../wasm-codecs",
+                            wasmFileName
+                        );
+
+                        if (fs.existsSync(packagePath)) {
+                            wasmPath = packagePath;
+                        } else if (fs.existsSync(distPath)) {
+                            wasmPath = distPath;
+                        } else if (fs.existsSync(devPath)) {
+                            wasmPath = devPath;
+                        } else if (fs.existsSync(relativeDist)) {
+                            wasmPath = relativeDist;
+                        } else {
+                            // Fallback: Check local dir (legacy)
+                            wasmPath = path.resolve(__dirname, wasmFileName);
+                        }
+                    } catch {
+                        // Fallback for environments where import.meta.url is not available
+                        wasmPath = path.resolve(
+                            process.cwd(),
+                            "dist/package/wasm-codecs",
                             wasmFileName
                         );
                     }
-                } catch {
-                    // Fallback for environments where import.meta.url is not available
-                    wasmPath = path.resolve(
-                        process.cwd(),
-                        "dist",
-                        wasmFileName
+                }
+
+                if (!fs.existsSync(wasmPath)) {
+                    throw new Error(
+                        `Codec WASM file (${codec}) not found at ${wasmPath}`
                     );
                 }
-            }
 
-            bytes = fs.readFileSync(wasmPath);
-        } else {
-            // Browser environment
-            const wasmUrl = this.basePath + wasmFileName;
-            const response = await fetch(wasmUrl);
-            if (!response.ok) {
-                throw new Error(
-                    `Failed to fetch ${wasmUrl}: ${response.status} ${response.statusText}`
-                );
+                bytes = fs.readFileSync(wasmPath);
+            } else {
+                // Browser environment
+                const wasmUrl = this.basePath
+                    ? this.basePath + wasmFileName
+                    : "wasm-codecs/" + wasmFileName; // Default relative path
+
+                const response = await fetch(wasmUrl);
+                if (!response.ok) {
+                    throw new Error(
+                        `Failed to fetch ${wasmUrl}: ${response.status} ${response.statusText}`
+                    );
+                }
+                bytes = await response.arrayBuffer();
             }
-            bytes = await response.arrayBuffer();
         }
 
         try {
