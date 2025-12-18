@@ -33,35 +33,16 @@ pub fn build(b: *std.Build) void {
     lib_jpeg.addIncludePath(b.path("deps/libjpeg-turbo"));
     lib_jpeg.addIncludePath(b.path("src/include")); // Mock setjmp
 
-    addSources(b, lib_jpeg, "deps/libjpeg-turbo/src", &.{".c"}, &.{ "test", "bench", "example", "turbojpeg", "tj", "rd", "wr", "cdjpeg", "cjpeg.c", "djpeg.c", "jpegtran.c", "md5", "java", "simd", "transupp.c", "jstdhuff.c", "jdmrgext.c", "jdmrg565.c", "jdcol565.c", "jdcolext.c", "jccolext.c" }) catch |err| std.debug.print("Error adding JPG sources: {}\n", .{err});
+    addSources(b, lib_jpeg, "deps/libjpeg-turbo/src", &.{".c"}, &.{ "test", "bench", "example", "turbojpeg", "tj", "template.c", "-8.c", "cdjpeg", "cjpeg.c", "djpeg.c", "jpegtran.c", "rdjpgcom.c", "wrjpgcom.c", "md5", "java", "simd", "transupp.c", "jstdhuff.c", "jdmrgext.c", "jdmrg565.c", "jdcol565.c", "jdcolext.c", "jccolext.c" }) catch |err| std.debug.print("Error adding JPG sources: {}\n", .{err});
 
     // Add specific TJ files
     const tj_flags = &.{ "-DINLINE=inline", "-O3", "-DNDEBUG", "-ffunction-sections", "-fdata-sections" };
     lib_jpeg.addCSourceFile(.{ .file = b.path("deps/libjpeg-turbo/src/turbojpeg.c"), .flags = tj_flags });
     lib_jpeg.addCSourceFile(.{ .file = b.path("deps/libjpeg-turbo/src/transupp.c"), .flags = tj_flags });
 
-    // Add 12-bit function stubs for 8-bit only build
-    lib_jpeg.addCSourceFile(.{ .file = b.path("src/j12_stubs.c"), .flags = tj_flags });
-
     // Add TurboJPEG memory source/destination handlers
     lib_jpeg.addCSourceFile(.{ .file = b.path("deps/libjpeg-turbo/src/jdatasrc-tj.c"), .flags = tj_flags });
     lib_jpeg.addCSourceFile(.{ .file = b.path("deps/libjpeg-turbo/src/jdatadst-tj.c"), .flags = tj_flags });
-
-    // 12-bit support disabled for now - requires complex CMake-style configuration
-    // TODO: Re-enable once 12-bit compilation strategy is resolved
-    // const flags12 = &.{ "-DINLINE=inline", "-O3", "-DNDEBUG", "-DBITS_IN_JSAMPLE=12" };
-    // const wrapper_files_12: []const []const u8 = &.{
-    //     "jcmainct-12.c", "jcprepct-12.c", "jccoefct-12.c", "jccolor-12.c", "jcsample-12.c", "jcdctmgr-12.c",
-    //     "jfdctint-12.c", "jfdctfst-12.c",
-    //     "jdmainct-12.c", "jdcoefct-12.c", "jdpostct-12.c", "jddctmgr-12.c", "jdsample-12.c", "jdcolor-12.c",
-    //     "jquant1-12.c", "jquant2-12.c", "jdmerge-12.c",
-    //     "jidctint-12.c", "jidctfst-12.c", "jidctflt-12.c", "jidctred-12.c",
-    //     "jutils-12.c"
-    // };
-    // for (wrapper_files_12) |f| {
-    //      const path = b.fmt("deps/libjpeg-turbo/src/wrapper/{s}", .{f});
-    //      lib_jpeg.addCSourceFile(.{ .file = b.path(path), .flags = flags12 });
-    // }
 
     lib_jpeg.linkLibC();
     lib_jpeg.linkLibCpp(); // For jpeg.cpp
