@@ -88,7 +88,7 @@ All AI agents are configured to maintain these standards:
 
 - **Strict Mode**: Comprehensive type checking enabled
 - **Interface Preference**: Use `interface` over `type` for object shapes
-- **Type Safety**: Never use `any`, create proper type definitions
+- **Type Safety**: Never use `any`, create proper type definitions. WHEN WRITING TYPESCRIPT, BE STRICT WITH THE TYPES, NEVER USE ANY.
 - **Const Assertions**: For immutable data structures
 - **Utility Types**: Leverage `Pick`, `Omit`, `Partial`, `Required`
 
@@ -123,7 +123,7 @@ bun run fix             # Auto-fix linting and formatting
 
 ### Code Generation Principles
 
-1. **Type Safety First**: Strict TypeScript usage, comprehensive error handling
+1. **Type Safety First**: Strict TypeScript usage, comprehensive error handling. WHEN WRITING TYPESCRIPT, BE STRICT WITH THE TYPES, NEVER USE ANY.
 2. **Performance Conscious**: Memory efficiency, zero-copy operations, bounds checking
 3. **Cross-Platform**: Runtime compatibility, feature detection, conditional imports
 4. **Architecture Compliant**: Follow established patterns, maintain separation of concerns

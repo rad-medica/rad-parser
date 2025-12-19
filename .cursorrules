@@ -85,6 +85,7 @@ bun run format          # Format code only
 - Use `const` assertions for readonly arrays
 - Leverage utility types (`Pick`, `Omit`, `Partial`)
 - Avoid `any` - use proper type definitions
+- WHEN WRITING TYPESCRIPT, BE STRICT WITH THE TYPES, NEVER USE ANY
 
 ### Error Handling
 

@@ -31,6 +31,8 @@
 
 ### TypeScript Conventions
 
+- WHEN WRITING TYPESCRIPT, BE STRICT WITH THE TYPES, NEVER USE ANY
+
 ```typescript
 // Interface definitions preferred over types
 interface DicomDataSet {
@@ -154,7 +156,7 @@ function readUint16LE(buffer: Uint8Array, offset: number): number {
 
 ### Code Generation Principles
 
-1. **Type Safety First**: Never use `any`, create proper type definitions
+1. **Type Safety First**: Never use `any`, create proper type definitions. WHEN WRITING TYPESCRIPT, BE STRICT WITH THE TYPES, NEVER USE ANY.
 2. **Performance Conscious**: Consider memory usage and execution speed
 3. **Cross-Platform**: Ensure compatibility across all target runtimes
 4. **Zero Dependencies**: Avoid external runtime dependencies

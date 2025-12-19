@@ -19,6 +19,7 @@ You are working on **rad-parser**, a high-performance DICOM parser written in Ty
 - Use strict TypeScript settings with comprehensive type checking
 - Prefer `interface` over `type` for object shapes
 - Avoid `any` type - create proper type definitions
+- WHEN WRITING TYPESCRIPT, BE STRICT WITH THE TYPES, NEVER USE ANY
 - Use const assertions for immutable data
 - Leverage utility types (`Pick`, `Omit`, `Partial`, `Required`)
 
@@ -160,7 +161,7 @@ if (offset + length > buffer.length) {
 When suggesting code:
 
 1. **Maintain Architecture**: Follow established patterns and separation of concerns
-2. **Type Safety**: Use proper TypeScript types, avoid `any`
+2. **Type Safety**: Use proper TypeScript types, avoid `any`. WHEN WRITING TYPESCRIPT, BE STRICT WITH THE TYPES, NEVER USE ANY.
 3. **Performance**: Consider memory usage and execution speed
 4. **Compatibility**: Ensure multi-runtime support
 5. **Testing**: Suggest appropriate test cases for new functionality
