@@ -1,14 +1,11 @@
-import { DicomDataSet } from "../core/types";
-import { registry } from "../core/registry";
 import { decodePixelData } from "../core/codec-helpers";
-import {
-    extractRescaledPixelData,
-    extractPixelData,
-} from "./pixelDataExtractor";
+import { registry } from "../core/registry";
+import { DicomDataSet } from "../core/types";
+import { extractPixelData } from "./pixelDataExtractor";
 
 export interface TranscodeOptions {
     targetTransferSyntax: string;
-    quality?: number; // 0-100 for lossy
+    quality?: number; // 0-100 for lossy. For J2K, 0=lossless, >0=ratio (e.g. 20 for 20:1)
 }
 
 /**
@@ -143,14 +140,41 @@ export async function transcode(
 
     // 3. Encode to Target Syntax
     const encodedFragments: Uint8Array[] = [];
+    const isJpegBaseline =
+        options.targetTransferSyntax === "1.2.840.10008.1.2.4.50";
+
     for (const frame of decodedFrames) {
+        let frameToEncode = frame;
+        let bitsToEncode = bits;
+
+        // Downscale 16-bit to 8-bit for JPEG Baseline if needed
+        if (isJpegBaseline && bits > 8) {
+            console.warn("Downscaling >8-bit data to 8-bit for JPEG Baseline");
+            if (frame.byteLength % 2 !== 0)
+                throw new Error("16-bit frame length must be even");
+            const src = new Uint16Array(
+                frame.buffer,
+                frame.byteOffset,
+                frame.byteLength / 2
+            );
+            const dst = new Uint8Array(src.length);
+            // Simple linear scaling: val >> (bits - 8)
+            const shift = bits - 8;
+            for (let i = 0; i < src.length; i++) {
+                dst[i] = src[i] >> shift;
+            }
+            frameToEncode = dst;
+            bitsToEncode = 8;
+        }
+
         const fragments = await targetCodec.encode!(
-            frame,
+            frameToEncode,
             options.targetTransferSyntax,
             columns,
             rows,
             samples,
-            bits
+            bitsToEncode,
+            options.quality // Pass quality if available
         );
         if (!fragments) throw new Error("Codec returned undefined fragments");
         encodedFragments.push(...fragments);
@@ -180,7 +204,12 @@ export async function transcode(
         }
 
         dataset.dict["x7fe00010"] = {
-            vr: bits > 8 ? "OW" : "OB", // Simple heuristic
+            vr:
+                options.targetTransferSyntax === "1.2.840.10008.1.2.4.50"
+                    ? "OB"
+                    : bits > 8
+                      ? "OW"
+                      : "OB",
             Value: flattened,
         };
     } else {

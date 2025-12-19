@@ -30,7 +30,8 @@ export interface PixelDataCodec {
         width: number,
         height: number,
         samples: number,
-        bits: number
+        bits: number,
+        quality?: number // Optional quality/ratio parameter
     ): Promise<Uint8Array[]>;
 }
 
@@ -54,7 +55,8 @@ export interface FunctionalCodecConfig {
         width: number,
         height: number,
         samples: number,
-        bits: number
+        bits: number,
+        quality?: number
     ) => Promise<Uint8Array[]>;
     codecInfo?: CodecInfo;
 }
@@ -79,7 +81,8 @@ class FunctionalCodec implements PixelDataCodec {
         width: number,
         height: number,
         samples: number,
-        bits: number
+        bits: number,
+        quality?: number
     ) => Promise<Uint8Array[]>;
 
     constructor(config: FunctionalCodecConfig) {
@@ -104,12 +107,13 @@ class FunctionalCodec implements PixelDataCodec {
         w: number,
         h: number,
         s: number,
-        b: number
+        b: number,
+        q?: number
     ) => {
         if (!this.encodeFn) {
             throw new Error(`Encoding not supported by codec: ${this.name}`);
         }
-        return this.encodeFn(pixelData, ts, w, h, s, b);
+        return this.encodeFn(pixelData, ts, w, h, s, b, q);
     };
 }
 
@@ -195,6 +199,7 @@ export class CodecRegistry {
     }
 
     async getEncoder(transferSyntax: string): Promise<PixelDataCodec | null> {
+        // 1. Check statically registered codecs first
         for (const codec of this.codecs) {
             if (codec.canEncode && codec.canEncode(transferSyntax)) {
                 if (await codec.isSupported()) {
@@ -202,8 +207,63 @@ export class CodecRegistry {
                 }
             }
         }
-        // Dynamic loading for encoders can be added here if needed
-        return null;
+
+        // 2. Check if a dynamic loader is available for this transfer syntax
+        // Even if we don't know if it supports encoding yet, we should try loading it.
+        // We reuse the getDecoder loading logic because usually the codec handles both.
+        // However, getDecoder registers specific to the requested TS?
+        // No, dynamic registration is by TS.
+
+        const loader = this.dynamicCodecs.get(transferSyntax);
+        if (!loader) {
+            return null;
+        }
+
+        // If it's already loading, wait for it
+        if (this.loadingCodecs.has(transferSyntax)) {
+            const codec = await this.loadingCodecs.get(transferSyntax)!;
+            if (
+                codec &&
+                codec.canEncode &&
+                codec.canEncode(transferSyntax) &&
+                (await codec.isSupported())
+            ) {
+                return codec;
+            }
+            return null;
+        }
+
+        // Trigger load (using the same logic as getDecoder, but specialized check)
+        const loadPromise = (async () => {
+            try {
+                const codecModule = await loader();
+                const codecClass = Object.values(codecModule)[0];
+                if (!codecClass) throw new Error("Invalid codec module");
+
+                const codecInstance = new codecClass();
+                // Check encoding support
+                if (
+                    codecInstance.canEncode &&
+                    codecInstance.canEncode(transferSyntax) &&
+                    (await codecInstance.isSupported())
+                ) {
+                    this.register(codecInstance); // Add to static list
+                    return codecInstance;
+                }
+                return null;
+            } catch (e) {
+                console.error(
+                    `Error dynamically loading encoder for ${transferSyntax}:`,
+                    e
+                );
+                return null;
+            } finally {
+                this.loadingCodecs.delete(transferSyntax);
+            }
+        })();
+
+        this.loadingCodecs.set(transferSyntax, loadPromise);
+        return loadPromise;
     }
 
     getCodecs(): PixelDataCodec[] {

@@ -11,7 +11,8 @@ import { CodecType, ZigWasmCodecLoader } from "./wasm-codecs-loader";
 interface CodecExports {
     memory: WebAssembly.Memory;
     alloc: (size: number) => number;
-    free: (ptr: number, size: number) => void;
+    free?: (ptr: number, size: number) => void;
+    free_ptr?: (ptr: number) => void;
     get_result_ptr: () => number;
     get_result_len: () => number;
     // JPEG
@@ -33,7 +34,8 @@ interface CodecExports {
         width: number,
         height: number,
         bits: number,
-        components: number
+        components: number,
+        quality?: number
     ) => number;
     // JPEG-LS
     decode_jpegls?: (ptr: number, len: number) => number;
@@ -141,8 +143,13 @@ export class ZigCodecs {
         const outLen = exports.get_result_len();
         const output = this.readBuffer(memory, outPtr, outLen);
 
-        exports.free(ptr, data.length);
-        exports.free(outPtr, outLen);
+        if (exports.free_ptr) {
+            exports.free_ptr(ptr);
+            exports.free_ptr(outPtr);
+        } else if (exports.free) {
+            exports.free(ptr, data.length);
+            exports.free(outPtr, outLen);
+        }
         return output;
     }
 
@@ -157,32 +164,54 @@ export class ZigCodecs {
         const exports = await this.getCodecExports("jpeg");
         const memory = this.getMemory("jpeg");
 
+        // Check supported component counts validation
+        if (components !== 1 && components !== 3) {
+            throw new Error(
+                `JPEG encoding only supports 1 or 3 components, got ${components}`
+            );
+        }
+
         const ptr = exports.alloc(pixels.length);
         if (ptr === 0) throw new Error("WASM alloc failed");
         this.writeBuffer(memory, ptr, pixels);
 
-        // Param order: pixel_data, len, width, height, bits, components, quality
-        const res = exports.encode_jpeg!(
-            ptr,
-            pixels.length,
-            width,
-            height,
-            bits,
-            components,
-            quality
-        );
-        if (res !== 0) {
-            exports.free(ptr, pixels.length);
-            throw new Error(`JPEG encode failed: ${res}`);
+        // Signature: (ptr, len, width, height, components, quality)
+        // Note: len is ignored by Zig but we pass it.
+        // Quality expects 0-100? u8.
+        const q = quality !== undefined ? quality : 90;
+
+        try {
+            const res = exports.encode_jpeg!(
+                ptr,
+                pixels.length,
+                width,
+                height,
+                components,
+                q,
+                bits // Pass bits to support downscaling decision in WASM
+            );
+
+            if (res !== 0) {
+                throw new Error(`JPEG encode failed: ${res}`);
+            }
+
+            const outPtr = exports.get_result_ptr();
+            const outLen = exports.get_result_len();
+            const result = new Uint8Array(
+                this.getMemory("jpeg").buffer,
+                outPtr,
+                outLen
+            ).slice(); // Copy
+
+            return result;
+        } finally {
+            if (exports.free_ptr) {
+                exports.free_ptr(ptr);
+            } else if (exports.free) {
+                // @ts-ignore
+                exports.free(ptr, pixels.length);
+            }
         }
-
-        const outPtr = exports.get_result_ptr();
-        const outLen = exports.get_result_len();
-        const output = this.readBuffer(memory, outPtr, outLen);
-
-        exports.free(ptr, pixels.length);
-        exports.free(outPtr, outLen);
-        return output;
     }
 
     // ==================== JPEG 2000 ====================
@@ -205,8 +234,13 @@ export class ZigCodecs {
         const outLen = exports.get_result_len();
         const output = this.readBuffer(memory, outPtr, outLen);
 
-        exports.free(ptr, data.length);
-        exports.free(outPtr, outLen);
+        if (exports.free_ptr) {
+            exports.free_ptr(ptr);
+            exports.free_ptr(outPtr);
+        } else if (exports.free) {
+            exports.free(ptr, data.length);
+            exports.free(outPtr, outLen);
+        }
         return output;
     }
 
@@ -215,7 +249,8 @@ export class ZigCodecs {
         width: number,
         height: number,
         bits: number,
-        components: number
+        components: number,
+        quality?: number
     ): Promise<Uint8Array> {
         const exports = await this.getCodecExports("j2k");
         const memory = this.getMemory("j2k");
@@ -230,7 +265,8 @@ export class ZigCodecs {
             width,
             height,
             bits,
-            components
+            components,
+            quality || 0 // 0 = lossless by default? Or assume wrapper handles it.
         );
         if (res !== 0) {
             exports.free(ptr, pixels.length);
@@ -241,8 +277,13 @@ export class ZigCodecs {
         const outLen = exports.get_result_len();
         const output = this.readBuffer(memory, outPtr, outLen);
 
-        exports.free(ptr, pixels.length);
-        exports.free(outPtr, outLen);
+        if (exports.free_ptr) {
+            exports.free_ptr(ptr);
+            exports.free_ptr(outPtr);
+        } else if (exports.free) {
+            exports.free(ptr, pixels.length);
+            exports.free(outPtr, outLen);
+        }
         return output;
     }
 
@@ -266,8 +307,13 @@ export class ZigCodecs {
         const outLen = exports.get_result_len();
         const output = this.readBuffer(memory, outPtr, outLen);
 
-        exports.free(ptr, data.length);
-        exports.free(outPtr, outLen);
+        if (exports.free_ptr) {
+            exports.free_ptr(ptr);
+            exports.free_ptr(outPtr);
+        } else if (exports.free) {
+            exports.free(ptr, data.length);
+            exports.free(outPtr, outLen);
+        }
         return output;
     }
 
@@ -302,8 +348,13 @@ export class ZigCodecs {
         const outLen = exports.get_result_len();
         const output = this.readBuffer(memory, outPtr, outLen);
 
-        exports.free(ptr, pixels.length);
-        exports.free(outPtr, outLen);
+        if (exports.free_ptr) {
+            exports.free_ptr(ptr);
+            exports.free_ptr(outPtr);
+        } else if (exports.free) {
+            exports.free(ptr, pixels.length);
+            exports.free(outPtr, outLen);
+        }
         return output;
     }
 
@@ -338,8 +389,13 @@ export class ZigCodecs {
         const outLen = exports.get_result_len();
         const output = this.readBuffer(memory, outPtr, outLen);
 
-        exports.free(ptr, data.length);
-        exports.free(outPtr, outLen);
+        if (exports.free_ptr) {
+            exports.free_ptr(ptr);
+            exports.free_ptr(outPtr);
+        } else if (exports.free) {
+            exports.free(ptr, data.length);
+            exports.free(outPtr, outLen);
+        }
         return output;
     }
 
@@ -372,8 +428,13 @@ export class ZigCodecs {
         const outLen = exports.get_result_len();
         const output = this.readBuffer(memory, outPtr, outLen);
 
-        exports.free(ptr, pixels.length);
-        exports.free(outPtr, outLen);
+        if (exports.free_ptr) {
+            exports.free_ptr(ptr);
+            exports.free_ptr(outPtr);
+        } else if (exports.free) {
+            exports.free(ptr, pixels.length);
+            exports.free(outPtr, outLen);
+        }
         return output;
     }
 
@@ -397,8 +458,15 @@ export class ZigCodecs {
         const outLen = exports.get_result_len();
         const output = this.readBuffer(memory, outPtr, outLen);
 
-        exports.free(ptr, data.length);
-        exports.free(outPtr, outLen);
+        if (exports.free_ptr) {
+            exports.free_ptr(ptr);
+            exports.free_ptr(outPtr);
+        } else if (exports.free) {
+            // @ts-ignore
+            exports.free(ptr, data.length);
+            // @ts-ignore
+            exports.free(outPtr, outLen);
+        }
         return output;
     }
 

@@ -60,19 +60,20 @@ export class JpegNativeCodec implements PixelDataCodec {
         width: number,
         height: number,
         samples: number,
-        bits: number
+        bits: number,
+        quality?: number
     ): Promise<Uint8Array[]> {
         if (this.initPromise) {
             await this.initPromise;
         }
 
-        // Default quality 90
-        const quality = 90;
         const encoded = await this.zigCodecs.encodeJpeg(
             pixelData,
             width,
             height,
-            quality
+            bits,
+            samples,
+            quality || 90
         );
         return [encoded];
     }

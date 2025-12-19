@@ -179,12 +179,16 @@ export class ZigWasmCodecLoader {
                             // Fallback: Check local dir (legacy)
                             wasmPath = path.resolve(__dirname, wasmFileName);
                         }
+                        console.log(`Loading WASM from: ${wasmPath}`);
                     } catch {
                         // Fallback for environments where import.meta.url is not available
                         wasmPath = path.resolve(
                             process.cwd(),
                             "dist/package/wasm-codecs",
                             wasmFileName
+                        );
+                        console.log(
+                            `Loading WASM from fallback CWD: ${wasmPath}`
                         );
                     }
                 }
@@ -298,8 +302,6 @@ export class ZigWasmCodecLoader {
             case "1.2.840.10008.1.2.4.64":
             case "1.2.840.10008.1.2.4.65":
             case "1.2.840.10008.1.2.4.66":
-            // JPEG Lossless
-            case "1.2.840.10008.1.2.4.70":
                 return "jpeg";
 
             // JPEG 2000

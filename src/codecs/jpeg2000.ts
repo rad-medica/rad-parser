@@ -2,8 +2,8 @@
  * JPEG 2000 Decoder Plugin
  * Transfer Syntaxes: 1.2.840.10008.1.2.4.90 (Lossless), 1.2.840.10008.1.2.4.91 (Lossy)
  */
-import { concatFragments } from "../utils/bufferUtils";
 import { CodecInfo, PixelDataCodec, registry } from "../core/registry";
+import { concatFragments } from "../utils/bufferUtils";
 import { ZigCodecs } from "./zig-codecs";
 
 export class Jpeg2000Decoder implements PixelDataCodec {
@@ -62,7 +62,8 @@ export class Jpeg2000Decoder implements PixelDataCodec {
         width: number,
         height: number,
         samples: number,
-        bits: number
+        bits: number,
+        quality?: number
     ): Promise<Uint8Array[]> {
         if (this.initPromise) {
             await this.initPromise;
@@ -73,7 +74,8 @@ export class Jpeg2000Decoder implements PixelDataCodec {
             width,
             height,
             bits,
-            samples
+            samples,
+            quality
         );
         return [encoded];
     }
