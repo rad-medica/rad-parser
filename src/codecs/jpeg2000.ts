@@ -13,12 +13,40 @@ export class Jpeg2000Decoder implements PixelDataCodec {
         multiFrame: false,
     };
 
-    private zigCodecs: ZigCodecs;
+    private zigCodecs: ZigCodecs | null = null;
     private initPromise: Promise<void> | null = null;
+    private injectedDecode?: (data: Uint8Array) => Promise<Uint8Array>;
+    private injectedEncode?: (
+        pixelData: Uint8Array,
+        transferSyntax: string,
+        width: number,
+        height: number,
+        samples: number,
+        bits: number,
+        quality?: number
+    ) => Promise<Uint8Array[]>;
 
-    constructor() {
-        this.zigCodecs = new ZigCodecs();
-        this.initPromise = this.initWasm();
+    constructor(
+        injectedDecode?: (data: Uint8Array) => Promise<Uint8Array>,
+        injectedEncode?: (
+            pixelData: Uint8Array,
+            transferSyntax: string,
+            width: number,
+            height: number,
+            samples: number,
+            bits: number,
+            quality?: number
+        ) => Promise<Uint8Array[]>
+    ) {
+        if (injectedDecode || injectedEncode) {
+            // Use injected functions for testing
+            this.injectedDecode = injectedDecode;
+            this.injectedEncode = injectedEncode;
+        } else {
+            // Use WASM implementation
+            this.zigCodecs = new ZigCodecs();
+            this.initPromise = this.initWasm();
+        }
     }
 
     private async initWasm(): Promise<void> {
@@ -47,7 +75,24 @@ export class Jpeg2000Decoder implements PixelDataCodec {
     }
 
     async decode(encodedBuffer: Uint8Array[], info: any): Promise<Uint8Array> {
-        const combined = concatFragments(encodedBuffer);
+        // Filter out empty fragments (typically the Basic Offset Table)
+        const validFragments = encodedBuffer.filter(
+            frag => frag.byteLength > 0
+        );
+        if (validFragments.length === 0) {
+            throw new Error("No valid fragments found in encoded buffer");
+        }
+        const combined = concatFragments(validFragments);
+
+        if (this.injectedDecode) {
+            return await this.injectedDecode(combined);
+        }
+
+        if (!this.zigCodecs) {
+            throw new Error(
+                "Codec not initialized - either provide injected functions or ensure WASM is loaded"
+            );
+        }
 
         if (this.initPromise) {
             await this.initPromise;
@@ -65,19 +110,48 @@ export class Jpeg2000Decoder implements PixelDataCodec {
         bits: number,
         quality?: number
     ): Promise<Uint8Array[]> {
+        if (this.injectedEncode) {
+            return await this.injectedEncode(
+                pixelData,
+                transferSyntax,
+                width,
+                height,
+                samples,
+                bits,
+                quality
+            );
+        }
+
+        if (!this.zigCodecs) {
+            throw new Error("Codec not initialized");
+        }
+
         if (this.initPromise) {
             await this.initPromise;
         }
 
-        const encoded = await this.zigCodecs.encodeJpeg2000(
-            pixelData,
-            width,
-            height,
-            bits,
-            samples,
-            quality
-        );
-        return [encoded];
+        try {
+            // Determine if lossless based on transfer syntax
+            const isLossless = [
+                "1.2.840.10008.1.2.4.90", // JPEG 2000 Lossless
+                "1.2.840.10008.1.2.4.92", // JPEG 2000 Part 2 Lossless
+            ].includes(transferSyntax);
+
+            const encoded = await this.zigCodecs.encodeJpeg2000(
+                pixelData,
+                width,
+                height,
+                bits,
+                samples,
+                isLossless,
+                quality
+            );
+            return [encoded];
+        } catch (e: any) {
+            throw new Error(
+                `JPEG 2000 encode failed: ${e.message || String(e)}`
+            );
+        }
     }
 }
 

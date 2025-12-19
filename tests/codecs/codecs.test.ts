@@ -1,13 +1,12 @@
-import { describe, it, expect, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import {
-    registry,
-    RleCodec,
     BrowserImageCodec,
-    WebGpuDecoder,
     Jpeg2000Decoder,
-    JpegLsDecoder,
-    VideoDecoder,
     JpegLosslessDecoder,
+    JpegLsDecoder,
+    RleCodec,
+    VideoDecoder,
+    registry,
 } from "../../src/index";
 
 describe("Codec Registry and Plugins", () => {
@@ -22,7 +21,7 @@ describe("Codec Registry and Plugins", () => {
 
         // 1.2.840.10008.1.2.5 is RLE (Supported by RLE Plugin)
         const d1 = await testRegistry.getDecoder("1.2.840.10008.1.2.5");
-        expect(d1?.name).toBe("rle-typescript");
+        expect(d1?.name).toBe("rle-wasm");
 
         // 1.2.840.10008.1.2.4.50 is JPEG (Supported by Browser and Video??)
         // Browser supports it.
@@ -39,7 +38,7 @@ describe("Codec Registry and Plugins", () => {
 
         const enc = await testRegistry.getEncoder("1.2.840.10008.1.2.5");
         expect(enc).toBeDefined();
-        expect(enc?.name).toBe("rle-typescript");
+        expect(enc?.name).toBe("rle-wasm");
     });
 });
 

@@ -55,11 +55,16 @@ export class RleCodec implements PixelDataCodec {
             await this.initPromise;
         }
 
+        // RLE fragments: First fragment is usually Basic Offset Table (BOT), skip if empty
+        // Actual RLE data starts from the first non-empty fragment
+        const rleFragments = encodedBuffer.filter(frag => frag.byteLength > 0);
+        if (rleFragments.length === 0) {
+            return new Uint8Array(0);
+        }
+
         // RLE is per-frame, decode each fragment
         const decodedFrames = await Promise.all(
-            encodedBuffer
-                .filter(frag => frag.byteLength > 0)
-                .map(frag => this.processFrame(frag, info))
+            rleFragments.map(frag => this.processFrame(frag, info))
         );
 
         if (decodedFrames.length === 0) {
@@ -156,11 +161,13 @@ export class RleCodec implements PixelDataCodec {
             info?.bitsAllocated || (decodedSegments.length > 1 ? 16 : 8);
 
         if (bits === 16 && samples === 1 && decodedSegments.length >= 2) {
-            const seg0 = decodedSegments[0]!;
-            const seg1 = decodedSegments[1]!;
+            // RLE encoding: seg0 = MSB, seg1 = LSB (from segments.push(msb, lsb))
+            // Output should be: LSB, MSB (Little Endian format for JS)
+            const seg0 = decodedSegments[0]!; // MSB (first segment)
+            const seg1 = decodedSegments[1]!; // LSB (second segment)
             for (let p = 0; p < pixelCount; p++) {
-                result[p * 2] = seg1[p]!;
-                result[p * 2 + 1] = seg0[p]!;
+                result[p * 2] = seg1[p]!; // LSB first (from seg1)
+                result[p * 2 + 1] = seg0[p]!; // MSB second (from seg0)
             }
         } else if (bits === 8 && samples === 3 && decodedSegments.length >= 3) {
             const seg0 = decodedSegments[0]!;
@@ -223,8 +230,8 @@ export class RleCodec implements PixelDataCodec {
             await this.initPromise;
         }
 
-        // Try Zig WASM first
-        if (this.wasmAvailable) {
+        // Try Zig WASM first (but not for 16-bit single-component - WASM doesn't handle MSB/LSB splitting)
+        if (this.wasmAvailable && !(bits === 16 && samples === 1)) {
             try {
                 const encoded = await this.zigCodecs.encodeRle(
                     pixelData,
@@ -271,18 +278,31 @@ export class RleCodec implements PixelDataCodec {
         const encodedSegments = segments.map(s => this.packBits(s));
 
         // Build header
+        // RLE header format: 64 bytes = 16 uint32 values (little endian)
+        // Offset 0: number of segments
+        // Offset 4-60: segment offsets (up to 15 segments, each 4 bytes)
         const header = new Uint8Array(64);
         const view = new DataView(header.buffer);
         const numSeg = encodedSegments.length;
-        view.setUint32(0, numSeg, true);
 
-        let currentOffset = 64;
-        for (let i = 0; i < numSeg; i++) {
-            view.setUint32(4 + i * 4, currentOffset, true);
+        if (numSeg > 15) {
+            throw new Error(`RLE supports max 15 segments, got ${numSeg}`);
+        }
+
+        view.setUint32(0, numSeg, true); // Little endian
+
+        let currentOffset = 64; // Segments start after 64-byte header
+        for (let i = 0; i < numSeg && i < 15; i++) {
+            view.setUint32(4 + i * 4, currentOffset, true); // Little endian offset
             const seg = encodedSegments[i];
             if (seg) {
                 currentOffset += seg.length;
             }
+        }
+
+        // Zero out remaining offset slots (if numSeg < 15)
+        for (let i = numSeg; i < 15; i++) {
+            view.setUint32(4 + i * 4, 0, true);
         }
 
         const totalSize =

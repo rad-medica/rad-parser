@@ -298,9 +298,47 @@ export function serializeElement(
         // Standard Value Encoding
         // Reuse existing logic but respect Endianness for numbers
         if (element.Value instanceof Uint8Array) {
-            valueBytes = element.Value;
+            // For OW (16-bit words) in Big Endian, we need to byte-swap the words
+            // Pixel data is stored in Little Endian (native JS format)
+            // For Big Endian files, we need to swap bytes of each 16-bit word
+            if (vr === "OW" && !context.littleEndian) {
+                if (element.Value.length % 2 !== 0) {
+                    throw new Error(
+                        "OW value length must be even for 16-bit words"
+                    );
+                }
+                valueBytes = new Uint8Array(element.Value.length);
+                const inputView = new DataView(
+                    element.Value.buffer,
+                    element.Value.byteOffset,
+                    element.Value.byteLength
+                );
+                const outputView = new DataView(valueBytes.buffer);
+                for (let i = 0; i < element.Value.length; i += 2) {
+                    const word = inputView.getUint16(i, true); // Read as Little Endian (source)
+                    outputView.setUint16(i, word, false); // Write as Big Endian (target)
+                }
+            } else {
+                valueBytes = element.Value;
+            }
         } else if (element.Value instanceof ArrayBuffer) {
             valueBytes = new Uint8Array(element.Value);
+            // For OW, byte-swap if Big Endian
+            if (vr === "OW" && !context.littleEndian) {
+                if (valueBytes.length % 2 !== 0) {
+                    throw new Error(
+                        "OW value length must be even for 16-bit words"
+                    );
+                }
+                const swapped = new Uint8Array(valueBytes.length);
+                const inputView = new DataView(valueBytes.buffer);
+                const outputView = new DataView(swapped.buffer);
+                for (let i = 0; i < valueBytes.length; i += 2) {
+                    const word = inputView.getUint16(i, true); // Read as Little Endian
+                    outputView.setUint16(i, word, false); // Write as Big Endian
+                }
+                valueBytes = swapped;
+            }
         } else if (
             Array.isArray(element.Value) &&
             element.Value[0] instanceof Uint8Array
@@ -315,6 +353,22 @@ export function serializeElement(
             for (const v of element.Value as Uint8Array[]) {
                 valueBytes.set(v, off);
                 off += v.length;
+            }
+            // For OW, byte-swap if Big Endian
+            if (vr === "OW" && !context.littleEndian) {
+                if (valueBytes.length % 2 !== 0) {
+                    throw new Error(
+                        "OW value length must be even for 16-bit words"
+                    );
+                }
+                const swapped = new Uint8Array(valueBytes.length);
+                const inputView = new DataView(valueBytes.buffer);
+                const outputView = new DataView(swapped.buffer);
+                for (let i = 0; i < valueBytes.length; i += 2) {
+                    const word = inputView.getUint16(i, true); // Read as Little Endian
+                    outputView.setUint16(i, word, false); // Write as Big Endian
+                }
+                valueBytes = swapped;
             }
         } else if (
             [
@@ -432,10 +486,12 @@ export function serializeElement(
             if (vr === "SQ" || (element as any).isEncapsulated) {
                 view.setUint32(8, 0xffffffff, context.littleEndian);
             } else {
+                // Length field must respect endianness for Big Endian files
                 view.setUint32(8, valueLen, context.littleEndian);
             }
             if (valueLen > 0) buffer.set(valueBytes, 12);
         } else {
+            // For short VR, length is 16-bit and should respect endianness
             view.setUint16(6, valueLen, context.littleEndian);
             if (valueLen > 0) buffer.set(valueBytes, 8);
         }

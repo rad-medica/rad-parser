@@ -26,6 +26,8 @@ interface CodecExports {
         components: number,
         quality: number
     ) => number;
+    // Note: C++ signature is (ptr, len, width, height, bits, components, quality)
+    // Zig signature would be (ptr, len, width, height, components, quality, bits)
     // JPEG 2000
     decode_jpeg2000?: (ptr: number, len: number) => number;
     encode_jpeg2000?: (
@@ -34,8 +36,7 @@ interface CodecExports {
         width: number,
         height: number,
         bits: number,
-        components: number,
-        quality?: number
+        components: number
     ) => number;
     // JPEG-LS
     decode_jpegls?: (ptr: number, len: number) => number;
@@ -135,7 +136,11 @@ export class ZigCodecs {
 
         const res = exports.decode_jpeg!(ptr, data.length);
         if (res !== 0) {
-            exports.free(ptr, data.length);
+            if (exports.free_ptr) {
+                exports.free_ptr(ptr);
+            } else if (exports.free) {
+                exports.free(ptr, data.length);
+            }
             throw new Error(`JPEG decode failed: ${res}`);
         }
 
@@ -164,6 +169,11 @@ export class ZigCodecs {
         const exports = await this.getCodecExports("jpeg");
         const memory = this.getMemory("jpeg");
 
+        // Check if encode_jpeg function exists
+        if (!exports.encode_jpeg) {
+            throw new Error("JPEG encode function not found in WASM module");
+        }
+
         // Check supported component counts validation
         if (components !== 1 && components !== 3) {
             throw new Error(
@@ -171,28 +181,80 @@ export class ZigCodecs {
             );
         }
 
+        // Ensure memory can grow if needed
+        const estimatedNeeded = pixels.length * 3; // Input + potential output
+        if (estimatedNeeded > memory.buffer.byteLength && memory.grow) {
+            const pagesNeeded = Math.ceil(
+                (estimatedNeeded - memory.buffer.byteLength) / (64 * 1024)
+            );
+            memory.grow(pagesNeeded);
+        }
+
         const ptr = exports.alloc(pixels.length);
         if (ptr === 0) throw new Error("WASM alloc failed");
+
+        // Verify we can write to the allocated memory
+        if (ptr + pixels.length > memory.buffer.byteLength) {
+            if (exports.free_ptr) {
+                exports.free_ptr(ptr);
+            } else if (exports.free) {
+                exports.free(ptr, pixels.length);
+            }
+            throw new Error(
+                `Insufficient WASM memory: allocated at ${ptr}, need ${pixels.length} bytes, have ${memory.buffer.byteLength}`
+            );
+        }
+
         this.writeBuffer(memory, ptr, pixels);
 
-        // Signature: (ptr, len, width, height, components, quality)
-        // Note: len is ignored by Zig but we pass it.
-        // Quality expects 0-100? u8.
+        // Signature: (ptr, len, width, height, bits, components, quality)
+        // Note: The JPEG codec is built from C++ (jpeg.cpp), which has signature:
+        // encode_jpeg(ptr, len, width, height, bits, components, quality)
+        // NOT the Zig signature: encode_jpeg(ptr, len, width, height, components, quality, bits)
         const q = quality !== undefined ? quality : 90;
 
+        // Ensure parameters are within valid ranges
+        const validBits = Math.max(1, Math.min(bits, 16));
+        const validComponents = Math.max(1, Math.min(components, 4));
+        const validQuality = Math.max(1, Math.min(q, 100));
+
         try {
-            const res = exports.encode_jpeg!(
-                ptr,
-                pixels.length,
-                width,
-                height,
-                components,
-                q,
-                bits // Pass bits to support downscaling decision in WASM
-            );
+            // Try C++ signature first: (ptr, len, width, height, bits, components, quality)
+            let res: number;
+            try {
+                res = exports.encode_jpeg(
+                    ptr,
+                    pixels.length,
+                    width,
+                    height,
+                    validBits,
+                    validComponents,
+                    validQuality
+                );
+            } catch (e: any) {
+                // If that fails with unreachable, try Zig signature: (ptr, len, width, height, components, quality, bits)
+                if (e.message && e.message.includes("unreachable")) {
+                    res = exports.encode_jpeg(
+                        ptr,
+                        pixels.length,
+                        width,
+                        height,
+                        validComponents,
+                        validQuality,
+                        validBits
+                    );
+                } else {
+                    throw e;
+                }
+            }
 
             if (res !== 0) {
-                throw new Error(`JPEG encode failed: ${res}`);
+                if (exports.free_ptr) {
+                    exports.free_ptr(ptr);
+                } else if (exports.free) {
+                    exports.free(ptr, pixels.length);
+                }
+                throw new Error(`JPEG encode failed with error code: ${res}`);
             }
 
             const outPtr = exports.get_result_ptr();
@@ -218,20 +280,151 @@ export class ZigCodecs {
 
     public async decodeJpeg2000(data: Uint8Array): Promise<Uint8Array> {
         const exports = await this.getCodecExports("j2k");
-        const memory = this.getMemory("j2k");
+        let memory = this.getMemory("j2k"); // Use let to allow reassignment after memory growth
+
+        // Ensure memory can grow if needed - grow BEFORE allocation
+        // Need space for: input data + potential large output (lossless can expand significantly)
+        // For lossless decode, OpenJPEG may need significant temporary buffers
+        const estimatedNeeded = Math.max(
+            data.length * 30, // Very conservative estimate for lossless decode (OpenJPEG uses temp buffers)
+            data.length * 3 // Input + potential output
+        );
+        if (estimatedNeeded > memory.buffer.byteLength && memory.grow) {
+            const pagesNeeded = Math.ceil(
+                (estimatedNeeded - memory.buffer.byteLength) / (64 * 1024)
+            );
+            memory.grow(pagesNeeded);
+        }
+
+        // Re-get memory reference after potential grow (buffer might have changed)
+        memory = this.getMemory("j2k");
 
         const ptr = exports.alloc(data.length);
         if (ptr === 0) throw new Error("WASM alloc failed");
+
+        // Verify we can write to the allocated memory
+        if (ptr + data.length > memory.buffer.byteLength) {
+            // Try growing memory again if allocation is out of bounds
+            if (memory.grow) {
+                const neededPages = Math.ceil(
+                    (ptr + data.length - memory.buffer.byteLength) / (64 * 1024)
+                );
+                memory.grow(neededPages);
+                // Re-get memory reference after grow
+                memory = this.getMemory("j2k");
+            }
+
+            // Check again after potential grow
+            if (ptr + data.length > memory.buffer.byteLength) {
+                if (exports.free_ptr) {
+                    exports.free_ptr(ptr);
+                } else if (exports.free) {
+                    exports.free(ptr, data.length);
+                }
+                throw new Error(
+                    `Insufficient WASM memory: allocated at ${ptr}, need ${data.length} bytes, have ${memory.buffer.byteLength}`
+                );
+            }
+        }
+
         this.writeBuffer(memory, ptr, data);
 
-        const res = exports.decode_jpeg2000!(ptr, data.length);
+        if (!exports.decode_jpeg2000) {
+            if (exports.free_ptr) {
+                exports.free_ptr(ptr);
+            } else if (exports.free) {
+                exports.free(ptr, data.length);
+            }
+            throw new Error(
+                "JPEG 2000 decode function not found in WASM module"
+            );
+        }
+
+        // Verify the function is callable and parameters are valid
+        if (ptr === 0 || data.length === 0) {
+            if (exports.free_ptr) {
+                exports.free_ptr(ptr);
+            } else if (exports.free) {
+                exports.free(ptr, data.length);
+            }
+            throw new Error(
+                `Invalid parameters for JPEG 2000 decode: ptr=${ptr}, len=${data.length}`
+            );
+        }
+
+        // Verify pointer is within memory bounds
+        if (ptr + data.length > memory.buffer.byteLength) {
+            if (exports.free_ptr) {
+                exports.free_ptr(ptr);
+            } else if (exports.free) {
+                exports.free(ptr, data.length);
+            }
+            throw new Error(
+                `Pointer out of bounds: ptr=${ptr}, len=${data.length}, memory size=${memory.buffer.byteLength}`
+            );
+        }
+
+        // Ensure we have enough memory for potential output BEFORE calling decode
+        // Lossless decode can require significant memory for intermediate buffers
+        const estimatedOutputSize = data.length * 20; // Very conservative for lossless
+        if (estimatedOutputSize > memory.buffer.byteLength && memory.grow) {
+            const pagesNeeded = Math.ceil(
+                (estimatedOutputSize - memory.buffer.byteLength) / (64 * 1024)
+            );
+            memory.grow(pagesNeeded);
+        }
+
+        // Re-get memory reference after potential grow (buffer reference might have changed)
+        memory = this.getMemory("j2k");
+        if (ptr + data.length > memory.buffer.byteLength) {
+            if (exports.free_ptr) {
+                exports.free_ptr(ptr);
+            } else if (exports.free) {
+                exports.free(ptr, data.length);
+            }
+            throw new Error(
+                `Pointer still out of bounds after memory growth: ptr=${ptr}, len=${data.length}, memory size=${memory.buffer.byteLength}`
+            );
+        }
+
+        let res: number;
+        try {
+            // Call decode function - WASM will validate pointer bounds
+            res = exports.decode_jpeg2000(ptr, data.length);
+        } catch (e: any) {
+            if (exports.free_ptr) {
+                exports.free_ptr(ptr);
+            } else if (exports.free) {
+                exports.free(ptr, data.length);
+            }
+            throw new Error(
+                `JPEG 2000 decode WASM call failed: ${e.message || String(e)}`
+            );
+        }
+
         if (res !== 0) {
-            exports.free(ptr, data.length);
-            throw new Error(`JPEG 2000 decode failed: ${res}`);
+            if (exports.free_ptr) {
+                exports.free_ptr(ptr);
+            } else if (exports.free) {
+                exports.free(ptr, data.length);
+            }
+            throw new Error(`JPEG 2000 decode failed with code: ${res}`);
         }
 
         const outPtr = exports.get_result_ptr();
         const outLen = exports.get_result_len();
+
+        if (outPtr === 0 || outLen === 0) {
+            if (exports.free_ptr) {
+                exports.free_ptr(ptr);
+            } else if (exports.free) {
+                exports.free(ptr, data.length);
+            }
+            throw new Error(
+                `JPEG 2000 decode returned invalid result: ptr=${outPtr}, len=${outLen}`
+            );
+        }
+
         const output = this.readBuffer(memory, outPtr, outLen);
 
         if (exports.free_ptr) {
@@ -250,13 +443,36 @@ export class ZigCodecs {
         height: number,
         bits: number,
         components: number,
+        lossless: boolean,
         quality?: number
     ): Promise<Uint8Array> {
         const exports = await this.getCodecExports("j2k");
         const memory = this.getMemory("j2k");
 
+        // Ensure memory can grow if needed
+        const estimatedNeeded = pixels.length * 3; // Input + potential output
+        if (estimatedNeeded > memory.buffer.byteLength && memory.grow) {
+            const pagesNeeded = Math.ceil(
+                (estimatedNeeded - memory.buffer.byteLength) / (64 * 1024)
+            );
+            memory.grow(pagesNeeded);
+        }
+
         const ptr = exports.alloc(pixels.length);
         if (ptr === 0) throw new Error("WASM alloc failed");
+
+        // Verify we can write to the allocated memory
+        if (ptr + pixels.length > memory.buffer.byteLength) {
+            if (exports.free_ptr) {
+                exports.free_ptr(ptr);
+            } else if (exports.free) {
+                exports.free(ptr, pixels.length);
+            }
+            throw new Error(
+                `Insufficient WASM memory: allocated at ${ptr}, need ${pixels.length} bytes, have ${memory.buffer.byteLength}`
+            );
+        }
+
         this.writeBuffer(memory, ptr, pixels);
 
         const res = exports.encode_jpeg2000!(
@@ -269,7 +485,11 @@ export class ZigCodecs {
             quality || 0 // 0 = lossless by default? Or assume wrapper handles it.
         );
         if (res !== 0) {
-            exports.free(ptr, pixels.length);
+            if (exports.free_ptr) {
+                exports.free_ptr(ptr);
+            } else if (exports.free) {
+                exports.free(ptr, pixels.length);
+            }
             throw new Error(`JPEG 2000 encode failed: ${res}`);
         }
 
@@ -299,7 +519,11 @@ export class ZigCodecs {
 
         const res = exports.decode_jpegls!(ptr, data.length);
         if (res !== 0) {
-            exports.free(ptr, data.length);
+            if (exports.free_ptr) {
+                exports.free_ptr(ptr);
+            } else if (exports.free) {
+                exports.free(ptr, data.length);
+            }
             throw new Error(`JPEG-LS decode failed: ${res}`);
         }
 
@@ -327,20 +551,57 @@ export class ZigCodecs {
         const exports = await this.getCodecExports("jpegls");
         const memory = this.getMemory("jpegls");
 
+        // Check if encode_jpegls function exists
+        if (!exports.encode_jpegls) {
+            throw new Error("JPEG-LS encode function not found in WASM module");
+        }
+
+        // Ensure memory can grow if needed
+        const estimatedNeeded = pixels.length * 3; // Input + potential output
+        if (estimatedNeeded > memory.buffer.byteLength && memory.grow) {
+            const pagesNeeded = Math.ceil(
+                (estimatedNeeded - memory.buffer.byteLength) / (64 * 1024)
+            );
+            memory.grow(pagesNeeded);
+        }
+
         const ptr = exports.alloc(pixels.length);
         if (ptr === 0) throw new Error("WASM alloc failed");
+
+        // Ensure we have enough memory after allocation
+        const finalRequiredMemory = ptr + pixels.length;
+        if (finalRequiredMemory > memory.buffer.byteLength) {
+            if (exports.free_ptr) {
+                exports.free_ptr(ptr);
+            } else if (exports.free) {
+                exports.free(ptr, pixels.length);
+            }
+            throw new Error(
+                `Insufficient WASM memory: need ${finalRequiredMemory}, have ${memory.buffer.byteLength}`
+            );
+        }
+
         this.writeBuffer(memory, ptr, pixels);
 
-        const res = exports.encode_jpegls!(
+        // JPEG-LS C++ function expects uint8_t for bits_per_sample and components
+        // Ensure values fit in uint8_t range (0-255)
+        const bitsPerSample = Math.min(Math.max(1, bits), 255);
+        const comps = Math.min(Math.max(1, components), 255);
+
+        const res = exports.encode_jpegls(
             ptr,
             pixels.length,
             width,
             height,
-            bits,
-            components
+            bitsPerSample,
+            comps
         );
         if (res !== 0) {
-            exports.free(ptr, pixels.length);
+            if (exports.free_ptr) {
+                exports.free_ptr(ptr);
+            } else if (exports.free) {
+                exports.free(ptr, pixels.length);
+            }
             throw new Error(`JPEG-LS encode failed: ${res}`);
         }
 
@@ -381,13 +642,40 @@ export class ZigCodecs {
             components
         );
         if (res !== 0) {
-            exports.free(ptr, data.length);
+            if (exports.free_ptr) {
+                exports.free_ptr(ptr);
+            } else if (exports.free) {
+                exports.free(ptr, data.length);
+            }
             throw new Error(`RLE decode failed: ${res}`);
         }
 
         const outPtr = exports.get_result_ptr();
         const outLen = exports.get_result_len();
+
+        if (outPtr === 0 || outLen === 0) {
+            if (exports.free_ptr) {
+                exports.free_ptr(ptr);
+            } else if (exports.free) {
+                exports.free(ptr, data.length);
+            }
+            throw new Error(
+                `RLE decode returned invalid result: ptr=${outPtr}, len=${outLen}`
+            );
+        }
+
         const output = this.readBuffer(memory, outPtr, outLen);
+
+        if (!output || output.length === 0) {
+            if (exports.free_ptr) {
+                exports.free_ptr(ptr);
+                exports.free_ptr(outPtr);
+            } else if (exports.free) {
+                exports.free(ptr, data.length);
+                exports.free(outPtr, outLen);
+            }
+            throw new Error(`RLE decode returned empty buffer`);
+        }
 
         if (exports.free_ptr) {
             exports.free_ptr(ptr);
@@ -420,7 +708,11 @@ export class ZigCodecs {
             components
         );
         if (res !== 0) {
-            exports.free(ptr, pixels.length);
+            if (exports.free_ptr) {
+                exports.free_ptr(ptr);
+            } else if (exports.free) {
+                exports.free(ptr, pixels.length);
+            }
             throw new Error(`RLE encode failed: ${res}`);
         }
 
@@ -450,7 +742,11 @@ export class ZigCodecs {
 
         const res = exports.decode_htj2k!(ptr, data.length);
         if (res !== 0) {
-            exports.free(ptr, data.length);
+            if (exports.free_ptr) {
+                exports.free_ptr(ptr);
+            } else if (exports.free) {
+                exports.free(ptr, data.length);
+            }
             throw new Error(`HTJ2K decode failed: ${res}`);
         }
 
@@ -482,7 +778,11 @@ export class ZigCodecs {
 
         const res = exports.decode_ljpeg!(ptr, data.length);
         if (res !== 0) {
-            exports.free(ptr, data.length);
+            if (exports.free_ptr) {
+                exports.free_ptr(ptr);
+            } else if (exports.free) {
+                exports.free(ptr, data.length);
+            }
             throw new Error(`JPEG Lossless decode failed: ${res}`);
         }
 
@@ -490,8 +790,13 @@ export class ZigCodecs {
         const outLen = exports.get_result_len();
         const output = this.readBuffer(memory, outPtr, outLen);
 
-        exports.free(ptr, data.length);
-        exports.free(outPtr, outLen);
+        if (exports.free_ptr) {
+            exports.free_ptr(ptr);
+            exports.free_ptr(outPtr);
+        } else if (exports.free) {
+            exports.free(ptr, data.length);
+            exports.free(outPtr, outLen);
+        }
         return output;
     }
 

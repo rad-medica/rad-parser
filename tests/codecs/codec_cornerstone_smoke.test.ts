@@ -1,5 +1,5 @@
-import { describe, it, expect, vi } from "vitest";
-import { registry } from "../src/index";
+import { describe, expect, it, vi } from "vitest";
+import { registry } from "../../src/index";
 
 /**
  * Smoke tests for external cornerstone codecs:

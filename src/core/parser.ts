@@ -694,8 +694,11 @@ function parseElement(
         return { dict: {} };
     }
 
-    // Handle sequences
-    if (vr === "SQ" || length === 0xffffffff) {
+    // Handle pixel data (7FE0,0010) - check BEFORE sequences to handle encapsulated pixel data correctly
+    const isPixelData = group === 0x7fe0 && element === 0x0010;
+
+    // Handle sequences (but NOT pixel data with undefined length - that's handled below)
+    if (vr === "SQ" || (length === 0xffffffff && !isPixelData)) {
         const sequence = parseSequence(
             view,
             context.explicitVR,
@@ -729,9 +732,6 @@ function parseElement(
             },
         };
     }
-
-    // Handle pixel data (7FE0,0010)
-    const isPixelData = group === 0x7fe0 && element === 0x0010;
     let value:
         | string
         | number
@@ -835,6 +835,16 @@ function parseElement(
     if (elementData.items === undefined) {
         elementData.items = undefined;
         elementData.Items = undefined;
+    }
+
+    // Mark pixel data as encapsulated if it's an array of fragments
+    if (
+        isPixelData &&
+        Array.isArray(value) &&
+        value.length > 0 &&
+        value[0] instanceof Uint8Array
+    ) {
+        (elementData as any).isEncapsulated = true;
     }
 
     // Plugin Hook: If this is pixel data and we have a plugin, call it!

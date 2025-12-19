@@ -39,9 +39,19 @@ export function extractPixelData(dataset: any): PixelDataInfo | null {
         return null;
     }
 
+    // Check if value is an array of Uint8Array (fragments) - indicates encapsulated format
+    const isArrayOfBuffers =
+        Array.isArray(element.Value) &&
+        element.Value.length > 0 &&
+        element.Value[0] instanceof Uint8Array;
+
     return {
         Value: element.Value,
-        isEncapsulated: (element as any).isEncapsulated || false,
+        isEncapsulated:
+            (element as any).isEncapsulated || isArrayOfBuffers || false,
+        fragmentArrays: isArrayOfBuffers
+            ? (element.Value as Uint8Array[])
+            : undefined,
     };
 }
 

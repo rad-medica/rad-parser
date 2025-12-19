@@ -36,7 +36,7 @@ export function extractPixelDataFromView(
     if (isEncapsulated) {
         return extractEncapsulatedPixelData(view, transferSyntax);
     } else {
-        return extractNativePixelData(view, length);
+        return extractNativePixelData(view, length, transferSyntax);
     }
 }
 
@@ -45,7 +45,8 @@ export function extractPixelDataFromView(
  */
 function extractNativePixelData(
     view: SafeDataView,
-    length: number
+    length: number,
+    transferSyntax?: string
 ): PixelDataResult | null {
     if (view.getRemainingBytes() < length) {
         return null;
@@ -53,8 +54,33 @@ function extractNativePixelData(
 
     try {
         const pixelData = view.readBytes(length);
+        let finalPixelData = new Uint8Array(pixelData);
+
+        // For Big Endian OW (16-bit words), byte-swap the words
+        // The data is stored as Big Endian in the file, but we need Little Endian for JavaScript
+        if (
+            transferSyntax === "1.2.840.10008.1.2.2" && // Explicit VR Big Endian
+            pixelData.length % 2 === 0 &&
+            pixelData.length > 0
+        ) {
+            // Check if this is likely OW (16-bit) by checking if we have even length
+            // For Big Endian, 16-bit words need to be byte-swapped
+            const swapped = new Uint8Array(pixelData.length);
+            const inputView = new DataView(
+                pixelData.buffer,
+                pixelData.byteOffset,
+                pixelData.byteLength
+            );
+            const outputView = new DataView(swapped.buffer);
+            for (let i = 0; i < pixelData.length; i += 2) {
+                const word = inputView.getUint16(i, false); // Read as Big Endian (from file)
+                outputView.setUint16(i, word, true); // Write as Little Endian (for JS)
+            }
+            finalPixelData = swapped;
+        }
+
         return {
-            pixelData: new Uint8Array(pixelData),
+            pixelData: finalPixelData,
             isEncapsulated: false,
         };
     } catch {

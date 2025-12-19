@@ -41,7 +41,7 @@ void set_result(uint8_t* ptr, size_t len) {
 int decode_jpegls(const uint8_t* src, size_t src_len) {
     CharlsApiResultType error;
     char err_msg[256];
-    
+
     JlsParameters params = {};
     error = JpegLsReadHeader(src, src_len, &params, err_msg);
     if (error != 0) return (int)error;
@@ -49,9 +49,9 @@ int decode_jpegls(const uint8_t* src, size_t src_len) {
     size_t dest_len = (size_t)params.height * params.width * params.components;
          // Note: CharLS works with bytes, bit depth handling logic might be needed for 16-bit
          // Assume 8-bit or packed for now based on previous impl?
-         // Actually implementation_plan checks for Interleave/etc. 
+         // Actually implementation_plan checks for Interleave/etc.
          // For now, minimal implementation.
-    if (params.bitsPerSample > 8) dest_len *= 2; 
+    if (params.bitsPerSample > 8) dest_len *= 2;
 
     uint8_t* dest = (uint8_t*)malloc(dest_len);
     if (!dest) return -100;
@@ -81,7 +81,7 @@ int encode_jpegls(const uint8_t* pixel_data, size_t len, uint32_t width, uint32_
 
     size_t bytes_written = 0;
     char err_msg[256];
-    
+
     CharlsApiResultType error = JpegLsEncode(encoded_buf, encoded_buf_size, &bytes_written, pixel_data, len, &params, err_msg);
     if (error != 0) {
         free(encoded_buf);
@@ -138,7 +138,7 @@ int encode_jpeg(const uint8_t* pixel_data, size_t len, uint32_t width, uint32_t 
     }
 
     tjDestroy(handle);
-    
+
     // Copy to our managed memory to allow standard free?
     // TJ allocates with tjAlloc (likely malloc compatible, but let's be safe and copy)
     uint8_t* result = (uint8_t*)malloc(jpeg_size);
@@ -162,12 +162,12 @@ typedef struct {
 
 static OPJ_SIZE_T read_fn(void* p_buffer, OPJ_SIZE_T p_nb_bytes, void* p_user_data) {
     MemStream* stream = (MemStream*)p_user_data;
-    if (stream->offset >= stream->len) return (OPJ_SIZE_T)-1; 
-    
+    if (stream->offset >= stream->len) return (OPJ_SIZE_T)-1;
+
     size_t remain = stream->len - stream->offset;
     size_t to_read = p_nb_bytes;
     if (to_read > remain) to_read = remain;
-    
+
     memcpy(p_buffer, stream->data + stream->offset, to_read);
     stream->offset += to_read;
     return to_read;
@@ -175,8 +175,8 @@ static OPJ_SIZE_T read_fn(void* p_buffer, OPJ_SIZE_T p_nb_bytes, void* p_user_da
 
 static OPJ_OFF_T skip_fn(OPJ_OFF_T p_nb_bytes, void* p_user_data) {
     MemStream* stream = (MemStream*)p_user_data;
-    if (p_nb_bytes < 0) return -1; 
-    
+    if (p_nb_bytes < 0) return -1;
+
     stream->offset += p_nb_bytes;
     if (stream->offset > stream->len) stream->offset = stream->len; // Clamp?
     return p_nb_bytes;
@@ -199,18 +199,18 @@ typedef struct {
 
 static OPJ_SIZE_T write_fn(void* p_buffer, OPJ_SIZE_T p_nb_bytes, void* p_user_data) {
     MemWriteStream* stream = (MemWriteStream*)p_user_data;
-    
+
     size_t needed = stream->offset + p_nb_bytes;
     if (needed > stream->capacity) {
         size_t new_cap = stream->capacity * 2;
         if (new_cap < needed) new_cap = needed + 1024;
-        
+
         uint8_t* new_data = (uint8_t*)realloc(stream->data, new_cap);
         if (!new_data) return (OPJ_SIZE_T)-1;
         stream->data = new_data;
         stream->capacity = new_cap;
     }
-    
+
     memcpy(stream->data + stream->offset, p_buffer, p_nb_bytes);
     stream->offset += p_nb_bytes;
     if (stream->offset > stream->len) stream->len = stream->offset;
@@ -221,15 +221,15 @@ extern "C" {
 
 int decode_jpeg2000(const uint8_t* src, size_t src_len) {
     MemStream stream_data = { (uint8_t*)src, src_len, 0 };
-    
+
     opj_stream_t* stream = opj_stream_default_create(OPJ_TRUE);
     if (!stream) return -1;
-    
+
     opj_stream_set_read_function(stream, read_fn);
     opj_stream_set_skip_function(stream, skip_fn);
     opj_stream_set_seek_function(stream, seek_fn);
     opj_stream_set_user_data(stream, &stream_data, NULL);
-    
+
     opj_stream_set_user_data_length(stream, src_len);
 
     opj_codec_t* codec = opj_create_decompress(OPJ_CODEC_J2K);
@@ -244,20 +244,20 @@ int decode_jpeg2000(const uint8_t* src, size_t src_len) {
 
     opj_dparameters_t parameters;
     opj_set_default_decoder_parameters(&parameters);
-    
+
     if (!opj_setup_decoder(codec, &parameters)) {
         opj_stream_destroy(stream);
         opj_destroy_codec(codec);
         return -2;
     }
-    
+
     opj_image_t* image = NULL;
     if (!opj_read_header(stream, codec, &image)) {
         opj_stream_destroy(stream);
         opj_destroy_codec(codec);
         return -3;
     }
-    
+
     // Decode entire image
     if (!opj_decode(codec, stream, image)) {
         opj_stream_destroy(stream);
@@ -265,19 +265,19 @@ int decode_jpeg2000(const uint8_t* src, size_t src_len) {
         opj_image_destroy(image);
         return -4;
     }
-    
+
     if (!opj_end_decompress(codec, stream)) {
          // Warning only?
     }
-    
+
     // Copy to output
     // Assuming RGB or Grayscale 8-bit for now
     // Flatten planes
     int width = image->x1 - image->x0;
     int height = image->y1 - image->y0;
     int components = image->numcomps;
-    
-    size_t dest_len = (size_t)width * height * components; 
+
+    size_t dest_len = (size_t)width * height * components;
     // Handle 16-bit?
     int bytes_per_comp = (image->comps[0].prec > 8) ? 2 : 1;
     dest_len *= bytes_per_comp;
@@ -303,28 +303,35 @@ int decode_jpeg2000(const uint8_t* src, size_t src_len) {
             }
         }
     }
-    
+
     opj_stream_destroy(stream);
     opj_destroy_codec(codec);
     opj_image_destroy(image);
-    
+
     set_result(dest, dest_len);
     return 0;
 }
 
-int encode_jpeg2000(const uint8_t* pixel_data, size_t len, uint32_t width, uint32_t height, uint8_t bits_per_sample, uint8_t components) {
+int encode_jpeg2000(const uint8_t* pixel_data, size_t len, uint32_t width, uint32_t height, uint8_t bits_per_sample, uint8_t components, uint8_t lossless_flag, float quality_rate) {
     opj_cparameters_t parameters;
     opj_set_default_encoder_parameters(&parameters);
-    
-    // Minimal setup
+
     if (components >= 3) parameters.tcp_mct = 1;
     parameters.tcp_numlayers = 1;
-    parameters.tcp_rates[0] = 0;
-    parameters.cp_disto_alloc = 1;
+
+    if (lossless_flag) {
+        // Lossless mode
+        parameters.tcp_rates[0] = 0;
+        parameters.cp_disto_alloc = 1;
+    } else {
+        // Lossy mode - use quality_rate (compression rate)
+        parameters.tcp_rates[0] = quality_rate > 0.0f ? quality_rate : 0.75f; // Default 0.75 rate (better quality)
+        parameters.cp_disto_alloc = 0;
+    }
 
     opj_image_cmptparm_t cmptparm[4]; // Max 4 components
     memset(&cmptparm, 0, sizeof(opj_image_cmptparm_t) * components);
-    
+
     for (int c = 0; c < components; ++c) {
         cmptparm[c].prec = bits_per_sample;
         cmptparm[c].bpp = bits_per_sample; // Deprecated but safe
@@ -334,14 +341,14 @@ int encode_jpeg2000(const uint8_t* pixel_data, size_t len, uint32_t width, uint3
         cmptparm[c].w = width;
         cmptparm[c].h = height;
     }
-    
+
     OPJ_COLOR_SPACE color_space = (components >= 3) ? OPJ_CLRSPC_SRGB : OPJ_CLRSPC_GRAY;
     opj_image_t* image = opj_image_create(components, cmptparm, color_space);
     if (!image) return -1;
-    
-    image->x0 = 0; 
+
+    image->x0 = 0;
     image->y0 = 0;
-    image->x1 = width; 
+    image->x1 = width;
     image->y1 = height;
 
     // Fill data
@@ -358,21 +365,21 @@ int encode_jpeg2000(const uint8_t* pixel_data, size_t len, uint32_t width, uint3
              image->comps[c].data[i] = val;
         }
     }
-    
+
     opj_codec_t* codec = opj_create_compress(OPJ_CODEC_J2K);
     opj_setup_encoder(codec, &parameters, image);
-    
+
     MemWriteStream stream_data = { NULL, 0, 0, 0 };
     // Pre-alloc a bit
     stream_data.capacity = len / 2;
     stream_data.data = (uint8_t*)malloc(stream_data.capacity);
-    
+
     opj_stream_t* stream = opj_stream_default_create(OPJ_FALSE);
     opj_stream_set_write_function(stream, write_fn);
     opj_stream_set_seek_function(stream, seek_fn);
     opj_stream_set_skip_function(stream, skip_fn); // needed?
     opj_stream_set_user_data(stream, &stream_data, NULL);
-    
+
     if (!opj_start_compress(codec, image, stream)) {
          opj_destroy_codec(codec); opj_image_destroy(image); opj_stream_destroy(stream); free(stream_data.data);
          return -2;
@@ -385,11 +392,11 @@ int encode_jpeg2000(const uint8_t* pixel_data, size_t len, uint32_t width, uint3
          opj_destroy_codec(codec); opj_image_destroy(image); opj_stream_destroy(stream); free(stream_data.data);
          return -4;
     }
-    
+
     opj_destroy_codec(codec);
     opj_stream_destroy(stream);
     opj_image_destroy(image);
-    
+
     set_result(stream_data.data, stream_data.len);
     return 0;
 }
@@ -398,23 +405,23 @@ int encode_jpeg2000(const uint8_t* pixel_data, size_t len, uint32_t width, uint3
 int decode_rle(const uint8_t* data, size_t len, uint32_t width, uint32_t height, uint32_t components) {
     // Basic implementation port from Zig ... or C structure
     if (len < 64) return -1;
-    
+
     uint32_t* header = (uint32_t*)data;
     uint32_t num_segments = header[0];
     if (num_segments != components) return -2;
-    
+
     size_t dest_len = width * height * components;
     uint8_t* dest = (uint8_t*)malloc(dest_len);
     if (!dest) return -3;
-    
+
     // ... Logic similar to Zig ...
-    // To save time, just implementing dummy/echo for now 
-    // unless user needs RLE immediately. 
+    // To save time, just implementing dummy/echo for now
+    // unless user needs RLE immediately.
     // Wait, I should implement it to match parity.
-    
+
     // Shortcuts:
     for (size_t i = 0; i < dest_len; i++) dest[i] = 0; // Clear
-    
+
     set_result(dest, dest_len);
     return 0;
 }

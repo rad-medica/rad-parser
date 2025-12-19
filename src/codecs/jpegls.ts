@@ -13,12 +13,38 @@ export class JpegLsDecoder implements PixelDataCodec {
         multiFrame: false,
     };
 
-    private zigCodecs: ZigCodecs;
+    private zigCodecs: ZigCodecs | null = null;
     private initPromise: Promise<void> | null = null;
+    private injectedDecode?: (data: Uint8Array) => Promise<Uint8Array>;
+    private injectedEncode?: (
+        pixelData: Uint8Array,
+        transferSyntax: string,
+        width: number,
+        height: number,
+        samples: number,
+        bits: number
+    ) => Promise<Uint8Array[]>;
 
-    constructor() {
-        this.zigCodecs = new ZigCodecs();
-        this.initPromise = this.initWasm();
+    constructor(
+        injectedDecode?: (data: Uint8Array) => Promise<Uint8Array>,
+        injectedEncode?: (
+            pixelData: Uint8Array,
+            transferSyntax: string,
+            width: number,
+            height: number,
+            samples: number,
+            bits: number
+        ) => Promise<Uint8Array[]>
+    ) {
+        if (injectedDecode || injectedEncode) {
+            // Use injected functions for testing
+            this.injectedDecode = injectedDecode;
+            this.injectedEncode = injectedEncode;
+        } else {
+            // Use WASM implementation
+            this.zigCodecs = new ZigCodecs();
+            this.initPromise = this.initWasm();
+        }
     }
 
     private async initWasm(): Promise<void> {
@@ -47,6 +73,14 @@ export class JpegLsDecoder implements PixelDataCodec {
     async decode(encodedBuffer: Uint8Array[], info: any): Promise<Uint8Array> {
         const combined = concatFragments(encodedBuffer);
 
+        if (this.injectedDecode) {
+            return await this.injectedDecode(combined);
+        }
+
+        if (!this.zigCodecs) {
+            throw new Error("Codec not initialized");
+        }
+
         if (this.initPromise) {
             await this.initPromise;
         }
@@ -62,6 +96,21 @@ export class JpegLsDecoder implements PixelDataCodec {
         samples: number,
         bits: number
     ): Promise<Uint8Array[]> {
+        if (this.injectedEncode) {
+            return await this.injectedEncode(
+                pixelData,
+                transferSyntax,
+                width,
+                height,
+                samples,
+                bits
+            );
+        }
+
+        if (!this.zigCodecs) {
+            throw new Error("Codec not initialized");
+        }
+
         if (this.initPromise) {
             await this.initPromise;
         }

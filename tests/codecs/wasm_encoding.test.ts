@@ -1,36 +1,22 @@
-import { describe, it, expect, beforeAll } from "vitest";
-import { RleCodec } from "../../src/codecs/rle";
+import { beforeAll, describe, expect, it } from "vitest";
 import { JpegNativeCodec } from "../../src/codecs/jpegNative";
-
-import { readFileSync } from "fs";
-import path from "path";
+import { RleCodec } from "../../src/codecs/rle";
 
 describe("Wasm Encoding", () => {
     let rleCodec: RleCodec;
     let jpegCodec: JpegNativeCodec;
 
     beforeAll(async () => {
-        // Initialize Wasm via dynamic import to avoid ESM/CJS interop issues in tests
-        const wasmModule =
-            await import("../../src/wasm-codecs-build/rad_parser_wasm_codecs");
-        const init = wasmModule.default;
-
-        const fs = await import("fs");
-        const path = await import("path");
-        const wasmPath = path.resolve(
-            __dirname,
-            "../../src/wasm-codecs-build/rad_parser_wasm_codecs_bg.wasm"
-        );
-        const wasmBuffer = fs.readFileSync(wasmPath);
-
-        await init(wasmBuffer);
-
+        // Initialize codecs - they use Zig WASM codecs internally
         rleCodec = new RleCodec();
         jpegCodec = new JpegNativeCodec();
 
-        // Ensure Wasm is initialized in instances
-        await rleCodec.initWasm();
-        await jpegCodec.initWasm();
+        // Wait for WASM initialization to complete
+        // RLE codec initializes WASM in constructor
+        await new Promise(resolve => setTimeout(resolve, 100));
+
+        // JpegNativeCodec also initializes in constructor
+        await new Promise(resolve => setTimeout(resolve, 100));
     });
 
     it("should round-trip encode/decode RLE", async () => {

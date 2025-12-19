@@ -141,6 +141,7 @@ extern "C" fn wrapper_create_cparameters() ?*anyopaque;
 extern "C" fn wrapper_destroy_cparameters(?*anyopaque) void;
 extern "C" fn wrapper_set_default_encoder_parameters(?*anyopaque) void;
 extern "C" fn wrapper_setup_encoder_parameters(?*anyopaque, c_int, c_int) void;
+extern "C" fn wrapper_set_lossy_parameters(?*anyopaque, f32) void;
 
 extern "C" fn opj_image_create(u32, *opj_image_cmptparm_t, u32) ?*opj_image_t;
 
@@ -577,8 +578,13 @@ export fn encode_jpeg2000(pixel_data: [*]const u8, len: usize, width: u32, heigh
     wrapper_set_default_encoder_parameters(params_ptr);
 
     const use_mct: c_int = if (components >= 3) 1 else 0;
-    const lossless: c_int = 1;
+    const lossless: c_int = if (lossless_flag != 0) 1 else 0;
     wrapper_setup_encoder_parameters(params_ptr, use_mct, lossless);
+
+    // For lossy mode, set compression rate
+    if (lossless == 0) {
+        wrapper_set_lossy_parameters(params_ptr, quality_rate);
+    }
 
     const l_codec = opj_create_compress(OPJ_CODEC_J2K);
     if (l_codec == null) return -3;
@@ -619,7 +625,11 @@ export fn decode_rle(data_ptr: [*]const u8, data_len: usize, width: u32, height:
     // Read header (16 u32 le)
     const header = @as([*]const u32, @ptrCast(@alignCast(data_ptr)));
     const num_segments = header[0];
-    if (num_segments != components) return -2; // Simplification: strict match
+    // For 16-bit single-component images, we have 2 segments (MSB/LSB) but components=1
+    // Allow num_segments to be either components or 2*components (for 16-bit)
+    if (num_segments != components and !(num_segments == 2 and components == 1)) {
+        return -2;
+    }
 
     // Validate offsets
     var offsets: [16]u32 = undefined;
@@ -629,47 +639,110 @@ export fn decode_rle(data_ptr: [*]const u8, data_len: usize, width: u32, height:
     }
 
     const num_pixels = width * height;
-    const dest_len = num_pixels * components;
-    const result_buf = allocator.alloc(u8, dest_len) catch return -4;
 
-    for (0..num_segments) |s| {
-        const start_offset = offsets[s];
-        const end_offset = if (s + 1 < num_segments) offsets[s + 1] else data_len;
+    // Special handling for 16-bit single-component (2 segments: MSB, LSB)
+    if (num_segments == 2 and components == 1) {
+        const dest_len = num_pixels * 2; // 16-bit = 2 bytes per pixel
+        const result_buf = allocator.alloc(u8, dest_len) catch return -4;
+        const msb_buf = allocator.alloc(u8, num_pixels) catch return -4;
+        const lsb_buf = allocator.alloc(u8, num_pixels) catch return -4;
+        errdefer allocator.free(msb_buf);
+        errdefer allocator.free(lsb_buf);
 
-        var src_idx = start_offset;
-        var dest_idx = s; // Planar to Interleaved: writes to s, s+components, ...
+        // Decode both segments
+        for (0..2) |s| {
+            const start_offset = offsets[s];
+            const end_offset = offsets[s + 1];
 
-        while (src_idx < end_offset and dest_idx < dest_len) {
-            if (src_idx >= data_len) break;
-            const n = @as(i8, @bitCast(data_ptr[src_idx]));
-            src_idx += 1;
+            const seg_buf = if (s == 0) msb_buf else lsb_buf;
+            var src_idx = start_offset;
+            var dest_idx: usize = 0;
 
-            if (n >= 0) {
-                // Literal run (n+1 bytes)
-                const count = @as(usize, @intCast(n)) + 1;
-                for (0..count) |_| {
-                    if (src_idx >= data_len) break;
-                    result_buf[dest_idx] = data_ptr[src_idx];
-                    src_idx += 1;
-                    dest_idx += components;
-                }
-            } else if (n > -128) {
-                // Repeat run (-n + 1 times)
-                const count = @as(usize, @intCast(-n)) + 1;
+            while (src_idx < end_offset and dest_idx < num_pixels) {
                 if (src_idx >= data_len) break;
-                const val = data_ptr[src_idx];
+                const n = @as(i8, @bitCast(data_ptr[src_idx]));
                 src_idx += 1;
-                for (0..count) |_| {
-                    result_buf[dest_idx] = val;
-                    dest_idx += components;
+
+                if (n >= 0) {
+                    // Literal run (n+1 bytes)
+                    const count = @as(usize, @intCast(n)) + 1;
+                    for (0..count) |_| {
+                        if (src_idx >= data_len or dest_idx >= num_pixels) break;
+                        seg_buf[dest_idx] = data_ptr[src_idx];
+                        src_idx += 1;
+                        dest_idx += 1;
+                    }
+                } else if (n > -128) {
+                    // Repeat run (-n + 1 times)
+                    const count = @as(usize, @intCast(-n)) + 1;
+                    if (src_idx >= data_len) break;
+                    const val = data_ptr[src_idx];
+                    src_idx += 1;
+                    for (0..count) |_| {
+                        if (dest_idx >= num_pixels) break;
+                        seg_buf[dest_idx] = val;
+                        dest_idx += 1;
+                    }
                 }
-            } else {
-                // n == -128, No-op
             }
         }
-    }
 
-    last_result_ptr = result_buf.ptr;
+        // Interleave: LSB to even positions (byte 0), MSB to odd positions (byte 1)
+        // This produces Little Endian format: LSB first, MSB second
+        for (0..num_pixels) |p| {
+            result_buf[p * 2] = lsb_buf[p];     // LSB at even offset
+            result_buf[p * 2 + 1] = msb_buf[p]; // MSB at odd offset
+        }
+
+        allocator.free(msb_buf);
+        allocator.free(lsb_buf);
+
+        last_result_ptr = result_buf.ptr;
+        last_result_len = dest_len;
+        return 0;
+    } else {
+        // Standard case: num_segments == components
+        const dest_len = num_pixels * components;
+        const result_buf = allocator.alloc(u8, dest_len) catch return -4;
+
+        for (0..num_segments) |s| {
+            const start_offset = offsets[s];
+            const end_offset = if (s + 1 < num_segments) offsets[s + 1] else data_len;
+
+            var src_idx = start_offset;
+            var dest_idx = s; // Planar to Interleaved: writes to s, s+components, ...
+
+            while (src_idx < end_offset and dest_idx < dest_len) {
+                if (src_idx >= data_len) break;
+                const n = @as(i8, @bitCast(data_ptr[src_idx]));
+                src_idx += 1;
+
+                if (n >= 0) {
+                    // Literal run (n+1 bytes)
+                    const count = @as(usize, @intCast(n)) + 1;
+                    for (0..count) |_| {
+                        if (src_idx >= data_len) break;
+                        result_buf[dest_idx] = data_ptr[src_idx];
+                        src_idx += 1;
+                        dest_idx += components;
+                    }
+                } else if (n > -128) {
+                    // Repeat run (-n + 1 times)
+                    const count = @as(usize, @intCast(-n)) + 1;
+                    if (src_idx >= data_len) break;
+                    const val = data_ptr[src_idx];
+                    src_idx += 1;
+                    for (0..count) |_| {
+                        result_buf[dest_idx] = val;
+                        dest_idx += components;
+                    }
+                } else {
+                    // n == -128, No-op
+                }
+            }
+        }
+
+        last_result_ptr = result_buf.ptr;
     last_result_len = dest_len;
     return 0;
 }

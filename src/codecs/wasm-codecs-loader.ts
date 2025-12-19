@@ -218,20 +218,41 @@ export class ZigWasmCodecLoader {
 
         try {
             const module = await WebAssembly.compile(bytes);
-            const memory = new WebAssembly.Memory({
-                initial: 256,
-                maximum: 1024,
-            });
+
+            // Check if the module imports memory (from env.memory)
+            // If it does, we need to provide it. If it exports memory, we use that.
+            const moduleImports = WebAssembly.Module.imports(module);
+            const needsMemoryImport = moduleImports.some(
+                imp => imp.module === "env" && imp.name === "memory"
+            );
+
+            let memory: WebAssembly.Memory;
+            if (needsMemoryImport) {
+                // Module expects memory to be provided
+                memory = new WebAssembly.Memory({
+                    initial: 256,
+                    maximum: 1024,
+                });
+            } else {
+                // Module will export its own memory, create a placeholder that will be replaced
+                memory = new WebAssembly.Memory({
+                    initial: 256,
+                    maximum: 1024,
+                });
+            }
 
             const instance = await WebAssembly.instantiate(module, {
-                env: { memory },
+                env: needsMemoryImport ? { memory } : {},
                 wasi_snapshot_preview1: WASI_IMPORTS,
             });
 
+            // Use exported memory if available, otherwise use the one we provided
+            const finalMemory =
+                (instance.exports.memory as WebAssembly.Memory) || memory;
+
             const codecModule: CodecModule = {
                 instance,
-                memory:
-                    (instance.exports.memory as WebAssembly.Memory) || memory,
+                memory: finalMemory,
                 exports: instance.exports as Record<string, unknown>,
             };
 

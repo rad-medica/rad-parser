@@ -26,7 +26,24 @@ export async function transcode(
         return dataset; // No-op
     }
 
-    // 1. Get Codecs
+    // Handle uncompressed formats (they don't need codecs, just format conversion)
+    const uncompressedFormats = [
+        "1.2.840.10008.1.2", // Implicit VR Little Endian
+        "1.2.840.10008.1.2.1", // Explicit VR Little Endian
+        "1.2.840.10008.1.2.2", // Explicit VR Big Endian
+    ];
+
+    if (uncompressedFormats.includes(options.targetTransferSyntax)) {
+        // For uncompressed formats, just update the Transfer Syntax UID
+        // The writer will handle the format conversion
+        if (!dataset.dict["x00020010"]) {
+            dataset.dict["x00020010"] = { vr: "UI", Value: [] };
+        }
+        dataset.dict["x00020010"].Value = [options.targetTransferSyntax];
+        return dataset;
+    }
+
+    // 1. Get Codecs for compressed formats
     const targetCodec = await registry.getEncoder(options.targetTransferSyntax);
     if (!targetCodec) {
         throw new Error(
@@ -203,6 +220,9 @@ export async function transcode(
             offset += frag.length;
         }
 
+        // For Big Endian, the writer will handle byte-swapping when writing
+        // Don't byte-swap here - keep data in Little Endian format (native JS format)
+        // The writer will byte-swap when serializing if needed
         dataset.dict["x7fe00010"] = {
             vr:
                 options.targetTransferSyntax === "1.2.840.10008.1.2.4.50"
