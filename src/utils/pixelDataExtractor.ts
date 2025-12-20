@@ -35,7 +35,6 @@ export function extractPixelData(dataset: any): PixelDataInfo | null {
             : null);
 
     if (!element) {
-        // console.log("Debug: Pixel Data element not found. Available keys:", Object.keys(dataset.elements || dataset.dict || {}).slice(0, 10));
         return null;
     }
 

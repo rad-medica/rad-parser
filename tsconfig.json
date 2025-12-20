@@ -26,6 +26,6 @@
         "verbatimModuleSyntax": false,
         "allowArbitraryExtensions": false
     },
-    "include": ["src/**/*.ts"],
+    "include": ["src/**/*.ts", "scripts/**/*.ts"],
     "exclude": ["node_modules", "dist", "**/*.test.ts"]
 }

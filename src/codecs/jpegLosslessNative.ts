@@ -66,15 +66,14 @@ export class JpegLosslessNativeDecoder implements PixelDataCodec {
                 height = view.getUint16(pos + 5);
                 width = view.getUint16(pos + 7);
                 components = data[pos + 9]!;
-                console.log(
-                    `  - [Native Parser] SOF3: ${width}x${height}, ${bits} bits, ${components} comps`
-                );
+                components = data[pos + 9]!;
+                // Debug: SOF3 found
             } else if (marker === 0xc4) {
                 // DHT (Huffman Table)
-                console.log(`  - [Native Parser] DHT: Huffman Table found`);
+                // Debug: DHT found
             } else if (marker === 0xda) {
                 // SOS (Start of Scan)
-                console.log(`  - [Native Parser] SOS: Start of Scan`);
+                // Debug: SOS found
                 pos += 2 + segLen;
                 break;
             }

@@ -6,7 +6,6 @@
  * 3. Delegates to the appropriate codec.
  */
 import { CodecInfo, PixelDataCodec, registry } from "../core/registry";
-import { RleCodec } from "./rle";
 // import { NodePngEncoder } from './png'; // Unused and causes bundling issues
 // We import classes for instanceof checks or specific sniffing logic if needed,
 // but mainly we use the registry to avoid circular deps.
@@ -58,14 +57,14 @@ export class AutoDetectCodec implements PixelDataCodec {
         }
 
         // 2. Sniffing Strategy (Fallback)
-        console.log(`[AutoDetect] Sniffing content...`);
+        // console.log(`[AutoDetect] Sniffing content...`);
         const firstByte = encodedBuffer[0]?.[0];
         const magic = encodedBuffer[0]?.slice(0, 4);
 
         // Check RLE (No explicit magic, but often begins with segments)
         // Check JPEG (FF D8)
         if (magic && magic[0] === 0xff && magic[1] === 0xd8) {
-            console.log(`[AutoDetect] Detected JPEG Magic Bytes.`);
+            // console.log(`[AutoDetect] Detected JPEG Magic Bytes.`);
             // Try registered JPEG codecs
             const jpgCodecs = registry
                 .getCodecs()
@@ -83,7 +82,7 @@ export class AutoDetectCodec implements PixelDataCodec {
 
         // Check PNG (89 50 4E 47)
         if (magic && magic[0] === 0x89 && magic[1] === 0x50) {
-            console.log(`[AutoDetect] Detected PNG Magic Bytes.`);
+            // console.log(`[AutoDetect] Detected PNG Magic Bytes.`);
             // We don't have a PNG Decoder yet (only encoder), so we can't do much.
         }
 

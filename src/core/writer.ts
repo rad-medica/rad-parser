@@ -228,6 +228,10 @@ export function serializeElement(
     if (!tagParts) return null;
     const { group, elem } = tagParts;
 
+    if (group === 0x6000) {
+        // Debug: Serializing Overlay Tag
+    }
+
     const vr = (element.vr || "UN").toUpperCase();
     let valueBytes: Uint8Array | null = null;
 

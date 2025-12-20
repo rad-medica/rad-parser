@@ -179,7 +179,7 @@ export class ZigWasmCodecLoader {
                             // Fallback: Check local dir (legacy)
                             wasmPath = path.resolve(__dirname, wasmFileName);
                         }
-                        console.log(`Loading WASM from: ${wasmPath}`);
+                        // console.log(`Loading WASM from: ${wasmPath}`);
                     } catch {
                         // Fallback for environments where import.meta.url is not available
                         wasmPath = path.resolve(
@@ -187,9 +187,7 @@ export class ZigWasmCodecLoader {
                             "dist/package/wasm-codecs",
                             wasmFileName
                         );
-                        console.log(
-                            `Loading WASM from fallback CWD: ${wasmPath}`
-                        );
+                        // console.log(`Loading WASM from fallback CWD: ${wasmPath}`);
                     }
                 }
 
@@ -257,6 +255,26 @@ export class ZigWasmCodecLoader {
             };
 
             this.loadedModules.set(codec, codecModule);
+
+            // Initialize the module if it has a start function or constructors
+            // This is critical for C++ modules (like ljpeg/CharLS) that have static global objects.
+            // @ts-ignore
+            if (instance.exports._start) {
+                try {
+                    // @ts-ignore
+                    instance.exports._start();
+                } catch (e) {
+                    // Ignore void return or exit code if successful
+                    // Some WASI implementations might throw on exit(0)
+                }
+            } else {
+                // @ts-ignore
+                if (instance.exports.__wasm_call_ctors) {
+                    // @ts-ignore
+                    instance.exports.__wasm_call_ctors();
+                }
+            }
+
             return codecModule;
         } catch (e) {
             throw new Error(`Failed to load codec ${codec}: ${e}`);

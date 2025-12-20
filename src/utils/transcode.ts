@@ -33,9 +33,12 @@ export async function transcode(
         "1.2.840.10008.1.2.2", // Explicit VR Big Endian
     ];
 
-    if (uncompressedFormats.includes(options.targetTransferSyntax)) {
-        // For uncompressed formats, just update the Transfer Syntax UID
-        // The writer will handle the format conversion
+    if (
+        uncompressedFormats.includes(options.targetTransferSyntax) &&
+        uncompressedFormats.includes(currentTS)
+    ) {
+        // For Native -> Native, just update the Transfer Syntax UID
+        // The writer will handle the endianness conversion
         if (!dataset.dict["x00020010"]) {
             dataset.dict["x00020010"] = { vr: "UI", Value: [] };
         }

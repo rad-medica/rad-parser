@@ -1643,9 +1643,6 @@ export function extractPixelData(byteArray: Uint8Array): PixelDataInfo | null {
         const group = view.readUint16();
         const element = view.readUint16();
 
-        // Debug log for Pixel Data Tag Search (limit output?)
-        // if (group === 0x7fe0) console.log(`[ParserDebug] Found group 7FE0, Element: ${element.toString(16)}`);
-
         // Check for sequence/item delimiters
         if (group === 0xfffe) {
             if (
