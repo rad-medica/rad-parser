@@ -85,6 +85,7 @@ rad transcode <input_file> <output_file> --format <format_alias_or_uid>
     ```
 
 3. **Convert to JPEG 2000:**
+
     ```bash
     rad transcode explicit.dcm output_j2k.dcm --format j2k
     ```
@@ -123,6 +124,7 @@ rad image <input_file> <output_path> --format <png|jpeg> [--frame <index>]
     ```
 
 2. **Export the 10th frame to JPEG:**
+
     ```bash
     rad image multiframe.dcm frame_10.jpg --frame 9
     ```

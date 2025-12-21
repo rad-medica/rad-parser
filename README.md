@@ -232,7 +232,7 @@ A head-to-head comparison of capabilities, ecosystem, and performance.
 
 To build the project and its WASM dependencies from source, you need [Zig](https://ziglang.org/) (tested with 0.13.0) installed.
 
-1.  **Clone the repository with submodules:**
+1. **Clone the repository with submodules:**
 
     ```bash
     git clone --recursive https://github.com/rad-medica/rad-parser.git
@@ -245,13 +245,13 @@ To build the project and its WASM dependencies from source, you need [Zig](https
     git submodule update --init --recursive
     ```
 
-2.  **Install dependencies with Bun:**
+2. **Install dependencies with Bun:**
 
     ```bash
     bun install
     ```
 
-3.  **Build and Optimize the WASM codecs:**
+3. **Build and Optimize the WASM codecs:**
 
     ```bash
     bun run build:zig-codecs
@@ -271,7 +271,7 @@ To build the project and its WASM dependencies from source, you need [Zig](https
     bun run optimize:zig-codecs
     ```
 
-4.  **Build the TypeScript project:**
+4. **Build the TypeScript project:**
 
     ```bash
     bun run build
@@ -323,7 +323,7 @@ bun run fix
 bun run format:check
 ```
 
-5.  **Build Core WASM (opcional):**
+1. **Build Core WASM (opcional):**
 
     ```bash
     cd src/zig-core

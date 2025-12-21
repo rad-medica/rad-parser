@@ -188,13 +188,13 @@
 
 ## Recommendations
 
-### For Best Performance:
+### For Best Performance
 
 1. **Chunk Size:** Use 8KB-64KB chunks for optimal balance
 2. **Buffer Size:** Set `maxBufferSize` appropriately (default 10MB)
 3. **Iterations:** Adjust `maxIterations` based on element density (default 1000)
 
-### For Best Reliability:
+### For Best Reliability
 
 1. **Error Handling:** Always provide `onError` callback
 2. **Finalization:** Always call `finalize()` when stream ends

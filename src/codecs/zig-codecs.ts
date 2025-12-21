@@ -475,14 +475,18 @@ export class ZigCodecs {
 
         this.writeBuffer(memory, ptr, pixels);
 
-        const res = exports.encode_jpeg2000!(
+        if (!exports.encode_jpeg2000) {
+            throw new Error(
+                "JPEG 2000 encode function not found in WASM module"
+            );
+        }
+        const res = exports.encode_jpeg2000(
             ptr,
             pixels.length,
             width,
             height,
             bits,
-            components,
-            quality || 0 // 0 = lossless by default? Or assume wrapper handles it.
+            components
         );
         if (res !== 0) {
             if (exports.free_ptr) {

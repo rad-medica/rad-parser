@@ -10,11 +10,13 @@ Parse a DICOM file buffer into a dataset.
 **Parameters:**
 
 - `buffer: Uint8Array | Buffer` - DICOM file data
+
 - # `options?: ParseOptions` - `type?: 'full' | 'shallow' | 'light' | 'lazy'` - Parsing mode (default: 'full')
+
     `rad-parser` is a lightweight, performant, and self-contained DICOM parser for JavaScript and TypeScript environments. It's designed with two core principles:
 
-1.  **Zero Dependencies:** The core parsing logic has no external dependencies, making it robust and suitable for a wide range of environments, from Node.js servers to web browsers.
-2.  **Modular & Extensible:** Complex features like compressed pixel data decoding are handled through a clean, extensible codec system. The library provides adapters for common formats, and you can easily inject your own decoders (e.g., from a WebAssembly library).
+1. **Zero Dependencies:** The core parsing logic has no external dependencies, making it robust and suitable for a wide range of environments, from Node.js servers to web browsers.
+2. **Modular & Extensible:** Complex features like compressed pixel data decoding are handled through a clean, extensible codec system. The library provides adapters for common formats, and you can easily inject your own decoders (e.g., from a WebAssembly library).
 
 ## Installation
 

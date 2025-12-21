@@ -1,6 +1,7 @@
 # Parser Comparison Tests and Benchmarks
 
-This directory contains comprehensive tests and benchmarks comparing `rad-parser` with other DICOM parsers in the ecosystem.
+This directory contains comprehensive tests and benchmarks comparing `rad-parser` with other DICOM
+parsers in the ecosystem.
 
 ## Test Files
 

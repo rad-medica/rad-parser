@@ -2,7 +2,11 @@
 
 ## Executive Summary
 
-The `codecs` module implements DICOM Transfer Syntax support primarily through WebAssembly (WASM) wrappers around standard C++ libraries (LibJPEG-Turbo, OpenJPEG, CharLS). This architecture aligns with industry high-performance standards. **Verification testing confirms that the module is now stable and functional**, with all major codecs passing round-trip transcoding tests. Previous instability issues regarding WASM initialization have been resolved.
+The `codecs` module implements DICOM Transfer Syntax support primarily through WebAssembly (WASM)
+wrappers around standard C++ libraries (LibJPEG-Turbo, OpenJPEG, CharLS). This architecture aligns
+with industry high-performance standards. **Verification testing confirms that the module is now
+stable and functional**, with all major codecs passing round-trip transcoding tests. Previous
+instability issues regarding WASM initialization have been resolved.
 
 ## Implementation State
 
@@ -50,5 +54,5 @@ The implementation aims for full compliance by leveraging reference implementati
 
 ## Recommendations / Next Steps
 
-1.  **Performance Benchmarking**: Now that stability is achieved, rigorous speed comparison against `dcmjs` is recommended.
-2.  **Browser Integration Testing**: Validate the WASM loading mechanism in a real browser environment (Webpack/Vite) to ensure `_start` calls behave correctly there too.
+1. **Performance Benchmarking**: Now that stability is achieved, rigorous speed comparison against `dcmjs` is recommended.
+2. **Browser Integration Testing**: Validate the WASM loading mechanism in a real browser environment (Webpack/Vite) to ensure `_start` calls behave correctly there too.

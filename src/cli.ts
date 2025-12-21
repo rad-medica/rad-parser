@@ -275,7 +275,10 @@ import { fileURLToPath } from "url";
 // ESM check - works in both ESM and CJS environments
 // ESM check - works in both ESM and CJS environments
 try {
-    if (import.meta.url && process.argv[1] === fileURLToPath(import.meta.url)) {
+    const importMetaUrl = new Function(
+        "try { return import.meta.url; } catch { return undefined; }"
+    )();
+    if (importMetaUrl && process.argv[1] === fileURLToPath(importMetaUrl)) {
         run().catch(err => {
             console.error(err);
             process.exit(1);

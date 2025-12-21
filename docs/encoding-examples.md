@@ -4,14 +4,14 @@ This guide demonstrates how to take a raw pixel data buffer and encode it into a
 
 The general workflow for encoding is:
 
-1.  Start with a `DicomDataSet`, either by parsing an existing file or creating one from scratch.
-2.  Have a raw, uncompressed pixel data buffer that you want to encode.
-3.  Use a configured encoder to compress the pixel data.
-4.  Update the `DicomDataSet` with the newly compressed pixel data fragments. This involves:
+1. Start with a `DicomDataSet`, either by parsing an existing file or creating one from scratch.
+2. Have a raw, uncompressed pixel data buffer that you want to encode.
+3. Use a configured encoder to compress the pixel data.
+4. Update the `DicomDataSet` with the newly compressed pixel data fragments. This involves:
     - Setting the `(7FE0,0010)` Pixel Data value to the new fragments.
     - Changing the `(7FE0,0010)` VR to `OB` (for encapsulated data).
     - Updating the `(0002,0010)` Transfer Syntax UID to match the compressed format.
-5.  Call `write()` to serialize the updated dataset into a new DICOM file buffer.
+5. Call `write()` to serialize the updated dataset into a new DICOM file buffer.
 
 ---
 

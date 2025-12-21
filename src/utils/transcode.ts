@@ -181,7 +181,7 @@ export async function transcode(
             // Simple linear scaling: val >> (bits - 8)
             const shift = bits - 8;
             for (let i = 0; i < src.length; i++) {
-                dst[i] = src[i] >> shift;
+                dst[i] = src[i]! >> shift;
             }
             frameToEncode = dst;
             bitsToEncode = 8;

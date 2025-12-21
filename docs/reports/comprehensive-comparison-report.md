@@ -172,44 +172,44 @@
 
 ## Recommendations
 
-### Choose rad-parser-fast when:
+### Choose rad-parser-fast when
 
 - ⚡ Maximum speed required
 - 📋 Header/metadata extraction only
 - 🎯 Tag filtering needed
 
-### Choose rad-parser-shallow when:
+### Choose rad-parser-shallow when
 
 - ⚡ Fast scanning/indexing
 - 📊 Database indexing
 - ✅ Still need 100% reliability
 
-### Choose rad-parser-medium when:
+### Choose rad-parser-medium when
 
 - ⚖️ Balance speed and completeness
 - 🏥 Metadata extraction (skip pixel data)
 - 🔒 Anonymization workflows
 
-### Choose rad-parser when:
+### Choose rad-parser when
 
 - 🏆 Complete data extraction needed
 - 🖼️ Pixel data required
 - ✅ 100% reliability essential
 - 🔧 Production systems
 
-### Choose rad-parser-streaming when:
+### Choose rad-parser-streaming when
 
 - 📡 Network/file streams
 - 💾 Large files (>100MB)
 - 🧠 Memory-efficient processing
 - ⚡ Real-time parsing
 
-### Choose dicom-parser when:
+### Choose dicom-parser when
 
 - ⚡ Maximum speed (accepts 12% failures)
 - 📝 Simple use cases
 
-### Choose dcmjs when:
+### Choose dcmjs when
 
 - 🔄 Existing codebase integration
 - 📝 Simple parsing needs

@@ -96,7 +96,10 @@ export class ZigCoreLoader {
                 } else {
                     // Default path relative to this file
                     try {
-                        const __filename = url.fileURLToPath(import.meta.url);
+                        const importMetaUrl = new Function(
+                            "try { return import.meta.url; } catch { return undefined; }"
+                        )();
+                        const __filename = url.fileURLToPath(importMetaUrl);
                         const __dirname = path.dirname(__filename);
 
                         // Priority 0: dist/package/wasm-core (Package Distribution)

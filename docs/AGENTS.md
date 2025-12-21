@@ -10,7 +10,7 @@ This document provides a comprehensive overview of all AI coding assistants conf
 
 Cursor is configured with detailed project context and coding standards for intelligent code suggestions within the editor.
 
-#### Key Features:
+#### Key Features
 
 - **Project Context**: Complete understanding of rad-parser as a DICOM parser
 - **Architecture Awareness**: Knowledge of core parser, codec system, and utilities
@@ -18,7 +18,7 @@ Cursor is configured with detailed project context and coding standards for inte
 - **Performance Focus**: Emphasizes memory efficiency and zero-copy operations
 - **Development Workflow**: Familiar with Bun runtime and build processes
 
-#### Configuration Highlights:
+#### Configuration Highlights
 
 - Multi-runtime support (Node.js, Bun, Deno, browsers)
 - WASM codec integration with Zig compilation
@@ -31,14 +31,14 @@ Cursor is configured with detailed project context and coding standards for inte
 
 GitHub Copilot receives project-specific instructions to generate contextually appropriate code suggestions.
 
-#### Key Features:
+#### Key Features
 
 - **Project Overview**: Medical imaging parser with WASM codecs
 - **Code Standards**: TypeScript guidelines, formatting rules, architecture patterns
 - **Development Workflow**: Build commands, testing strategies, performance considerations
 - **Security Focus**: Bounds checking, input validation, safe error handling
 
-#### Integration Points:
+#### Integration Points
 
 - Repository-level instructions for all contributors
 - GitHub-specific integration
@@ -54,14 +54,14 @@ GitHub Copilot receives project-specific instructions to generate contextually a
 
 Antigravity receives detailed behavioral guidelines and technical specifications for advanced code generation.
 
-#### Key Features:
+#### Key Features
 
 - **Technical Specifications**: Runtime environments, build tools, quality standards
 - **Coding Patterns**: TypeScript conventions, error handling, memory management
 - **Architecture Decisions**: WASM integration, multi-runtime support, streaming design
 - **Quality Gates**: Type checking, linting, formatting, testing requirements
 
-#### Configuration Structure:
+#### Configuration Structure
 
 - **Rules File**: Behavioral guidelines, coding patterns, anti-patterns
 - **Config File**: Technical settings, performance targets, compatibility matrix

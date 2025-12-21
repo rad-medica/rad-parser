@@ -67,7 +67,7 @@
         "bin/**/*"
     ],
     "scripts": {
-        "build": "bun run tsc && bun run build:package && bun run build:standalone",
+        "build": "bun run build:package && bun run build:standalone",
         "build:standalone": "bun run scripts/build_standalone.ts",
         "build:package": "bun run scripts/build_package.ts",
         "build:wasm:core": "cd src/zig-core && zig build",
@@ -87,8 +87,8 @@
         "benchmark:streaming": "bun run --bun benchmarks/benchmark-streaming.ts",
         "lint": "bun run eslint .",
         "lint:fix": "bun run eslint . --fix",
-        "lint:md": "bun run markdownlint '**/*.md' '!src/zig-codecs/deps/**/*'",
-        "lint:md:fix": "bun run markdownlint '**/*.md' '!src/zig-codecs/deps/**/*' --fix",
+        "lint:md": "bun run markdownlint '**/*.md'",
+        "lint:md:fix": "bun run markdownlint '**/*.md' --fix",
         "format": "bun run prettier --write \"**/*.{ts,js,json,md}\"",
         "format:check": "bun run prettier --check \"**/*.{ts,js,json,md}\"",
         "check": "bun run type-check && bun run lint && bun run lint:md && bun run format:check",

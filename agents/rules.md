@@ -2,7 +2,9 @@
 
 ## Project Identity
 
-**rad-parser** is a high-performance, zero-dependency DICOM parser built with TypeScript and WASM codecs compiled from Zig. It provides medical imaging parsing capabilities for Node.js, Bun, Deno, and browser environments.
+**rad-parser** is a high-performance, zero-dependency DICOM parser built with TypeScript and WASM
+codecs compiled from Zig. It provides medical imaging parsing capabilities for Node.js, Bun, Deno,
+and browser environments.
 
 ## Technical Specifications
 
@@ -18,7 +20,8 @@
 - **Language**: TypeScript 5.0+ with strict mode
 - **Linting**: ESLint with Prettier integration
 - **Testing**: Vitest with comprehensive coverage
-- **Formatting**: Prettier with double quotes, LF line endings
+- **Formatting**: Prettier with double quotes, LF line endings, UTF-8 encoding, 4-space indentation,
+  trailing commas (es5)
 
 ### Architecture Layers
 
@@ -156,7 +159,8 @@ function readUint16LE(buffer: Uint8Array, offset: number): number {
 
 ### Code Generation Principles
 
-1. **Type Safety First**: Never use `any`, create proper type definitions. WHEN WRITING TYPESCRIPT, BE STRICT WITH THE TYPES, NEVER USE ANY.
+1. **Type Safety First**: Never use `any`, create proper type definitions. WHEN WRITING TYPESCRIPT,
+   BE STRICT WITH THE TYPES, NEVER USE ANY.
 2. **Performance Conscious**: Consider memory usage and execution speed
 3. **Cross-Platform**: Ensure compatibility across all target runtimes
 4. **Zero Dependencies**: Avoid external runtime dependencies
@@ -242,5 +246,6 @@ dist/ # Build outputs
 - Safe handling of malformed DICOM data
 - No execution of untrusted code paths
 
-Remember: This codebase handles medical imaging data where accuracy and performance are critical. All suggestions must maintain the highest standards of code quality and runtime compatibility.
+Remember: This codebase handles medical imaging data where accuracy and performance are critical.
+All suggestions must maintain the highest standards of code quality and runtime compatibility.
 ```

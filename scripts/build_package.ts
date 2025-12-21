@@ -6,9 +6,8 @@ function run(command: string, args: string[]) {
     // TSC returns 1 even if files are emitted when there are type errors.
     // We log but don't exit if files were likely emitted.
     if (result.status !== 0) {
-        console.warn(
-            `Command failed with exit code ${result.status}. Proceeding anyway to support type errors in build...`
-        );
+        console.error(`Command failed with exit code ${result.status}.`);
+        process.exit(1);
     }
 }
 
@@ -17,13 +16,22 @@ async function main() {
 
     // ESM Build
     console.log("Building ESM...");
-    run("bun", ["run", "tsc", "--outDir", "dist/package/esm"]);
+    run("bun", [
+        "run",
+        "tsc",
+        "--project",
+        "tsconfig.build.json",
+        "--outDir",
+        "dist/package/esm",
+    ]);
 
     // CJS Build
     console.log("Building CJS...");
     run("bun", [
         "run",
         "tsc",
+        "--project",
+        "tsconfig.build.json",
         "--module",
         "commonjs",
         "--moduleResolution",

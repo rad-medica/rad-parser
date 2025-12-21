@@ -209,4 +209,3 @@ Testing JPEG_2000_Lossy...
 ---
 
 **Note**: This report should be updated after fixing JPEG 2000 issues and after visual inspection of converted images.
-
