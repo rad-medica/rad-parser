@@ -2,7 +2,7 @@
  * HTJ2K (High-Throughput JPEG 2000) Decoder Plugin
  * Transfer Syntaxes: 1.2.840.10008.1.2.4.178
  */
-import { CodecInfo, PixelDataCodec, registry } from "../core/registry";
+import { CodecInfo, PixelDataCodec } from "../core/registry";
 import { concatFragments } from "../utils/bufferUtils";
 import { ZigCodecs } from "./zig-codecs";
 
@@ -18,7 +18,6 @@ export class Htj2kDecoder implements PixelDataCodec {
 
     constructor() {
         this.zigCodecs = new ZigCodecs();
-        this.initPromise = this.initWasm();
     }
 
     private async initWasm(): Promise<void> {
@@ -44,9 +43,10 @@ export class Htj2kDecoder implements PixelDataCodec {
     async decode(encodedBuffer: Uint8Array[], info: any): Promise<Uint8Array> {
         const combined = concatFragments(encodedBuffer);
 
-        if (this.initPromise) {
-            await this.initPromise;
+        if (!this.initPromise) {
+            this.initPromise = this.initWasm();
         }
+        await this.initPromise;
 
         return await this.zigCodecs.decodeHtj2k(combined);
     }
@@ -64,4 +64,4 @@ export class Htj2kDecoder implements PixelDataCodec {
 }
 
 // Auto-register
-registry.register(new Htj2kDecoder());
+// registry.register(new Htj2kDecoder());

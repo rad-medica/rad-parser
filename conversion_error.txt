@@ -1,0 +1,15 @@
+Input: C:\Users\aroja\CODE\rad-parser\test_data\EDGE_CASES\ALL\CT_small.dcm
+Output Dir: C:\Users\aroja\CODE\rad-parser\test_data\output_conversion
+Cleaning output directory...
+
+--- Converting to CT_rle.dcm (1.2.840.10008.1.2.5) ---
+Writing...
+Success: CT_rle.dcm
+
+--- Converting to CT_jpeg_base.dcm (1.2.840.10008.1.2.4.50) ---
+ERROR: FAILED CT_jpeg_base.dcm: JPEG encode failed with error code: -5
+ERROR: Error: JPEG encode failed with error code: -5
+    at encodeJpeg (C:\Users\aroja\CODE\rad-parser\src\codecs\zig-codecs.ts:258:27)
+    at async encode (C:\Users\aroja\CODE\rad-parser\src\codecs\jpegNative.ts:71:46)
+    at async transcode (C:\Users\aroja\CODE\rad-parser\src\utils\transcode.ts:190:45)
+    at async main (C:\Users\aroja\CODE\rad-parser\scripts\convert_all.ts:81:42)

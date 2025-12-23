@@ -36,7 +36,7 @@ pub fn build(b: *std.Build) void {
     addSources(b, lib_jpeg, "deps/libjpeg-turbo/src", &.{".c"}, &.{ "test", "bench", "example", "turbojpeg", "tj", "template.c", "-8.c", "cdjpeg", "cjpeg.c", "djpeg.c", "jpegtran.c", "rdjpgcom.c", "wrjpgcom.c", "md5", "java", "simd", "transupp.c", "jstdhuff.c", "jdmrgext.c", "jdmrg565.c", "jdcol565.c", "jdcolext.c", "jccolext.c" }) catch |err| std.debug.print("Error adding JPG sources: {}\n", .{err});
 
     // Add specific TJ files
-    const tj_flags = &.{ "-DINLINE=inline", "-O3", "-DNDEBUG", "-ffunction-sections", "-fdata-sections" };
+    const tj_flags = &.{ "-DINLINE=inline", "-O3", "-DNDEBUG", "-ffunction-sections", "-fdata-sections", "-DWITH_SIMD=0" };
     lib_jpeg.addCSourceFile(.{ .file = b.path("deps/libjpeg-turbo/src/turbojpeg.c"), .flags = tj_flags });
     lib_jpeg.addCSourceFile(.{ .file = b.path("deps/libjpeg-turbo/src/transupp.c"), .flags = tj_flags });
 
@@ -48,6 +48,8 @@ pub fn build(b: *std.Build) void {
     lib_jpeg.linkLibCpp(); // For jpeg.cpp
     lib_jpeg.rdynamic = true;
     lib_jpeg.entry = .disabled;
+    lib_jpeg.stack_size = 8 * 1024 * 1024;
+    lib_jpeg.root_module.export_symbol_names = &.{ "__wasm_call_ctors", "encode_jpeg", "decode_jpeg", "malloc", "free" };
     tuneWasmArtifact(lib_jpeg);
     b.installArtifact(lib_jpeg);
 
@@ -219,8 +221,9 @@ pub fn build(b: *std.Build) void {
     });
 
     // Note: CharLS requires C++14/17
-    lib_jpegls.addCSourceFile(.{ .file = b.path("src/jpegls.cpp"), .flags = &.{ "-std=c++17", "-O3", "-DNDEBUG" } });
-    lib_jpegls.addCSourceFile(.{ .file = b.path("src/cxx_stubs.cpp"), .flags = &.{ "-std=c++17", "-O3", "-DNDEBUG" } });
+    const jpegls_flags = &.{ "-std=c++17", "-O3", "-DNDEBUG", "-DCHARLS_NO_EXCEPTIONS=1", "-fno-exceptions" };
+    lib_jpegls.addCSourceFile(.{ .file = b.path("src/jpegls.cpp"), .flags = jpegls_flags });
+    lib_jpegls.addCSourceFile(.{ .file = b.path("src/cxx_stubs.cpp"), .flags = jpegls_flags });
 
     lib_jpegls.addIncludePath(b.path("deps/charls/include"));
     lib_jpegls.addIncludePath(b.path("deps/charls/src"));

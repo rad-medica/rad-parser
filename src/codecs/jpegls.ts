@@ -2,7 +2,7 @@
  * JPEG-LS Decoder Plugin
  * Transfer Syntaxes: 1.2.840.10008.1.2.4.80 (Lossless), 1.2.840.10008.1.2.4.81 (Near-lossless)
  */
-import { CodecInfo, PixelDataCodec, registry } from "../core/registry";
+import { CodecInfo, PixelDataCodec } from "../core/registry";
 import { concatFragments } from "../utils/bufferUtils";
 import { ZigCodecs } from "./zig-codecs";
 
@@ -43,7 +43,6 @@ export class JpegLsDecoder implements PixelDataCodec {
         } else {
             // Use WASM implementation
             this.zigCodecs = new ZigCodecs();
-            this.initPromise = this.initWasm();
         }
     }
 
@@ -81,9 +80,10 @@ export class JpegLsDecoder implements PixelDataCodec {
             throw new Error("Codec not initialized");
         }
 
-        if (this.initPromise) {
-            await this.initPromise;
+        if (!this.initPromise) {
+            this.initPromise = this.initWasm();
         }
+        await this.initPromise;
 
         return await this.zigCodecs.decodeJpegLs(combined);
     }
@@ -111,9 +111,10 @@ export class JpegLsDecoder implements PixelDataCodec {
             throw new Error("Codec not initialized");
         }
 
-        if (this.initPromise) {
-            await this.initPromise;
+        if (!this.initPromise) {
+            this.initPromise = this.initWasm();
         }
+        await this.initPromise;
 
         const encoded = await this.zigCodecs.encodeJpegLs(
             pixelData,
@@ -127,4 +128,4 @@ export class JpegLsDecoder implements PixelDataCodec {
 }
 
 // Auto-register
-registry.register(new JpegLsDecoder());
+// registry.register(new JpegLsDecoder());

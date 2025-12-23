@@ -4,7 +4,7 @@
  *
  * Note: JPEG Lossless uses the same LibJPEG-Turbo decoder as baseline JPEG.
  */
-import { CodecInfo, PixelDataCodec, registry } from "../core/registry";
+import { CodecInfo, PixelDataCodec } from "../core/registry";
 import { concatFragments } from "../utils/bufferUtils";
 import { ZigCodecs } from "./zig-codecs";
 
@@ -20,7 +20,6 @@ export class JpegLosslessDecoder implements PixelDataCodec {
 
     constructor() {
         this.zigCodecs = new ZigCodecs();
-        this.initPromise = this.initWasm();
     }
 
     private async initWasm(): Promise<void> {
@@ -49,11 +48,12 @@ export class JpegLosslessDecoder implements PixelDataCodec {
     async decode(encodedBuffer: Uint8Array[], info: any): Promise<Uint8Array> {
         const combined = concatFragments(encodedBuffer);
 
-        if (this.initPromise) {
-            await this.initPromise;
+        if (!this.initPromise) {
+            this.initPromise = this.initWasm();
         }
+        await this.initPromise;
 
-        return await this.zigCodecs.decodeJpeg(combined);
+        return await this.zigCodecs.decodeLJpeg(combined);
     }
 
     async encode(
@@ -69,4 +69,4 @@ export class JpegLosslessDecoder implements PixelDataCodec {
 }
 
 // Auto-register
-registry.register(new JpegLosslessDecoder());
+// registry.register(new JpegLosslessDecoder());

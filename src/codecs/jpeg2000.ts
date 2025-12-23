@@ -2,7 +2,7 @@
  * JPEG 2000 Decoder Plugin
  * Transfer Syntaxes: 1.2.840.10008.1.2.4.90 (Lossless), 1.2.840.10008.1.2.4.91 (Lossy)
  */
-import { CodecInfo, PixelDataCodec, registry } from "../core/registry";
+import { CodecInfo, PixelDataCodec } from "../core/registry";
 import { concatFragments } from "../utils/bufferUtils";
 import { ZigCodecs } from "./zig-codecs";
 
@@ -45,7 +45,6 @@ export class Jpeg2000Decoder implements PixelDataCodec {
         } else {
             // Use WASM implementation
             this.zigCodecs = new ZigCodecs();
-            this.initPromise = this.initWasm();
         }
     }
 
@@ -94,9 +93,10 @@ export class Jpeg2000Decoder implements PixelDataCodec {
             );
         }
 
-        if (this.initPromise) {
-            await this.initPromise;
+        if (!this.initPromise) {
+            this.initPromise = this.initWasm();
         }
+        await this.initPromise;
 
         return await this.zigCodecs.decodeJpeg2000(combined);
     }
@@ -126,9 +126,10 @@ export class Jpeg2000Decoder implements PixelDataCodec {
             throw new Error("Codec not initialized");
         }
 
-        if (this.initPromise) {
-            await this.initPromise;
+        if (!this.initPromise) {
+            this.initPromise = this.initWasm();
         }
+        await this.initPromise;
 
         try {
             // Determine if lossless based on transfer syntax
@@ -156,4 +157,4 @@ export class Jpeg2000Decoder implements PixelDataCodec {
 }
 
 // Auto-register
-registry.register(new Jpeg2000Decoder());
+// registry.register(new Jpeg2000Decoder());

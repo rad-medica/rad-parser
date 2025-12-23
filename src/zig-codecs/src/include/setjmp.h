@@ -8,6 +8,6 @@
 typedef int jmp_buf[1];
 
 #define setjmp(env) 0
-#define longjmp(env, val) abort()
+#define longjmp(env, val) exit(66)
 
 #endif

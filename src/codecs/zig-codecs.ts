@@ -36,7 +36,9 @@ interface CodecExports {
         width: number,
         height: number,
         bits: number,
-        components: number
+        components: number,
+        lossless_flag: number,
+        quality_rate: number
     ) => number;
     // JPEG-LS
     decode_jpegls?: (ptr: number, len: number) => number;
@@ -169,6 +171,10 @@ export class ZigCodecs {
         const exports = await this.getCodecExports("jpeg");
         const memory = this.getMemory("jpeg");
 
+        console.log(
+            `[DEBUG] encodeJpeg: Type=${pixels.constructor.name}, Len=${pixels.length}, ByteLen=${pixels.byteLength}, W=${width}, H=${height}, Bits=${bits}, Comps=${components}`
+        );
+
         // Check if encode_jpeg function exists
         if (!exports.encode_jpeg) {
             throw new Error("JPEG encode function not found in WASM module");
@@ -219,34 +225,17 @@ export class ZigCodecs {
         const validQuality = Math.max(1, Math.min(q, 100));
 
         try {
-            // Try C++ signature first: (ptr, len, width, height, bits, components, quality)
-            let res: number;
-            try {
-                res = exports.encode_jpeg(
-                    ptr,
-                    pixels.length,
-                    width,
-                    height,
-                    validBits,
-                    validComponents,
-                    validQuality
-                );
-            } catch (e: any) {
-                // If that fails with unreachable, try Zig signature: (ptr, len, width, height, components, quality, bits)
-                if (e.message && e.message.includes("unreachable")) {
-                    res = exports.encode_jpeg(
-                        ptr,
-                        pixels.length,
-                        width,
-                        height,
-                        validComponents,
-                        validQuality,
-                        validBits
-                    );
-                } else {
-                    throw e;
-                }
-            }
+            // Signature: (ptr, len, width, height, bits, components, quality)
+            // Verified against jpeg.cpp
+            const res = exports.encode_jpeg(
+                ptr,
+                pixels.length,
+                width,
+                height,
+                validBits,
+                validComponents,
+                validQuality
+            );
 
             if (res !== 0) {
                 if (exports.free_ptr) {
@@ -486,7 +475,9 @@ export class ZigCodecs {
             width,
             height,
             bits,
-            components
+            components,
+            lossless ? 1 : 0,
+            quality || 0.0
         );
         if (res !== 0) {
             if (exports.free_ptr) {
@@ -553,6 +544,9 @@ export class ZigCodecs {
         components: number
     ): Promise<Uint8Array> {
         const exports = await this.getCodecExports("jpegls");
+        console.log(
+            `[DEBUG] encodeJpegLs: Type=${pixels.constructor.name}, Len=${pixels.length}, ByteLen=${pixels.byteLength}, W=${width}, H=${height}, Bits=${bits}, Comps=${components}`
+        );
         const memory = this.getMemory("jpegls");
 
         // Check if encode_jpegls function exists

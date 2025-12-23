@@ -124,23 +124,48 @@ int decode_jpeg(const uint8_t* src, size_t src_len) {
     return 0;
 }
 
-int encode_jpeg(const uint8_t* pixel_data, size_t len, uint32_t width, uint32_t height, int quality) {
+int encode_jpeg(const uint8_t* pixel_data, size_t len, uint32_t width, uint32_t height, int bits, int components, int quality) {
     tjhandle handle = tjInitCompress();
     if (!handle) return -1;
+
+    // Configure Sampling
+    int subsamp = TJSAMP_444; // Default
+    if (quality < 50) subsamp = TJSAMP_420; // Heuristic? Or just stick to 444 for medical
+
+    // Determine Pixel Format
+    int pixelFormat = TJPF_RGB;
+    if (components == 1) pixelFormat = TJPF_GRAY;
+    else if (components == 3) pixelFormat = TJPF_RGB;
+    else if (components == 4) pixelFormat = TJPF_RGBA;
+    else {
+        tjDestroy(handle);
+        return -components; // <--- Debug: return received value
+    }
 
     uint8_t* jpeg_buf = NULL;
     unsigned long jpeg_size = 0;
 
-    // input pixel format RGB assumed
-    if (tjCompress2(handle, pixel_data, width, 0, height, TJPF_RGB, &jpeg_buf, &jpeg_size, TJSAMP_444, quality, TJFLAG_FASTDCT) != 0) {
+    // Use tjCompress2 with dynamic pixel format
+    // Note: TurboJPEG expects 8-bit input for tjCompress2.
+    // If bits > 8 (e.g. 12/16), we need different function or data is already downscaled.
+    // The wrapper (transcode.ts) downscales >8 bits to 8 bits for JPEG Baseline.
+    // So we can assume 8-bit input here if bits==8.
+
+    // Safety check
+    if (bits > 8) {
+        // We generally shouldn't reach here for Baseline if JS handled it,
+        // but if we do, we might fail or need 12/16 bit support (which TJ supports via different API)
+        // For now, assume 8-bit.
+    }
+
+    if (tjCompress2(handle, pixel_data, width, 0, height, pixelFormat, &jpeg_buf, &jpeg_size, subsamp, quality, TJFLAG_FASTDCT) != 0) {
         tjDestroy(handle);
         return -2;
     }
 
     tjDestroy(handle);
 
-    // Copy to our managed memory to allow standard free?
-    // TJ allocates with tjAlloc (likely malloc compatible, but let's be safe and copy)
+    // Copy to our managed memory
     uint8_t* result = (uint8_t*)malloc(jpeg_size);
     memcpy(result, jpeg_buf, jpeg_size);
     tjFree(jpeg_buf);

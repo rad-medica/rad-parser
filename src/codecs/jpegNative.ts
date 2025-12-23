@@ -19,7 +19,6 @@ export class JpegNativeCodec implements PixelDataCodec {
 
     constructor() {
         this.zigCodecs = new ZigCodecs();
-        this.initPromise = this.initWasm();
     }
 
     private async initWasm(): Promise<void> {
@@ -47,9 +46,10 @@ export class JpegNativeCodec implements PixelDataCodec {
     async decode(encodedBuffer: Uint8Array[], info: any): Promise<Uint8Array> {
         const combined = concatFragments(encodedBuffer);
 
-        if (this.initPromise) {
-            await this.initPromise;
+        if (!this.initPromise) {
+            this.initPromise = this.initWasm();
         }
+        await this.initPromise;
 
         return await this.zigCodecs.decodeJpeg(combined);
     }
@@ -63,9 +63,10 @@ export class JpegNativeCodec implements PixelDataCodec {
         bits: number,
         quality?: number
     ): Promise<Uint8Array[]> {
-        if (this.initPromise) {
-            await this.initPromise;
+        if (!this.initPromise) {
+            this.initPromise = this.initWasm();
         }
+        await this.initPromise;
 
         const encoded = await this.zigCodecs.encodeJpeg(
             pixelData,

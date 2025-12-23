@@ -2,7 +2,7 @@
  * RLE Codec Plugin
  * Supports RLE Lossless (1.2.840.10008.1.2.5) decoding and encoding.
  */
-import { CodecInfo, PixelDataCodec, registry } from "../core/registry";
+import { CodecInfo, PixelDataCodec } from "../core/registry";
 import { concatFragments } from "../utils/bufferUtils";
 import { ZigCodecs } from "./zig-codecs";
 
@@ -19,7 +19,6 @@ export class RleCodec implements PixelDataCodec {
 
     constructor() {
         this.zigCodecs = new ZigCodecs();
-        this.initPromise = this.initWasm();
     }
 
     private async initWasm(): Promise<void> {
@@ -51,9 +50,10 @@ export class RleCodec implements PixelDataCodec {
             return new Uint8Array(0);
         }
 
-        if (this.initPromise) {
-            await this.initPromise;
+        if (!this.initPromise) {
+            this.initPromise = this.initWasm();
         }
+        await this.initPromise;
 
         // RLE fragments: First fragment is usually Basic Offset Table (BOT), skip if empty
         // Actual RLE data starts from the first non-empty fragment
@@ -226,9 +226,10 @@ export class RleCodec implements PixelDataCodec {
         samples: number,
         bits: number
     ): Promise<Uint8Array[]> {
-        if (this.initPromise) {
-            await this.initPromise;
+        if (!this.initPromise) {
+            this.initPromise = this.initWasm();
         }
+        await this.initPromise;
 
         // Try Zig WASM first (but not for 16-bit single-component - WASM doesn't handle MSB/LSB splitting)
         if (this.wasmAvailable && !(bits === 16 && samples === 1)) {
@@ -360,4 +361,4 @@ export class RleCodec implements PixelDataCodec {
 }
 
 // Auto-register
-registry.register(new RleCodec());
+// registry.register(new RleCodec());
