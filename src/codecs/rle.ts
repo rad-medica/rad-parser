@@ -4,7 +4,7 @@
  */
 import { CodecInfo, PixelDataCodec } from "../core/registry";
 import { concatFragments } from "../utils/bufferUtils";
-import { ZigCodecs } from "./zig-codecs";
+import { WasmCodecs } from "./wasm-codecs";
 
 export class RleCodec implements PixelDataCodec {
     name = "rle-wasm";
@@ -13,17 +13,17 @@ export class RleCodec implements PixelDataCodec {
         multiFrame: true,
     };
 
-    private zigCodecs: ZigCodecs;
+    private wasmCodecs: WasmCodecs;
     private initPromise: Promise<void> | null = null;
     private wasmAvailable = false;
 
     constructor() {
-        this.zigCodecs = new ZigCodecs();
+        this.wasmCodecs = new WasmCodecs();
     }
 
     private async initWasm(): Promise<void> {
         try {
-            await this.zigCodecs.initCodec("rle");
+            await this.wasmCodecs.initCodec("rle");
             this.wasmAvailable = true;
         } catch (e) {
             console.warn(
@@ -103,7 +103,7 @@ export class RleCodec implements PixelDataCodec {
         // Try Zig WASM first
         if (this.wasmAvailable) {
             try {
-                return await this.zigCodecs.decodeRle(
+                return await this.wasmCodecs.decodeRle(
                     buffer,
                     width,
                     height,
@@ -234,7 +234,7 @@ export class RleCodec implements PixelDataCodec {
         // Try Zig WASM first (but not for 16-bit single-component - WASM doesn't handle MSB/LSB splitting)
         if (this.wasmAvailable && !(bits === 16 && samples === 1)) {
             try {
-                const encoded = await this.zigCodecs.encodeRle(
+                const encoded = await this.wasmCodecs.encodeRle(
                     pixelData,
                     width,
                     height,

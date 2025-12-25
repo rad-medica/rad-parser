@@ -14,12 +14,14 @@ build/
 Cargo.lock
 
 # Zig builds
-src/zig-codecs/zig-out/
-src/zig-codecs/.zig-cache/
 src/zig-core/zig-out/
 src/zig-core/.zig-cache/
 zig-out/
 .zig-cache/
+
+# Codecs WASM builds
+src/codecs-wasm/build/
+src/codecs-wasm/dist/
 
 # IDE and Editor files
 .idea/

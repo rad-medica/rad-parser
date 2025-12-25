@@ -6,7 +6,7 @@
  */
 import { CodecInfo, PixelDataCodec, registry } from "../core/registry";
 import { concatFragments } from "../utils/bufferUtils";
-import { ZigCodecs } from "./zig-codecs";
+import { WasmCodecs } from "./wasm-codecs";
 
 export class JpegDecoder implements PixelDataCodec {
     name = "jpeg-wasm";
@@ -15,17 +15,17 @@ export class JpegDecoder implements PixelDataCodec {
         multiFrame: false,
     };
 
-    private zigCodecs: ZigCodecs;
+    private wasmCodecs: WasmCodecs;
     private initPromise: Promise<void> | null = null;
 
     constructor() {
-        this.zigCodecs = new ZigCodecs();
+        this.wasmCodecs = new WasmCodecs();
         this.initPromise = this.initWasm();
     }
 
     private async initWasm(): Promise<void> {
         try {
-            await this.zigCodecs.initCodec("jpeg");
+            await this.wasmCodecs.initCodec("jpeg");
         } catch (e) {
             console.warn("Failed to init JPEG Zig WASM codec", e);
         }
@@ -52,7 +52,7 @@ export class JpegDecoder implements PixelDataCodec {
 
         // 1. Try Zig WASM
         try {
-            return await this.zigCodecs.decodeJpeg(combined);
+            return await this.wasmCodecs.decodeJpeg(combined);
         } catch (e) {
             console.warn("Zig WASM JPEG decode failed, fallback to Browser", e);
         }

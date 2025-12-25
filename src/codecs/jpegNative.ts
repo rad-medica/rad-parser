@@ -5,7 +5,7 @@
  */
 import { CodecInfo, PixelDataCodec } from "../core/registry";
 import { concatFragments } from "../utils/bufferUtils";
-import { ZigCodecs } from "./zig-codecs";
+import { WasmCodecs } from "./wasm-codecs";
 
 export class JpegNativeCodec implements PixelDataCodec {
     name = "jpeg-native";
@@ -14,16 +14,16 @@ export class JpegNativeCodec implements PixelDataCodec {
         multiFrame: false,
     };
 
-    private zigCodecs: ZigCodecs;
+    private wasmCodecs: WasmCodecs;
     private initPromise: Promise<void> | null = null;
 
     constructor() {
-        this.zigCodecs = new ZigCodecs();
+        this.wasmCodecs = new WasmCodecs();
     }
 
     private async initWasm(): Promise<void> {
         try {
-            await this.zigCodecs.initCodec("jpeg");
+            await this.wasmCodecs.initCodec("jpeg");
         } catch (e) {
             console.warn("Failed to init JPEG Native Zig WASM codec", e);
         }
@@ -51,7 +51,7 @@ export class JpegNativeCodec implements PixelDataCodec {
         }
         await this.initPromise;
 
-        return await this.zigCodecs.decodeJpeg(combined);
+        return await this.wasmCodecs.decodeJpeg(combined);
     }
 
     async encode(
@@ -68,7 +68,7 @@ export class JpegNativeCodec implements PixelDataCodec {
         }
         await this.initPromise;
 
-        const encoded = await this.zigCodecs.encodeJpeg(
+        const encoded = await this.wasmCodecs.encodeJpeg(
             pixelData,
             width,
             height,

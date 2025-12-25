@@ -71,7 +71,7 @@
         "build:standalone": "bun run scripts/build_standalone.ts",
         "build:package": "bun run scripts/build_package.ts",
         "build:wasm:core": "cd src/zig-core && zig build",
-        "build:wasm:codecs": "cd src/zig-codecs && zig build --release=fast -p zig-out",
+        "build:wasm:codecs": "powershell -ExecutionPolicy Bypass -File src/codecs-wasm/build.ps1",
         "build:wasm": "bun run build:wasm:core && bun run build:wasm:codecs",
         "bundle:dictionary": "bun run esbuild src/dictionary-entry.ts --bundle --format=esm --target=es2022 --platform=neutral --outfile=dist/package/dictionary.js --sourcemap --log-level=info",
         "copy:wasm": "bun run scripts/copy_wasm_package.ts",

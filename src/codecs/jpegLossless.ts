@@ -6,7 +6,7 @@
  */
 import { CodecInfo, PixelDataCodec } from "../core/registry";
 import { concatFragments } from "../utils/bufferUtils";
-import { ZigCodecs } from "./zig-codecs";
+import { WasmCodecs } from "./wasm-codecs";
 
 export class JpegLosslessDecoder implements PixelDataCodec {
     name = "jpeglossless-wasm";
@@ -15,16 +15,16 @@ export class JpegLosslessDecoder implements PixelDataCodec {
         multiFrame: false,
     };
 
-    private zigCodecs: ZigCodecs;
+    private wasmCodecs: WasmCodecs;
     private initPromise: Promise<void> | null = null;
 
     constructor() {
-        this.zigCodecs = new ZigCodecs();
+        this.wasmCodecs = new WasmCodecs();
     }
 
     private async initWasm(): Promise<void> {
         try {
-            await this.zigCodecs.initCodec("ljpeg");
+            await this.wasmCodecs.initCodec("ljpeg");
         } catch (e) {
             console.warn("Failed to init JPEG Lossless Zig WASM codec", e);
         }
@@ -53,7 +53,7 @@ export class JpegLosslessDecoder implements PixelDataCodec {
         }
         await this.initPromise;
 
-        return await this.zigCodecs.decodeLJpeg(combined);
+        return await this.wasmCodecs.decodeLjpeg(combined);
     }
 
     async encode(

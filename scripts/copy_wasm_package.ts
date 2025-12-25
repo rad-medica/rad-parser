@@ -2,7 +2,7 @@ import { copyFileSync, existsSync, mkdirSync, readdirSync } from "fs";
 import { join, resolve } from "path";
 
 const SRC_ZIG_CORE = resolve("src/zig-core/zig-out/bin");
-const SRC_ZIG_CODECS = resolve("src/zig-codecs/zig-out/bin");
+const SRC_ZIG_CODECS = resolve("src/codecs-wasm/dist");
 
 const DIST_PKG_DIR = resolve("dist/package");
 const DIST_WASM_CORE = join(DIST_PKG_DIR, "wasm-core");
@@ -25,8 +25,12 @@ function copyFiles(srcDir: string, destDir: string, pattern: RegExp) {
 
     const files = readdirSync(srcDir);
     let count = 0;
+    console.log(
+        `Copying from ${srcDir} to ${destDir}. Found ${files.length} files.`
+    );
     for (const file of files) {
         if (pattern.test(file)) {
+            console.log(`Copying ${file}...`);
             copyFileSync(join(srcDir, file), join(destDir, file));
             count++;
         }
@@ -40,8 +44,9 @@ async function main() {
     // Copy Core WASM
     copyFiles(SRC_ZIG_CORE, DIST_WASM_CORE, /\.wasm$/);
 
-    // Copy Codec WASM
+    // Copy Codec WASM & JS (Emscripten)
     copyFiles(SRC_ZIG_CODECS, DIST_WASM_CODECS, /\.wasm$/);
+    copyFiles(SRC_ZIG_CODECS, DIST_WASM_CODECS, /\.js$/);
 
     console.log("WASM copy complete.");
 }

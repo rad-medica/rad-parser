@@ -4,7 +4,7 @@
  */
 import { CodecInfo, PixelDataCodec } from "../core/registry";
 import { concatFragments } from "../utils/bufferUtils";
-import { ZigCodecs } from "./zig-codecs";
+import { WasmCodecs } from "./wasm-codecs";
 
 export class Jpeg2000Decoder implements PixelDataCodec {
     name = "jpeg2000-wasm";
@@ -13,7 +13,7 @@ export class Jpeg2000Decoder implements PixelDataCodec {
         multiFrame: false,
     };
 
-    private zigCodecs: ZigCodecs | null = null;
+    private wasmCodecs: WasmCodecs | null = null;
     private initPromise: Promise<void> | null = null;
     private injectedDecode?: (data: Uint8Array) => Promise<Uint8Array>;
     private injectedEncode?: (
@@ -39,18 +39,17 @@ export class Jpeg2000Decoder implements PixelDataCodec {
         ) => Promise<Uint8Array[]>
     ) {
         if (injectedDecode || injectedEncode) {
-            // Use injected functions for testing
             this.injectedDecode = injectedDecode;
             this.injectedEncode = injectedEncode;
         } else {
             // Use WASM implementation
-            this.zigCodecs = new ZigCodecs();
+            this.wasmCodecs = new WasmCodecs();
         }
     }
 
     private async initWasm(): Promise<void> {
         try {
-            await this.zigCodecs!.initCodec("j2k");
+            await this.wasmCodecs!.initCodec("j2k");
         } catch (e) {
             console.warn("Failed to init JPEG 2000 Zig WASM codec", e);
         }
@@ -87,7 +86,7 @@ export class Jpeg2000Decoder implements PixelDataCodec {
             return await this.injectedDecode(combined);
         }
 
-        if (!this.zigCodecs) {
+        if (!this.wasmCodecs) {
             throw new Error(
                 "Codec not initialized - either provide injected functions or ensure WASM is loaded"
             );
@@ -98,7 +97,7 @@ export class Jpeg2000Decoder implements PixelDataCodec {
         }
         await this.initPromise;
 
-        return await this.zigCodecs.decodeJpeg2000(combined);
+        return await this.wasmCodecs.decodeJpeg2000(combined);
     }
 
     async encode(
@@ -122,14 +121,17 @@ export class Jpeg2000Decoder implements PixelDataCodec {
             );
         }
 
-        if (!this.zigCodecs) {
+        if (!this.wasmCodecs) {
             throw new Error("Codec not initialized");
         }
 
-        if (!this.initPromise) {
-            this.initPromise = this.initWasm();
+        if (this.wasmCodecs) {
+            // Check if WASM supports encoding (not yet implemented in V1 wrappers for J2K encode in this file?)
+            if (!this.initPromise) {
+                this.initPromise = this.initWasm();
+            }
+            await this.initPromise;
         }
-        await this.initPromise;
 
         try {
             // Determine if lossless based on transfer syntax
@@ -138,7 +140,7 @@ export class Jpeg2000Decoder implements PixelDataCodec {
                 "1.2.840.10008.1.2.4.92", // JPEG 2000 Part 2 Lossless
             ].includes(transferSyntax);
 
-            const encoded = await this.zigCodecs.encodeJpeg2000(
+            const encoded = await this.wasmCodecs.encodeJpeg2000(
                 pixelData,
                 width,
                 height,

@@ -1,0 +1,86 @@
+[
+  {
+    "module": "wasi_snapshot_preview1",
+    "name": "fd_close",
+    "kind": "function",
+    "type": {
+      "parameters": [
+        "i32"
+      ],
+      "results": [
+        "i32"
+      ]
+    }
+  },
+  {
+    "module": "wasi_snapshot_preview1",
+    "name": "fd_fdstat_get",
+    "kind": "function",
+    "type": {
+      "parameters": [
+        "i32",
+        "i32"
+      ],
+      "results": [
+        "i32"
+      ]
+    }
+  },
+  {
+    "module": "wasi_snapshot_preview1",
+    "name": "fd_seek",
+    "kind": "function",
+    "type": {
+      "parameters": [
+        "i32",
+        "i64",
+        "i32",
+        "i32"
+      ],
+      "results": [
+        "i32"
+      ]
+    }
+  },
+  {
+    "module": "wasi_snapshot_preview1",
+    "name": "fd_write",
+    "kind": "function",
+    "type": {
+      "parameters": [
+        "i32",
+        "i32",
+        "i32",
+        "i32"
+      ],
+      "results": [
+        "i32"
+      ]
+    }
+  },
+  {
+    "module": "wasi_snapshot_preview1",
+    "name": "proc_exit",
+    "kind": "function",
+    "type": {
+      "parameters": [
+        "i32"
+      ],
+      "results": []
+    }
+  },
+  {
+    "module": "wasi_snapshot_preview1",
+    "name": "random_get",
+    "kind": "function",
+    "type": {
+      "parameters": [
+        "i32",
+        "i32"
+      ],
+      "results": [
+        "i32"
+      ]
+    }
+  }
+]

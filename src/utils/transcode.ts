@@ -78,6 +78,11 @@ export async function transcode(
     const columns = dataset.uint16("x00280011") || 0;
     const samples = dataset.uint16("x00280002") || 1;
     const bits = dataset.uint16("x00280100") || 8;
+    const bitsStored = dataset.uint16("x00280101") || bits;
+    const pixelRepresentation = dataset.uint16("x00280103") || 0;
+    console.log(
+        `[DEBUG] Transcode: Bits=${bits}, Stored=${bitsStored}, Rep=${pixelRepresentation}, Rows=${rows}, Cols=${columns}`
+    );
     const frames = dataset.intString?.("x00280008") || 1; // "number" handles string/int conversion safely
 
     // Decode all frames
@@ -167,15 +172,42 @@ export async function transcode(
         let frameToEncode = frame;
         let bitsToEncode = bits;
 
-        // Downscale 16-bit to 8-bit for JPEG Baseline if needed
-        if (isJpegBaseline && bits > 8) {
-            console.warn("Downscaling >8-bit data to 8-bit for JPEG Baseline");
-            if (frame.byteLength % 2 !== 0)
-                throw new Error("16-bit frame length must be even");
-            const src = new Uint16Array(
+        // Handle Signed Data (Shift to Unsigned)
+        // JPEG-LS and others generally expect Unsigned data.
+        if (pixelRepresentation === 1 && bits > 8) {
+            // Assume 16-bit container for >8 bit data
+            const src = new Int16Array(
                 frame.buffer,
                 frame.byteOffset,
                 frame.byteLength / 2
+            );
+            const dst = new Uint16Array(src.length);
+            // Shift by 2^(BitsStored-1)
+            const shift = 1 << (bitsStored - 1);
+            let minVal = 32767;
+            let maxVal = -32768;
+            for (let i = 0; i < src.length; i++) {
+                const val = src[i]!;
+                if (val < minVal) minVal = val;
+                if (val > maxVal) maxVal = val;
+                dst[i] = val + shift;
+            }
+            console.log(
+                `[DEBUG] Signed Shift: Min=${minVal}, Max=${maxVal}, Shift=${shift}`
+            );
+            frameToEncode = new Uint8Array(dst.buffer);
+            // We successfully converted to unsigned
+        }
+
+        // Downscale 16-bit to 8-bit for JPEG Baseline if needed
+        if (isJpegBaseline && bits > 8) {
+            console.warn("Downscaling >8-bit data to 8-bit for JPEG Baseline");
+            if (frameToEncode.byteLength % 2 !== 0)
+                throw new Error("16-bit frame length must be even");
+            const src = new Uint16Array(
+                frameToEncode.buffer,
+                frameToEncode.byteOffset,
+                frameToEncode.byteLength / 2
             );
             const dst = new Uint8Array(src.length);
             // Simple linear scaling: val >> (bits - 8)
@@ -205,6 +237,13 @@ export async function transcode(
     if (!dataset.dict["x00020010"])
         dataset.dict["x00020010"] = { vr: "UI", Value: [] };
     dataset.dict["x00020010"].Value = [options.targetTransferSyntax];
+
+    // Update Pixel Representation to 0 (Unsigned) if we shifted
+    if (pixelRepresentation === 1 && bits > 8) {
+        if (!dataset.dict["x00280103"])
+            dataset.dict["x00280103"] = { vr: "US", Value: [0] };
+        else dataset.dict["x00280103"].Value = [0];
+    }
 
     const isTargetNative = [
         "1.2.840.10008.1.2",

@@ -1,15 +1,15 @@
-[submodule "src/zig-codecs/deps/libjpeg-turbo"]
-	path = src/zig-codecs/deps/libjpeg-turbo
+[submodule "src/codecs-wasm/deps/libjpeg-turbo"]
+	path = src/codecs-wasm/deps/libjpeg-turbo
 	url = https://github.com/AjRoAs/libjpeg-turbo.git
-[submodule "src/zig-codecs/deps/openjpeg"]
-	path = src/zig-codecs/deps/openjpeg
+[submodule "src/codecs-wasm/deps/openjpeg"]
+	path = src/codecs-wasm/deps/openjpeg
 	url = https://github.com/AjRoAs/openjpeg.git
-[submodule "src/zig-codecs/deps/charls"]
-	path = src/zig-codecs/deps/charls
+[submodule "src/codecs-wasm/deps/charls"]
+	path = src/codecs-wasm/deps/charls
 	url = https://github.com/AjRoAs/charls.git
-[submodule "src/zig-codecs/deps/openjph"]
-	path = src/zig-codecs/deps/openjph
+[submodule "src/codecs-wasm/deps/openjph"]
+	path = src/codecs-wasm/deps/openjph
 	url = https://github.com/AjRoAs/OpenJPH.git
-[submodule "src/zig-codecs/deps/libjpeg-lj"]
-	path = src/zig-codecs/deps/libjpeg-lj
+[submodule "src/codecs-wasm/deps/libjpeg-lj"]
+	path = src/codecs-wasm/deps/libjpeg-lj
 	url = https://github.com/AjRoAs/libjpeg.git

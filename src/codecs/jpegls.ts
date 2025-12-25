@@ -4,7 +4,7 @@
  */
 import { CodecInfo, PixelDataCodec } from "../core/registry";
 import { concatFragments } from "../utils/bufferUtils";
-import { ZigCodecs } from "./zig-codecs";
+import { WasmCodecs } from "./wasm-codecs";
 
 export class JpegLsDecoder implements PixelDataCodec {
     name = "jpegls-wasm";
@@ -13,7 +13,7 @@ export class JpegLsDecoder implements PixelDataCodec {
         multiFrame: false,
     };
 
-    private zigCodecs: ZigCodecs | null = null;
+    private wasmCodecs: WasmCodecs | null = null;
     private initPromise: Promise<void> | null = null;
     private injectedDecode?: (data: Uint8Array) => Promise<Uint8Array>;
     private injectedEncode?: (
@@ -42,13 +42,13 @@ export class JpegLsDecoder implements PixelDataCodec {
             this.injectedEncode = injectedEncode;
         } else {
             // Use WASM implementation
-            this.zigCodecs = new ZigCodecs();
+            this.wasmCodecs = new WasmCodecs();
         }
     }
 
     private async initWasm(): Promise<void> {
         try {
-            await this.zigCodecs!.initCodec("jpegls");
+            await this.wasmCodecs!.initCodec("jpegls");
         } catch (e) {
             console.warn("Failed to init JPEG-LS Zig WASM codec", e);
         }
@@ -76,7 +76,7 @@ export class JpegLsDecoder implements PixelDataCodec {
             return await this.injectedDecode(combined);
         }
 
-        if (!this.zigCodecs) {
+        if (!this.wasmCodecs) {
             throw new Error("Codec not initialized");
         }
 
@@ -85,7 +85,7 @@ export class JpegLsDecoder implements PixelDataCodec {
         }
         await this.initPromise;
 
-        return await this.zigCodecs.decodeJpegLs(combined);
+        return await this.wasmCodecs.decodeJpegLs(combined);
     }
 
     async encode(
@@ -107,7 +107,7 @@ export class JpegLsDecoder implements PixelDataCodec {
             );
         }
 
-        if (!this.zigCodecs) {
+        if (!this.wasmCodecs) {
             throw new Error("Codec not initialized");
         }
 
@@ -116,7 +116,7 @@ export class JpegLsDecoder implements PixelDataCodec {
         }
         await this.initPromise;
 
-        const encoded = await this.zigCodecs.encodeJpegLs(
+        const encoded = await this.wasmCodecs.encodeJpegLs(
             pixelData,
             width,
             height,
