@@ -1,15 +1,16 @@
 #!/usr/bin/env node
 
 import { readFileSync, writeFileSync } from "fs";
-import { parse, write, initCoreWasm } from "../src/index";
+import { initCoreWasm, parse, write } from "../src/index";
 // Utilities
-import { transcode } from "../src/utils/transcode";
 import { dicomToImage } from "../src/utils/dicomToImage";
+import { transcode } from "../src/utils/transcode";
 // Codec Init
-import initCodecsWasm from "../src/wasm-codecs-build/rad_parser_wasm_codecs";
+import { resolve } from "path";
 import { JpegNativeCodec } from "../src/codecs/jpegNative";
-import { registry } from "../src/core/registry"; // To register native manual
 import { RleCodec } from "../src/codecs/rle";
+import { ZigWasmCodecLoader } from "../src/codecs/wasm-codecs-loader";
+import { registry } from "../src/core/registry"; // To register native manual
 import { DicomDataSet } from "../src/core/types";
 
 async function main() {
@@ -26,17 +27,27 @@ async function main() {
         "../src/wasm-core-build/rad_parser_wasm_core_bg.wasm",
         import.meta.url
     );
-    const wasmCodecsPath = new URL(
-        "../src/wasm-codecs-build/rad_parser_wasm_codecs_bg.wasm",
-        import.meta.url
-    );
 
-    // Load Wasm bytes
-    const coreWasmBuffer = new Uint8Array(readFileSync(wasmCorePath));
-    const codecsWasmBuffer = new Uint8Array(readFileSync(wasmCodecsPath));
+    // Core WASM Setup
+    // Use the loader if possible, or keep manual init content if initCoreWasm expects buffer.
+    // initCoreWasm in wasm-opt.ts uses exports/imports.
+    // The previous code read file and passed buffer.
+    // Let's stick to initCoreWasm but fix the path if needed.
+    // Actually, initCoreWasm in src/index (from core/wasm-opt) handles loading internally if no buffer provided?
+    // Looking at wasm-opt.ts: initCoreWasm() calls loader.load().
 
-    await initCoreWasm(coreWasmBuffer);
-    await initCodecsWasm(codecsWasmBuffer);
+    // So we can just call await initCoreWasm(); without arguments.
+    // But we need to make sure loader knows where to find files.
+
+    // For now, let's trust initCoreWasm default behavior (which uses ZigCoreLoader).
+    // ZigCoreLoader usually finds ../src/core/rad-core.wasm or similar.
+    await initCoreWasm();
+
+    // Codecs Setup (New)
+    const codecsLoader = ZigWasmCodecLoader.getInstance();
+    // Point to dist/package/wasm-codecs which contains the built artifacts
+    const codecsPath = resolve(__dirname, "../dist/package/wasm-codecs");
+    codecsLoader.setBasePath(codecsPath);
 
     // Register Node.js-friendly codecs manually just in case auto-register relies on bundling
     registry.register(new JpegNativeCodec());

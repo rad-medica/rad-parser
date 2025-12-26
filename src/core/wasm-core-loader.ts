@@ -116,6 +116,13 @@ export class ZigCoreLoader {
                             wasmFileName
                         );
 
+                        // Priority 2: src/core-wasm/dist (New Dev)
+                        const coreWasmPath = path.resolve(
+                            __dirname,
+                            "../../src/core-wasm/dist",
+                            wasmFileName
+                        );
+
                         // Priority 2: src/zig-core/zig-out/bin (Dev)
                         const devPath = path.resolve(
                             __dirname,
@@ -134,6 +141,8 @@ export class ZigCoreLoader {
                             wasmPath = packagePath;
                         } else if (fs.existsSync(distPath)) {
                             wasmPath = distPath;
+                        } else if (fs.existsSync(coreWasmPath)) {
+                            wasmPath = coreWasmPath;
                         } else if (fs.existsSync(devPath)) {
                             wasmPath = devPath;
                         } else if (fs.existsSync(relativeDist)) {

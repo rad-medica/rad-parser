@@ -1,17 +1,12 @@
 // Core WASM utilities - freestanding implementation
-// No libc dependency - uses bump allocator like minimal WASM
+// Ported from Zig/freestanding C to Emscripten
+#include <stdint.h>
+#include <stddef.h>
+#include <emscripten.h>
 
-#define WASM_EXPORT __attribute__((visibility("default"))) __attribute__((used))
-
-typedef unsigned char uint8_t;
-typedef unsigned short uint16_t;
-typedef short int16_t;
-typedef unsigned int uint32_t;
-typedef int int32_t;
-typedef unsigned long size_t;
+#define WASM_EXPORT EMSCRIPTEN_KEEPALIVE
 
 // Simple bump allocator
-// Increased to 16MB to handle typical DICOM frames (512x512x2 = 512KB, plus overhead)
 static uint8_t heap[16 * 1024 * 1024];
 static size_t heap_offset = 0;
 
@@ -56,6 +51,56 @@ static int32_t parse_int(const uint8_t* s, size_t len) {
         i++;
     }
     return neg ? -result : result;
+}
+
+static double parse_double_one(const uint8_t* s, size_t len) {
+    if (len == 0) return 0.0;
+    double res = 0.0;
+    int sign = 1;
+    size_t i = 0;
+
+    // Skip whitespace
+    while (i < len && is_ws(s[i])) i++;
+    if (i >= len) return 0.0;
+
+    if (s[i] == '-') { sign = -1; i++; }
+    else if (s[i] == '+') { i++; }
+
+    while (i < len && s[i] >= '0' && s[i] <= '9') {
+        res = res * 10.0 + (s[i] - '0');
+        i++;
+    }
+
+    if (i < len && s[i] == '.') {
+        i++;
+        double frac = 0.1;
+        while (i < len && s[i] >= '0' && s[i] <= '9') {
+            res += (s[i] - '0') * frac;
+            frac *= 0.1;
+            i++;
+        }
+    }
+
+    if (i < len && (s[i] == 'e' || s[i] == 'E')) {
+        i++;
+        int esign = 1;
+        if (i < len && s[i] == '-') { esign = -1; i++; }
+        else if (i < len && s[i] == '+') { i++; }
+
+        int exp = 0;
+        while (i < len && s[i] >= '0' && s[i] <= '9') {
+            exp = exp * 10 + (s[i] - '0');
+            i++;
+        }
+
+        while (exp > 0) {
+            if (esign == 1) res *= 10.0;
+            else res /= 10.0;
+            exp--;
+        }
+    }
+
+    return sign * res;
 }
 
 // ==================== IS Parsing ====================
@@ -121,7 +166,7 @@ WASM_EXPORT const uint8_t* parse_date(const uint8_t* input, size_t len) {
 static uint8_t g_time[32];
 
 WASM_EXPORT const uint8_t* parse_time(const uint8_t* input, size_t len) {
-    if (len < 6) {
+   if (len < 6) {
         size_t n = len < 31 ? len : 31;
         for (size_t j = 0; j < n; j++) g_time[j] = input[j];
         g_time[n] = 0;
@@ -154,54 +199,27 @@ WASM_EXPORT const uint8_t* parse_time(const uint8_t* input, size_t len) {
 
 // ==================== DS (Decimal String) ====================
 
-WASM_EXPORT double parse_ds(const uint8_t* s, size_t len) {
-    if (len == 0) return 0.0;
-    double res = 0.0;
-    int sign = 1;
+static double g_ds[256];
+static size_t g_ds_count = 0;
+
+WASM_EXPORT int32_t parse_ds(const uint8_t* input, size_t len) {
+    g_ds_count = 0;
     size_t i = 0;
-
-    // Skip whitespace
-    while (i < len && is_ws(s[i])) i++;
-    if (i >= len) return 0.0;
-
-    if (s[i] == '-') { sign = -1; i++; }
-    else if (s[i] == '+') { i++; }
-
-    while (i < len && s[i] >= '0' && s[i] <= '9') {
-        res = res * 10.0 + (s[i] - '0');
+    while (i < len && g_ds_count < 256) {
+        while (i < len && is_ws(input[i])) i++;
+        if (i >= len) break;
+        size_t start = i;
+        while (i < len && input[i] != '\\') i++;
+        size_t end = i;
+        while (end > start && is_ws(input[end-1])) end--;
+        if (end > start) g_ds[g_ds_count++] = parse_double_one(input + start, end - start);
         i++;
     }
+    return (int32_t)g_ds_count;
+}
 
-    if (i < len && s[i] == '.') {
-        i++;
-        double frac = 0.1;
-        while (i < len && s[i] >= '0' && s[i] <= '9') {
-            res += (s[i] - '0') * frac;
-            frac *= 0.1;
-            i++;
-        }
-    }
-
-    if (i < len && (s[i] == 'e' || s[i] == 'E')) {
-        i++;
-        int esign = 1;
-        if (i < len && s[i] == '-') { esign = -1; i++; }
-        else if (i < len && s[i] == '+') { i++; }
-
-        int exp = 0;
-        while (i < len && s[i] >= '0' && s[i] <= '9') {
-            exp = exp * 10 + (s[i] - '0');
-            i++;
-        }
-
-        while (exp > 0) {
-            if (esign == 1) res *= 10.0;
-            else res /= 10.0;
-            exp--;
-        }
-    }
-
-    return sign * res;
+WASM_EXPORT double get_ds_value(int32_t idx) {
+    return (size_t)idx < g_ds_count ? g_ds[idx] : 0.0;
 }
 
 // ==================== PN (Person Name) ====================
@@ -216,7 +234,6 @@ WASM_EXPORT void parse_pn(const uint8_t* input, size_t len) {
         g_pn_lengths[i] = 0;
     }
 
-    // Check for empty
     if (len == 0) return;
 
     size_t comp_idx = 0;
@@ -225,25 +242,18 @@ WASM_EXPORT void parse_pn(const uint8_t* input, size_t len) {
 
     while (i < len && comp_idx < 5) {
         if (input[i] == '^') {
-            // End of component
-            // Trim trailing whitespace? Standard says significant chars.
-            // usually we just return the raw range minus the delimiter.
             g_pn_offsets[comp_idx] = current_start;
             g_pn_lengths[comp_idx] = i - current_start;
-
             comp_idx++;
             current_start = i + 1;
         } else if (input[i] == '=') {
-            // End of checking this group (we only parse the first representation group for now)
             break;
         }
         i++;
     }
 
-    // Last component (if we didn't hit '=' or max components)
     if (comp_idx < 5 && current_start < len) {
         g_pn_offsets[comp_idx] = current_start;
-        // If we hit loop end or '=', i is where we stopped
         g_pn_lengths[comp_idx] = i - current_start;
     }
 }
@@ -265,83 +275,49 @@ WASM_EXPORT int validate_uid(const uint8_t* input, size_t len) {
 
     for (size_t i = 0; i < len; i++) {
         uint8_t c = input[i];
-        // Allow 0-9 and .
-        // Standard allows trailing null, usually stripped before here.
         if (c == 0 && i == len - 1) continue;
         if (!((c >= '0' && c <= '9') || c == '.')) {
             return 0;
         }
     }
-    // UID components cannot start with 0 unless it's just "0" (simplified check)
-    // Detailed validation is complex, basic char check is usually sufficient for core.
     return 1;
 }
 
 // ==================== Sequence Delimiter ====================
 
 WASM_EXPORT int32_t find_sequence_delimiter(const uint8_t* start, size_t len) {
-    // Search for FFFE E0DD (Sequence Delimitation Item)
-    // Naive search is O(N), but Wasm memory access is fast.
-    // Given 32-bit alignment in many DICOM files, we could optimize, but alignment isn't guaranteed.
-    // We scan byte by byte.
     if (len < 4) return -1;
-
-    // Optimized scan?
-    // We can cast to uint32 and check, but alignment issues need care.
-    // Unaligned access in Wasm is generally supported but might be slower on some platforms.
-    // Byte scan is safest and simplest for now.
-
     const uint8_t* end = start + len - 3;
     const uint8_t* p = start;
-
     while (p < end) {
         if (p[0] == 0xFE && p[1] == 0xFF && p[2] == 0xDD && p[3] == 0xE0) {
             return (int32_t)(p - start);
         }
         p++;
     }
-
     return -1;
 }
 
 // ==================== Modality LUT ====================
 
 WASM_EXPORT int32_t apply_modality_lut(const uint8_t* ptr, size_t len, double slope, double intercept, int bits, int representation) {
-    // Output is always float (Rescale Slope/Intercept produces Real World Values)
-    // We overwrite internal result buffer.
-
     size_t num_pixels = 0;
     int bytes_per_pixel = 0;
 
     if (bits <= 8) bytes_per_pixel = 1;
     else if (bits <= 16) bytes_per_pixel = 2;
     else if (bits <= 32) bytes_per_pixel = 4;
-    else return -1; // Unsupported
+    else return -1;
 
     num_pixels = len / bytes_per_pixel;
-
-    // Ensure output fits in heap
     size_t out_size_bytes = num_pixels * sizeof(float);
-    // Reuse heap if possible or verify size.
-    // For this simple allocator, we just blindly alloc.
-    // Warning: persistent allocs without free will OOM. Use a scratch buffer or reset?
-    // The model here assumes caller managing memory/reset via specialized calls or simple bump reset?
-    // core.c has `free_ptr` which is no-op.
-    // We'll trust `g_result_ptr` mechanism.
 
-    // Use the *end* of the input as scratch if enough space?
-    // No, standard `g_result_ptr` convention in this codebase seems to be:
-    // "set_result" points to existing buffer?
-    // Or we expect `apply_modality_lut` to allocate result?
-    // Let's allocate new result.
     float* out = (float*)alloc(out_size_bytes);
     if (!out) return -1;
 
     set_result((uint8_t*)out, out_size_bytes);
 
-    // Processing loop
     if (bytes_per_pixel == 1) {
-        // OB or unsigned 8-bit
          for (size_t i = 0; i < num_pixels; i++) {
              int32_t val = ptr[i];
              out[i] = (float)(val * slope + intercept);
@@ -359,8 +335,6 @@ WASM_EXPORT int32_t apply_modality_lut(const uint8_t* ptr, size_t len, double sl
             }
         }
     } else if (bytes_per_pixel == 4) {
-        // Uncommon for pixel data but supported (SL/UL etc) - usually not Image Pixel data though
-        // assuming standard uncompressed flow
          if (representation == 1) {
             const int32_t* p32s = (const int32_t*)ptr;
             for (size_t i = 0; i < num_pixels; i++) {
@@ -379,7 +353,6 @@ WASM_EXPORT int32_t apply_modality_lut(const uint8_t* ptr, size_t len, double sl
 
 // ==================== VOI LUT ====================
 
-// Clamp helper
 static inline uint8_t clamp_u8(double v) {
     if (v < 0.0) return 0;
     if (v > 255.0) return 255;
@@ -387,45 +360,13 @@ static inline uint8_t clamp_u8(double v) {
 }
 
 WASM_EXPORT int32_t apply_voi_lut(const float* ptr, size_t len, double wc, double ww) {
-    // Input is float array (from Modality LUT)
-    // Output is uint8_t array (for display)
-    // Window Center (wc) / Window Width (ww)
-
     if (ww < 1.0) ww = 1.0;
-
-    // Precompute
-    double range = ww;
-    double start = wc - 0.5 - (ww-1)/2.0;
-    // Formula: output = ((val - (c - 0.5)) / (w-1) + 0.5) * (ymax-ymin) + ymin
-    // Usually scaled to 0-255.
-    // Simplified LINEAR function from DICOM standard:
-    // If x <= c - 0.5 - (w-1)/2, y = ymin
-    // If x > c - 0.5 + (w-1)/2, y = ymax
-    // Else y = ((x - (c - 0.5)) / (w-1) + 0.5) * (ymax-ymin) + ymin
-
-    // Optimization factors
-    double factor = 255.0 / ww;
-    double offset = (wc - 0.5) - (ww * 0.5); // approximate base
-
-    uint8_t* out = (uint8_t*)alloc(len); // len is count of pixels here? No, len is count of floats?
-    // ptr is float*, so len usually means 'number of elements'. check call site.
-    // in JS we pass byteLength usually.
-    // Double check: if input is float array, user passes 'count' or 'bytes'?
-    // Standard in this file seems to be passing `len` as count for typed arrays?
-    // Actually, `apply_modality_lut` returned `ptr` to float array and `len` bytes?
-    // Let's verify `apply_modality_lut` output:
-    // `set_result((uint8_t*)out, out_size_bytes);`
-    // So get_result_len() returns BYTES.
-    // So here `len` is BYTES.
     size_t count = len / sizeof(float);
-
+    uint8_t* out = (uint8_t*)alloc(count);
     if (!out) return -1;
-    set_result(out, count); // Output is 1 byte per pixel
-
+    set_result(out, count);
     for (size_t i = 0; i < count; i++) {
         double val = ptr[i];
-
-        // Linear Windowing
         if (val <= (wc - 0.5 - (ww - 1.0) / 2.0)) {
             out[i] = 0;
         } else if (val > (wc - 0.5 + (ww - 1.0) / 2.0)) {
@@ -435,8 +376,5 @@ WASM_EXPORT int32_t apply_voi_lut(const float* ptr, size_t len, double wc, doubl
             out[i] = clamp_u8(res);
         }
     }
-
     return 0;
 }
-
-int main(void) { return 0; }

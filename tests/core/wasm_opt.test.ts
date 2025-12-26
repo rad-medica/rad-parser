@@ -1,21 +1,13 @@
-import { describe, it, expect, beforeAll } from "vitest";
+import { beforeAll, describe, expect, it } from "vitest";
 import {
-    initCoreWasm,
     findSequenceDelimiterWasm,
+    initCoreWasm,
     parseDSWasm,
-    parseISWasm,
 } from "../../src/core/wasm-opt";
 
 describe("Wasm Optimizations", () => {
     beforeAll(async () => {
-        const fs = await import("fs");
-        const path = await import("path");
-        const wasmPath = path.resolve(
-            __dirname,
-            "../../src/wasm-core-build/rad_parser_wasm_core_bg.wasm"
-        );
-        const wasmBuffer = fs.readFileSync(wasmPath);
-        await initCoreWasm(wasmBuffer as any);
+        await initCoreWasm();
     });
 
     it("should find sequence delimiter", () => {

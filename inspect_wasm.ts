@@ -2,7 +2,7 @@ import { readFile } from "fs/promises";
 import { resolve } from "path";
 
 async function main() {
-    const wasmPath = resolve("src/zig-codecs/zig-out/bin/rad-codecs-jpeg.wasm");
+    const wasmPath = resolve("src/core-wasm/dist/rad-core.wasm");
     console.log(`Inspecting: ${wasmPath}`);
 
     try {

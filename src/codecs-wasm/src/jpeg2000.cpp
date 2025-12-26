@@ -69,6 +69,23 @@ static OPJ_SIZE_T write_fn(void* p_buffer, OPJ_SIZE_T p_nb_bytes, void* p_user_d
 // Dummy main for Wasm linker
 int main() { return 0; }
 
+// Silent callbacks to avoid WASI fd_write dependency
+static void error_callback(const char *msg, void *client_data) {
+    (void)client_data; (void)msg;
+}
+static void warning_callback(const char *msg, void *client_data) {
+    (void)client_data; (void)msg;
+}
+static void info_callback(const char *msg, void *client_data) {
+    (void)client_data; (void)msg;
+}
+
+static void setup_quiet_callbacks(opj_codec_t* codec) {
+    opj_set_error_handler(codec, error_callback, NULL);
+    opj_set_warning_handler(codec, warning_callback, NULL);
+    opj_set_info_handler(codec, info_callback, NULL);
+}
+
 extern "C" {
 
 WASM_EXPORT int decode_jpeg2000(const uint8_t* src, size_t src_len) {
@@ -92,6 +109,7 @@ WASM_EXPORT int decode_jpeg2000(const uint8_t* src, size_t src_len) {
     if (!codec) {
         return -1;
     }
+    setup_quiet_callbacks(codec);
 
     // Signature check for JP2
     // Access src[0] through src[3] only if we have enough data
@@ -101,6 +119,7 @@ WASM_EXPORT int decode_jpeg2000(const uint8_t* src, size_t src_len) {
          if (!codec) {
              return -1;
          }
+         setup_quiet_callbacks(codec);
     }
 
     opj_dparameters_t parameters;
@@ -220,6 +239,7 @@ WASM_EXPORT int encode_jpeg2000(const uint8_t* pixel_data, size_t len, uint32_t 
     }
 
     opj_codec_t* codec = opj_create_compress(OPJ_CODEC_J2K);
+    setup_quiet_callbacks(codec);
     opj_setup_encoder(codec, &parameters, image);
 
     MemWriteStream stream_data = { NULL, 0, 0, 0 };
