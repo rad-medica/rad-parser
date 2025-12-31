@@ -275,8 +275,13 @@ function runBenchmark() {
 | **dcmjs** | ${memoryStats['dcmjs']} | ${accessTimeStats['dcmjs'].toFixed(2)} |
     `;
     
-    // Quick append to file (hacky read/write again or just console)
-    // We'll write full new report in next step or user notify
+    const REPORT_FILE_PATH = path.resolve(process.cwd(), 'EXTENDED_BENCHMARK_RESULTS.md');
+    try {
+        fs.appendFileSync(REPORT_FILE_PATH, report2);
+        console.log(`\nReport appended to ${REPORT_FILE_PATH}`);
+    } catch (err) {
+        console.error('Error saving report:', err);
+    }
     console.log(report2);
 }
 
