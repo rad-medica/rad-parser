@@ -1,0 +1,11 @@
+[workspace]
+members = [
+    "src/core-wasm",
+    "src/codecs-wasm/rle",
+    "src/codecs-wasm/jpeg",
+    "src/codecs-wasm/j2k",
+    "src/codecs-wasm/jpegls",
+    "src/codecs-wasm/ljpeg",
+    "src/codecs-wasm/htj2k",
+]
+resolver = "2"
