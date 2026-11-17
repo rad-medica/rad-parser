@@ -13,7 +13,8 @@ export interface PixelDataResult {
     pixelData: Uint8Array;
     isEncapsulated: boolean;
     fragments?: Array<{ offset: number; length: number }>;
-    fragmentArrays?: Uint8Array[]; // Array of fragment Uint8Arrays for encapsulated data
+    fragmentArrays?: Uint8Array[]; // Fragment views for encapsulated data (Basic Offset Table excluded)
+    basicOffsetTable?: number[];
     transferSyntax?: string;
 }
 
@@ -24,7 +25,8 @@ export interface PixelDataResult {
 export function extractPixelDataFromView(
     view: SafeDataView,
     length: number,
-    transferSyntax?: string
+    transferSyntax?: string,
+    vr?: string
 ): PixelDataResult | null {
     if (length === 0) {
         return null;
@@ -36,7 +38,7 @@ export function extractPixelDataFromView(
     if (isEncapsulated) {
         return extractEncapsulatedPixelData(view, transferSyntax);
     } else {
-        return extractNativePixelData(view, length, transferSyntax);
+        return extractNativePixelData(view, length, transferSyntax, vr);
     }
 }
 
@@ -46,7 +48,8 @@ export function extractPixelDataFromView(
 function extractNativePixelData(
     view: SafeDataView,
     length: number,
-    transferSyntax?: string
+    transferSyntax?: string,
+    vr?: string
 ): PixelDataResult | null {
     if (view.getRemainingBytes() < length) {
         return null;
@@ -60,6 +63,7 @@ function extractNativePixelData(
         // The data is stored as Big Endian in the file, but we need Little Endian for JavaScript
         if (
             transferSyntax === "1.2.840.10008.1.2.2" && // Explicit VR Big Endian
+            vr !== "OB" && // OB is a byte stream: never swapped
             pixelData.length % 2 === 0 &&
             pixelData.length > 0
         ) {
@@ -103,7 +107,8 @@ function extractEncapsulatedPixelData(
     const fragmentArrays: Uint8Array[] = [];
     const maxFragments = 10000; // Safety limit
     let fragmentCount = 0;
-    const allFragments: number[] = [];
+    let totalLength = 0;
+    let basicOffsetTable: number[] | undefined;
 
     try {
         while (view.getRemainingBytes() >= 8 && fragmentCount < maxFragments) {
@@ -120,23 +125,25 @@ function extractEncapsulatedPixelData(
                     break;
                 }
 
-                if (fragLength === 0) {
-                    // Empty fragment - skip
+                if (view.getRemainingBytes() < fragLength) break;
+
+                if (basicOffsetTable === undefined) {
+                    // First item is the Basic Offset Table (PS3.5 A.4), may be empty
+                    basicOffsetTable = [];
+                    for (let i = 0; i + 4 <= fragLength; i += 4) {
+                        basicOffsetTable.push(view.readUint32());
+                    }
+                    view.setPosition(view.getPosition() + (fragLength % 4));
                     continue;
                 }
 
-                // Store fragment info (relative to start)
-                fragments.push({
-                    offset: allFragments.length,
-                    length: fragLength,
-                });
+                // Store fragment info (offset within the concatenated fragments)
+                fragments.push({ offset: totalLength, length: fragLength });
+                totalLength += fragLength;
 
-                // Read fragment data
+                // Read fragment data (zero-copy view)
                 if (view.getRemainingBytes() >= fragLength) {
-                    const fragData = view.readBytes(fragLength);
-                    const fragArray = new Uint8Array(fragData);
-                    fragmentArrays.push(fragArray);
-                    // allFragments.push(...Array.from(fragData)); // Caused stack overflow
+                    fragmentArrays.push(view.readBytes(fragLength));
                     fragmentCount++;
                 } else {
                     // Not enough data - stop
@@ -154,7 +161,7 @@ function extractEncapsulatedPixelData(
         }
 
         // Check results
-        if (fragments.length === 0 && fragmentArrays.length === 0) {
+        if (basicOffsetTable === undefined) {
             return null;
         }
 
@@ -166,6 +173,7 @@ function extractEncapsulatedPixelData(
             isEncapsulated: true,
             fragments: fragments,
             fragmentArrays: fragmentArrays,
+            basicOffsetTable,
             transferSyntax: transferSyntax,
         };
     } catch {

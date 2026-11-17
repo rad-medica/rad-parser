@@ -2,13 +2,15 @@ import { describe, test, expect } from "vitest";
 import { readFileSync, readdirSync, statSync } from "fs";
 import { join } from "path";
 import { parse } from "../../src/index";
+import { FIXTURES_DIR } from "../helpers/fixtures";
 
 /**
  * Comprehensive compatibility test for all parser modes
  * Tests: shallow, full, light, lazy parsers across various DICOM formats
  */
 
-const TEST_DATA_PATHS = ["test_data/WG04", "test_data/pydicom"];
+// Committed synthetic fixtures (+ RAD_PARSER_TEST_DATA when set)
+const TEST_DATA_PATHS = [FIXTURES_DIR, process.env.RAD_PARSER_TEST_DATA ?? ""];
 
 function findDicomFiles(dir: string, maxFiles = 10): string[] {
     const files: string[] = [];
@@ -41,7 +43,7 @@ describe("Parser Mode Compatibility", () => {
 
     // Find test files
     for (const path of TEST_DATA_PATHS) {
-        testFiles.push(...findDicomFiles(path, 5));
+        testFiles.push(...findDicomFiles(path, 20));
     }
 
     if (testFiles.length === 0) {
@@ -146,13 +148,25 @@ describe("Parser Mode Compatibility", () => {
 
         const fileData = new Uint8Array(readFileSync(testFiles[0]));
 
-        const shallowStart = performance.now();
-        parse(fileData, { type: "shallow" });
-        const shallowTime = performance.now() - shallowStart;
-
-        const fullStart = performance.now();
-        parse(fileData, { type: "full" });
-        const fullTime = performance.now() - fullStart;
+        // Warm up both paths, then compare the fastest of several batches
+        // (interleaved) so JIT tiering and machine noise do not decide it
+        const shallow = () => parse(fileData, { type: "shallow" });
+        const full = () => parse(fileData, { type: "full" });
+        for (let i = 0; i < 1000; i++) {
+            shallow();
+            full();
+        }
+        const batch = (fn: () => void): number => {
+            const t0 = performance.now();
+            for (let j = 0; j < 50; j++) fn();
+            return performance.now() - t0;
+        };
+        let shallowTime = Infinity;
+        let fullTime = Infinity;
+        for (let i = 0; i < 30; i++) {
+            shallowTime = Math.min(shallowTime, batch(shallow));
+            fullTime = Math.min(fullTime, batch(full));
+        }
 
         expect(shallowTime).toBeLessThan(fullTime);
     });

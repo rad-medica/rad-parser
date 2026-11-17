@@ -5,6 +5,7 @@
  * using test data from test_data folder to verify correctness and compatibility.
  */
 
+import { dicomTestFiles } from "../helpers/fixtures";
 import { describe, it, expect, beforeAll } from "vitest";
 import * as fs from "fs";
 import * as path from "path";
@@ -38,36 +39,6 @@ interface ComparisonResult {
     dcmjs: ParseResult;
     dicomParser: ParseResult;
     efferentDicom: ParseResult;
-}
-
-/**
- * Get all DICOM files from test_data directory recursively
- */
-function getAllDicomFiles(dir: string, fileList: string[] = []): string[] {
-    if (!fs.existsSync(dir)) {
-        return fileList;
-    }
-
-    const files = fs.readdirSync(dir);
-    files.forEach(file => {
-        const filePath = path.join(dir, file);
-        try {
-            const stat = fs.statSync(filePath);
-            if (stat.isDirectory()) {
-                getAllDicomFiles(filePath, fileList);
-            } else if (
-                stat.isFile() &&
-                stat.size >= 132 &&
-                !file.includes("Zone.Identifier")
-            ) {
-                // Minimum DICOM file size is 132 bytes (preamble + header)
-                fileList.push(filePath);
-            }
-        } catch {
-            // Skip files that can't be accessed
-        }
-    });
-    return fileList;
 }
 
 /**
@@ -218,21 +189,8 @@ function parseWithEfferentDicom(data: Uint8Array): ParseResult {
  * Load test files from test_data directory
  */
 function loadTestFiles(): string[] {
-    const projectRoot = path.resolve(__dirname, "..");
-    const testDataPaths = [
-        path.join(projectRoot, "test_data", "TEST", "SOLO"),
-        path.join(projectRoot, "test_data", "TEST", "SUBF"),
-        path.join(projectRoot, "test_data", "REAL", "DICOM"),
-    ];
-
-    const allFiles: string[] = [];
-    for (const testPath of testDataPaths) {
-        const files = getAllDicomFiles(testPath);
-        allFiles.push(...files);
-    }
-
-    // Limit to a reasonable number for testing (can be increased)
-    return allFiles.slice(0, 100);
+    // Committed synthetic fixtures (+ RAD_PARSER_TEST_DATA when set)
+    return dicomTestFiles(100);
 }
 
 describe("Parser Comparison Tests", () => {

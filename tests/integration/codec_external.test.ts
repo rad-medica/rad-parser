@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
-import { registry, Jpeg2000Decoder } from "../src/index";
+import { registry, Jpeg2000Decoder } from "../../src/index";
 
 /**
  * These tests validate external codec integration paths:

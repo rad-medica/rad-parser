@@ -1,12 +1,13 @@
 /**
- * DICOM Anonymizer (Basic Attribute Confidentiality Profile)
+ * DICOM Anonymizer (Basic Application Level Confidentiality Profile)
  *
- * Provides functionality to anonymize DICOM datasets by replacing or removing sensitive tags
- * according to DICOM PS3.15 Annex E (Basic Attribute Confidentiality Profile).
+ * De-identifies a data set according to DICOM PS3.15 Annex E, Table E.1-1,
+ * in the top level Data Set and in every Sequence Item (PS3.15 E.1.1).
+ * See anonymizationRules.ts for how compound actions are resolved.
  */
 
-import { AnonymizationAction, BASIC_PROFILE_RULES } from "./anonymizationRules";
-import { DicomDataSet, DicomElement } from "./types";
+import { type AnonymizationAction, getProfileRule } from "./anonymizationRules";
+import type { DicomDataSet, DicomElement, SequenceItem } from "./types";
 
 export interface AnonymizationOptions {
     /**
@@ -17,8 +18,8 @@ export interface AnonymizationOptions {
     replacements?: Record<string, string | null>;
 
     /**
-     * Prefix for dummy values (PatientID, PatientName, etc.)
-     * Default: 'ANON'
+     * Dummy value for D actions on text VRs, and for Patient's Name / Patient
+     * ID (Z allows a dummy value). Default: 'ANON'
      */
     patientIdPrefix?: string;
 
@@ -28,192 +29,269 @@ export interface AnonymizationOptions {
     keepPrivateTags?: boolean;
 
     /**
-     * UID Map to maintain consistency across a dataset series.
-     * If provided, new UIDs will be stored/retrieved here.
+     * UID Map to maintain consistency across a set of instances.
+     * New UIDs are stored/retrieved here (original -> replacement).
      */
     uidMap?: Record<string, string>;
+
+    /**
+     * Per-tag action overriding the default resolution of Table E.1-1
+     * (e.g. { x00080080: "Z" } to keep an empty Institution Name).
+     */
+    actionOverrides?: Record<string, AnonymizationAction>;
 }
 
 const DEFAULT_PREFIX = "ANON";
-
-/**
- * Anonymize a DICOM dataset.
- * Returns a NEW dataset (shallow copy of structure, deep copy of modified elements).
- * Does not mutate the original dataset.
- *
- * @param dataset - The original dataset
- * @param options - Anonymization options
- * @returns Anonymized DicomDataSet
- */
-// Optimized group number extraction - inline parsing (faster than caching for typical datasets)
-function getGroupNumberFast(tag: string): number | null {
-    if (!tag.startsWith("x") || tag.length !== 9) return null;
-
-    // Fast hex parsing using bit operations
-    let group = 0;
-    for (let i = 1; i < 5; i++) {
-        const c = tag.charCodeAt(i);
-        group = (group << 4) | (c > 57 ? c - 87 : c - 48);
-    }
-
-    return group;
-}
-
-export function anonymize(
-    dataset: DicomDataSet,
-    options: AnonymizationOptions = {}
-): DicomDataSet {
-    const dict = dataset.dict;
-    const prefix = options.patientIdPrefix || DEFAULT_PREFIX;
-    const uidMap = options.uidMap || {};
-    const keepPrivateTags = !!options.keepPrivateTags;
-    const customReplacements = options.replacements;
-
-    // Optimized: Create new dict and process in single pass where possible
-    const newDict: Record<string, DicomElement> = {};
-
-    const context: AnonymizationContext = {
-        prefix,
-        uidMap,
-        keepPrivateTags,
-        customReplacements,
-    };
-
-    // Iterate original dict
-    for (const tag in dict) {
-        const element = dict[tag];
-        if (!element) continue;
-
-        // Clone element to avoid mutation of original
-        const newElement = { ...element };
-        if (Array.isArray(element.Value)) {
-            // Cast to any to avoid complex union type issues during spread
-            newElement.Value = [...(element.Value as any)];
-        }
-
-        // Apply anonymization
-        const keep = anonymizeElement(tag, newElement, context);
-
-        if (keep) {
-            newDict[tag] = newElement;
-        }
-    }
-
-    return {
-        dict: newDict,
-        elements: newDict,
-        string: t => {
-            const e = newDict[t];
-            return e ? String(e.Value) : undefined;
-        },
-        uint16: dataset.uint16,
-        int16: dataset.int16,
-        floatString: dataset.floatString,
-        intString: dataset.intString,
-    };
-}
 
 export interface AnonymizationContext {
     prefix: string;
     uidMap: Record<string, string>;
     keepPrivateTags?: boolean;
     customReplacements?: Record<string, string | null>;
+    actionOverrides?: Record<string, AnonymizationAction>;
+}
+
+function groupOf(tag: string): number | null {
+    const clean = tag.replace(/^x/i, "");
+    if (!/^[0-9a-fA-F]{8}$/.test(clean)) return null;
+    return parseInt(clean.slice(0, 4), 16);
 }
 
 /**
- * Anonymize a single element. Mutates the dict/element in place or returns false if should be removed.
+ * Generate a UID under the 2.25 root from a random (version 4) UUID, as
+ * described in PS3.5 Annex B.2.
+ */
+export function generateUID(): string {
+    const bytes = new Uint8Array(16);
+    const c = (
+        globalThis as {
+            crypto?: { getRandomValues?: (a: Uint8Array) => Uint8Array };
+        }
+    ).crypto;
+    if (c?.getRandomValues) {
+        c.getRandomValues(bytes);
+    } else {
+        for (let i = 0; i < 16; i++) bytes[i] = Math.floor(Math.random() * 256);
+    }
+    bytes[6] = (bytes[6]! & 0x0f) | 0x40; // version 4
+    bytes[8] = (bytes[8]! & 0x3f) | 0x80; // RFC 4122 variant
+    let n = 0n;
+    for (const b of bytes) n = (n << 8n) | BigInt(b);
+    return `2.25.${n.toString()}`;
+}
+
+function replaceUID(original: string, uidMap: Record<string, string>): string {
+    const clean = original.replace(/\0/g, "").trim();
+    if (!clean) return clean;
+    let uid = uidMap[clean];
+    if (!uid) {
+        uid = generateUID();
+        uidMap[clean] = uid;
+    }
+    return uid;
+}
+
+/** Dummy value consistent with the VR (PS3.15 Table E.1-1a, action D). */
+function dummyValue(vr: string, prefix: string): DicomElement["Value"] {
+    switch (vr) {
+        case "DA":
+            return "19000101";
+        case "TM":
+            return "000000";
+        case "DT":
+            return "19000101000000";
+        case "AS":
+            return "000Y";
+        case "DS":
+        case "IS":
+        case "US":
+        case "SS":
+        case "UL":
+        case "SL":
+        case "FL":
+        case "FD":
+            return 0;
+        case "UI":
+            return undefined; // handled as U
+        case "OB":
+        case "OW":
+        case "UN":
+            return new Uint8Array(2);
+        default:
+            return prefix;
+    }
+}
+
+function setValue(element: DicomElement, value: DicomElement["Value"]): void {
+    element.Value = value;
+    element.value = value;
+    element.length =
+        typeof value === "string"
+            ? value.length
+            : value === undefined
+              ? 0
+              : element.length;
+    element.Length = element.length;
+}
+
+/**
+ * Anonymize a single element. Mutates `element`; returns false when the
+ * element must be removed. Sequence Items are de-identified recursively.
  */
 export function anonymizeElement(
     tag: string,
     element: DicomElement,
     context: AnonymizationContext
 ): boolean {
-    const { prefix, uidMap, customReplacements, keepPrivateTags } = context;
+    const key = tag.toLowerCase();
+    const group = groupOf(key);
 
-    // 1. Private Tag Check
-    if (!keepPrivateTags) {
-        const group = getGroupNumberFast(tag);
-        if (group !== null && group % 2 !== 0) {
-            return false; // Remove
-        }
+    // Private Data Elements are removed unless explicitly kept
+    if (!context.keepPrivateTags && group !== null && group % 2 !== 0) {
+        return false;
     }
 
-    // 2. Custom Replacement
-    if (customReplacements) {
-        const replacement = customReplacements[tag];
-        if (replacement !== undefined) {
-            if (replacement === null) return false; // Remove
+    const replacement =
+        context.customReplacements?.[tag] ?? context.customReplacements?.[key];
+    if (replacement !== undefined) {
+        if (replacement === null) return false;
+        setValue(element, replacement);
+        return true;
+    }
 
-            element.Value = replacement === "" ? "" : replacement;
-            element.value = replacement === "" ? "" : replacement;
-            element.length = replacement.length;
+    const rule = getProfileRule(key);
+    const action =
+        context.actionOverrides?.[key] ??
+        context.actionOverrides?.[tag] ??
+        rule?.action;
+    const vr = (element.vr ?? element.VR ?? "").toUpperCase();
+    const isSequence = vr === "SQ" || Array.isArray(element.items);
+
+    switch (action) {
+        case "X":
+            return false;
+        case "Z":
+            if (isSequence) {
+                element.items = element.Items = [];
+                setValue(element, []);
+            } else if (key === "x00100010" || key === "x00100020") {
+                // Z allows a dummy value; keep the configured placeholder
+                setValue(element, context.prefix);
+            } else {
+                setValue(element, "");
+            }
             return true;
+        case "D":
+        case "C":
+            if (isSequence) break; // keep the sequence, clean its items below
+            if (vr === "UI") {
+                setValue(element, mapUIDs(element.Value, context.uidMap));
+            } else {
+                setValue(element, dummyValue(vr, context.prefix));
+            }
+            return true;
+        case "U":
+            if (isSequence) break;
+            setValue(element, mapUIDs(element.Value, context.uidMap));
+            return true;
+        default:
+            break;
+    }
+
+    if (isSequence) {
+        const items = (element.items ?? element.Value) as
+            | SequenceItem[]
+            | undefined;
+        if (Array.isArray(items)) {
+            const cleaned = items.map(item => ({
+                elements: anonymizeDict(item.elements ?? {}, context),
+                normalizedElements: {},
+            }));
+            for (const item of cleaned) item.normalizedElements = item.elements;
+            element.items = element.Items = cleaned;
+            element.Value = element.value = cleaned;
         }
     }
-
-    // 3. Basic Profile Rules
-    const rule = BASIC_PROFILE_RULES[tag];
-    if (rule) {
-        applyRule(element, rule.action, prefix, uidMap);
-    }
-
     return true;
 }
 
-function applyRule(
-    element: DicomElement,
-    action: AnonymizationAction,
-    prefix: string,
+function mapUIDs(
+    value: unknown,
     uidMap: Record<string, string>
-) {
-    switch (action) {
-        case "X": // Remove
-            // Caller handles removal based on return of anonymizeElement?
-            // Actually, applyRule was void. But for X we need to signal removal.
-            // In legacy flow, X deleted from dict.
-            // We should change this function to return boolean?
-            // Or better, let anonymizeElement handle logic.
-            // But BASIC_PROFILE_RULES has 'X'.
-            // Let's handle X here by returning false, but we can't delete from dict easily if we just have element.
-            // Actually, the caller (anonymize) iterates dict keys.
-            // Ideally we shouldn't rely on 'dict' being passed to applyRule if we want streaming.
-            // Streaming passes 'element'.
-            // So, if action is X, we return false.
-            break;
+): DicomElement["Value"] {
+    if (Array.isArray(value))
+        return value.map(v => replaceUID(String(v), uidMap));
+    const text = String(value ?? "");
+    return text
+        .split("\\")
+        .map(v => replaceUID(v, uidMap))
+        .join("\\");
+}
 
-        case "Z": // Zero Length (Empty) - optimized: reuse object
-            element.Value = "";
-            element.value = "";
-            element.length = 0;
-            break;
-
-        case "D": // Dummy Value - optimized: reuse object
-            element.Value = prefix;
-            element.value = prefix;
-            element.length = prefix.length;
-            break;
-
-        case "U": // Replace UID - optimized
-            const originalUID = String(element.Value);
-            // Normalize UID (strip null bytes) - optimized regex
-            const cleanUID = originalUID.replace(/\0/g, "");
-
-            let newUID = uidMap[cleanUID];
-            if (!newUID) {
-                // Generate new UID - optimized string concatenation
-                newUID =
-                    "2.25." +
-                    Math.floor(Math.random() * 1e14) +
-                    "." +
-                    Date.now();
-                uidMap[cleanUID] = newUID;
-            }
-            element.Value = newUID;
-            element.value = newUID;
-            element.length = newUID.length;
-            break;
-
-        case "K": // Keep
-            break;
+function anonymizeDict(
+    dict: Record<string, DicomElement>,
+    context: AnonymizationContext
+): Record<string, DicomElement> {
+    const out: Record<string, DicomElement> = {};
+    for (const tag in dict) {
+        const element = dict[tag];
+        if (!element) continue;
+        const copy: DicomElement = { ...element };
+        if (Array.isArray(element.Value) && !Array.isArray(element.items)) {
+            copy.Value = copy.value = [
+                ...(element.Value as unknown[]),
+            ] as DicomElement["Value"];
+        }
+        if (anonymizeElement(tag, copy, context)) out[tag] = copy;
     }
+    return out;
+}
+
+/**
+ * Anonymize a DICOM dataset.
+ * Returns a NEW dataset; the original is not mutated.
+ *
+ * @param dataset - The original dataset
+ * @param options - Anonymization options
+ * @returns Anonymized DicomDataSet
+ */
+export function anonymize(
+    dataset: DicomDataSet,
+    options: AnonymizationOptions = {}
+): DicomDataSet {
+    const context: AnonymizationContext = {
+        prefix: options.patientIdPrefix || DEFAULT_PREFIX,
+        uidMap: options.uidMap || {},
+        keepPrivateTags: !!options.keepPrivateTags,
+        customReplacements: options.replacements,
+        actionOverrides: options.actionOverrides,
+    };
+    const newDict = anonymizeDict(dataset.dict, context);
+    const first = (t: string): unknown => {
+        const v = newDict[t]?.Value;
+        return Array.isArray(v) ? v[0] : v;
+    };
+    const num = (t: string): number | undefined => {
+        const v = first(t);
+        const n =
+            typeof v === "number" ? v : typeof v === "string" ? Number(v) : NaN;
+        return Number.isFinite(n) ? n : undefined;
+    };
+    return {
+        dict: newDict,
+        elements: newDict,
+        string: t => {
+            const v = first(t);
+            return v === undefined ? undefined : String(v);
+        },
+        uint16: t => num(t),
+        int16: t => num(t),
+        floatString: t => num(t),
+        intString: t => {
+            const n = num(t);
+            return n === undefined ? undefined : Math.trunc(n);
+        },
+        transferSyntax: dataset.transferSyntax,
+        characterSet: dataset.characterSet,
+    };
 }

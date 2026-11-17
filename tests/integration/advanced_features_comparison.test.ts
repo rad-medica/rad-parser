@@ -5,6 +5,7 @@
  * comparing rad-parser with other DICOM parsers.
  */
 
+import { dicomTestFiles } from "../helpers/fixtures";
 import { describe, it, expect, beforeAll } from "vitest";
 import * as fs from "fs";
 import * as path from "path";
@@ -35,51 +36,11 @@ interface FeatureTestResult {
 }
 
 /**
- * Get all DICOM files from test_data directory recursively
- */
-function getAllDicomFiles(dir: string, fileList: string[] = []): string[] {
-    if (!fs.existsSync(dir)) {
-        return fileList;
-    }
-
-    const files = fs.readdirSync(dir);
-    files.forEach(file => {
-        const filePath = path.join(dir, file);
-        try {
-            const stat = fs.statSync(filePath);
-            if (stat.isDirectory()) {
-                getAllDicomFiles(filePath, fileList);
-            } else if (
-                stat.isFile() &&
-                stat.size >= 132 &&
-                !file.includes("Zone.Identifier")
-            ) {
-                fileList.push(filePath);
-            }
-        } catch {
-            // Skip files that can't be accessed
-        }
-    });
-    return fileList;
-}
-
-/**
  * Load test files from test_data directory
  */
 function loadTestFiles(): string[] {
-    const projectRoot = path.resolve(__dirname, "..");
-    const testDataPaths = [
-        path.join(projectRoot, "test_data", "TEST", "SOLO"),
-        path.join(projectRoot, "test_data", "TEST", "SUBF"),
-    ];
-
-    const allFiles: string[] = [];
-    for (const testPath of testDataPaths) {
-        const files = getAllDicomFiles(testPath);
-        allFiles.push(...files);
-    }
-
-    return allFiles.slice(0, 50); // Limit for testing
+    // Committed synthetic fixtures (+ RAD_PARSER_TEST_DATA when set)
+    return dicomTestFiles(50);
 }
 
 /**

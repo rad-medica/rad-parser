@@ -1,9 +1,10 @@
 import { describe, it, expect } from "vitest";
 import * as fs from "fs";
-import * as path from "path";
 import { parse, extractPixelData } from "../../src/index";
+import { fixture } from "../helpers/fixtures";
 
-const testFile = path.resolve(__dirname, "../test_data/patient/DICOM/18CBDD76");
+// Synthetic Explicit VR Little Endian MR (no patient data)
+const testFile = fixture("MR16_ELE.dcm");
 
 describe("New Parser Features", () => {
     let dicomBytes: Uint8Array;

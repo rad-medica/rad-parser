@@ -96,10 +96,14 @@ describe("Parser Edge Cases", () => {
 
             const result = parseWithMetadata(buffer);
             expect(result.dataset.dict["x00100010"]).toBeDefined();
-            expect(result.transferSyntax).toEqual("1.2.840.10008.1.2.1");
+            // A raw data set without a VR field is Implicit VR Little Endian
+            expect(result.transferSyntax).toEqual("1.2.840.10008.1.2");
 
+            // Values are returned as stored (PN text); use parsePersonName
+            // for components
             const val = result.dataset.dict["x00100010"].Value;
-            expect(val).toMatchObject({ Alphanumeric: "Test^Patient" });
+            expect(val).toBe("Test^Patient");
+            expect(result.dataset.string("x00100010")).toBe("Test^Patient");
         });
     });
 

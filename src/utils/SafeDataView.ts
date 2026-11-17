@@ -24,6 +24,11 @@ export class SafeDataView {
         this.littleEndian = true; // Default to little endian
     }
 
+    /** Underlying DataView (positions are relative to its byteOffset). */
+    getDataView(): DataView {
+        return this.view;
+    }
+
     setEndianness(littleEndian: boolean): void {
         this.littleEndian = littleEndian;
     }
@@ -309,7 +314,7 @@ function getDecoder(characterSet: string): TextDecoder {
     return decoder;
 }
 
-function decodeString(bytes: Uint8Array, characterSet: string): string {
+export function decodeString(bytes: Uint8Array, characterSet: string): string {
     try {
         return getDecoder(characterSet).decode(bytes);
     } catch {

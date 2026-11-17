@@ -11,7 +11,8 @@ export function normalizeTag(tag: string): string {
         .replace(/,/g, "")
         .replace(/[()]/g, "");
     if (cleanTag.length === 8) {
-        return `x${cleanTag}`;
+        // Parsed keys use lower-case hex digits
+        return `x${cleanTag.toLowerCase()}`;
     }
     return tag.startsWith("x") ? tag : `x${cleanTag}`;
 }
