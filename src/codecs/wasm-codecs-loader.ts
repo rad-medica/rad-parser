@@ -1,16 +1,24 @@
 /**
- * WASM Codec Loader - Loads individual codec WebAssembly modules on demand.
+ * WASM Codec Loader - Loads codec WebAssembly modules on demand.
  *
- * Supported codecs:
- * - jpeg: JPEG/JPEG Baseline (Pure Rust)
- * - j2k: JPEG 2000 (Stubbed - requires C toolchain)
- * - jpegls: JPEG-LS (Stubbed - requires C++ toolchain)
- * - rle: RLE Lossless (Pure Rust)
- * - htj2k: High-Throughput JPEG 2000 (Stubbed - requires C++ toolchain)
- * - ljpeg: JPEG Lossless (Pure Rust ljpeg crate)
+ * Codec types map onto two Rust modules:
+ * - rle: RLE Lossless (rad-codecs-rle)
+ * - jpeg, ljpeg, jpegls, j2k, htj2k: JPEG 1 (baseline, extended, lossless), JPEG-LS,
+ *   JPEG 2000 and HTJ2K, all served by one jpegexp-rs build (rad-codecs-jpegexp)
  */
 
 export type CodecType = "jpeg" | "j2k" | "jpegls" | "rle" | "htj2k" | "ljpeg";
+
+type WasmModuleName = "rle" | "jpegexp";
+
+const MODULE_FOR_CODEC: Record<CodecType, WasmModuleName> = {
+    rle: "rle",
+    jpeg: "jpegexp",
+    ljpeg: "jpegexp",
+    jpegls: "jpegexp",
+    j2k: "jpegexp",
+    htj2k: "jpegexp",
+};
 
 interface CodecModule {
     instance: WebAssembly.Instance | null;
@@ -20,8 +28,8 @@ interface CodecModule {
 
 export class ZigWasmCodecLoader {
     private static instance: ZigWasmCodecLoader;
-    private loadedModules: Map<CodecType, CodecModule> = new Map();
-    private loadingPromises: Map<CodecType, Promise<CodecModule>> = new Map();
+    private loadedModules: Map<WasmModuleName, CodecModule> = new Map();
+    private loadingPromises: Map<WasmModuleName, Promise<CodecModule>> = new Map();
     private basePath: string = "";
 
     private constructor() {}
@@ -38,15 +46,18 @@ export class ZigWasmCodecLoader {
     }
 
     public async loadCodec(codec: CodecType): Promise<CodecModule> {
-        if (this.loadedModules.has(codec)) {
-            return this.loadedModules.get(codec)!;
+        const moduleName = MODULE_FOR_CODEC[codec];
+        const loaded = this.loadedModules.get(moduleName);
+        if (loaded) {
+            return loaded;
         }
-        if (this.loadingPromises.has(codec)) {
-            return this.loadingPromises.get(codec)!;
+        const pending = this.loadingPromises.get(moduleName);
+        if (pending) {
+            return pending;
         }
 
-        const jsFileName = `rad_codecs_${codec}.js`; // Underscore naming from Rust
-        const wasmFileName = `rad_codecs_${codec}_bg.wasm`;
+        const jsFileName = `rad_codecs_${moduleName}.js`; // Underscore naming from Rust
+        const wasmFileName = `rad_codecs_${moduleName}_bg.wasm`;
 
         const loadPromise = (async () => {
             try {
@@ -64,11 +75,11 @@ export class ZigWasmCodecLoader {
                         const __filename = url.fileURLToPath(import.meta.url);
                         const __dirname = path.dirname(__filename);
                         // Try src (dev) or dist
-                        const devPath = path.resolve(__dirname, `../../dist/package/rad-codecs-${codec}`);
+                        const devPath = path.resolve(__dirname, `../../dist/package/rad-codecs-${moduleName}`);
                         if (fs.existsSync(path.join(devPath, jsFileName))) {
                             dir = devPath;
                         } else {
-                            dir = path.resolve(__dirname, `wasm-codecs/${codec}`); // Hypothetical dist loc
+                            dir = path.resolve(__dirname, `../../rad-codecs-${moduleName}`); // from dist/package/{esm,cjs}/codecs
                         }
                     }
 
@@ -88,31 +99,31 @@ export class ZigWasmCodecLoader {
                 }
 
                 const glue = await import(jsPath);
-                const init = glue.default;
-                await init(wasmPathOrBytes);
+                // wasm-bindgen `--target web` glue: init resolves to the raw instance exports.
+                const instanceExports = await glue.default({ module_or_path: wasmPathOrBytes });
 
                 const module: CodecModule = {
                     instance: null,
-                    memory: glue.wasm.memory,
+                    memory: instanceExports.memory,
                     exports: glue,
                 };
 
-                this.loadedModules.set(codec, module);
+                this.loadedModules.set(moduleName, module);
                 return module;
             } catch (e) {
-                console.error(`Failed to load codec ${codec}:`, e);
+                console.error(`Failed to load codec ${codec} (module ${moduleName}):`, e);
                 throw e;
             } finally {
-                this.loadingPromises.delete(codec);
+                this.loadingPromises.delete(moduleName);
             }
         })();
 
-        this.loadingPromises.set(codec, loadPromise);
+        this.loadingPromises.set(moduleName, loadPromise);
         return loadPromise;
     }
 
     public getCodec(codec: CodecType): CodecModule {
-        const module = this.loadedModules.get(codec);
+        const module = this.loadedModules.get(MODULE_FOR_CODEC[codec]);
         if (!module) {
             throw new Error(`Codec ${codec} not loaded. Call loadCodec() first.`);
         }
@@ -120,11 +131,11 @@ export class ZigWasmCodecLoader {
     }
 
     public isLoaded(codec: CodecType): boolean {
-        return this.loadedModules.has(codec);
+        return this.loadedModules.has(MODULE_FOR_CODEC[codec]);
     }
 
     public unloadCodec(codec: CodecType): void {
-        this.loadedModules.delete(codec);
+        this.loadedModules.delete(MODULE_FOR_CODEC[codec]);
     }
 
     public unloadAll(): void {
@@ -153,12 +164,11 @@ export class ZigWasmCodecLoader {
 
             case "1.2.840.10008.1.2.4.90":
             case "1.2.840.10008.1.2.4.91":
-            case "1.2.840.10008.1.2.4.201":
-            case "1.2.840.10008.1.2.4.202":
-            case "1.2.840.10008.1.2.4.203":
                 return "j2k";
 
-            case "1.2.840.10008.1.2.4.178":
+            case "1.2.840.10008.1.2.4.201": // HTJ2K Lossless
+            case "1.2.840.10008.1.2.4.202": // HTJ2K Lossless RPCL
+            case "1.2.840.10008.1.2.4.203": // HTJ2K
                 return "htj2k";
 
             case "1.2.840.10008.1.2.4.57":

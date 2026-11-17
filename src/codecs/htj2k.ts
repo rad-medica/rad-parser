@@ -1,6 +1,6 @@
 /**
  * HTJ2K (High-Throughput JPEG 2000) Decoder Plugin
- * Transfer Syntaxes: 1.2.840.10008.1.2.4.178
+ * Transfer Syntaxes: 1.2.840.10008.1.2.4.201 (Lossless), .202 (Lossless RPCL), .203 (HTJ2K)
  */
 import { CodecInfo, PixelDataCodec } from "../core/registry";
 import { concatFragments } from "../utils/bufferUtils";
@@ -33,7 +33,11 @@ export class Htj2kDecoder implements PixelDataCodec {
     }
 
     canDecode(transferSyntax: string): boolean {
-        return transferSyntax === "1.2.840.10008.1.2.4.178";
+        return [
+            "1.2.840.10008.1.2.4.201", // HTJ2K Lossless
+            "1.2.840.10008.1.2.4.202", // HTJ2K Lossless RPCL
+            "1.2.840.10008.1.2.4.203", // HTJ2K
+        ].includes(transferSyntax);
     }
 
     canEncode(transferSyntax: string): boolean {

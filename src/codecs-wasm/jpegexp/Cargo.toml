@@ -1,0 +1,11 @@
+[package]
+name = "rad-codecs-jpegexp"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+wasm-bindgen = "0.2"
+jpegexp-rs = { git = "https://github.com/rad-medica/jpegexp-rs", rev = "d0d4d928c8fa39c1bd8d3cb13c40e0c2c68a0ef1", default-features = false }

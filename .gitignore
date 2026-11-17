@@ -109,3 +109,6 @@ output/*
 
 # Agent Environment Config
 agent_environment.md
+
+# Cargo build output
+target/
