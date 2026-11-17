@@ -6,5 +6,6 @@ export default defineConfig({
         environment: "node",
         globals: true,
         tsconfig: "tsconfig.test.json",
+        globalSetup: ["tests/setup/wasm-artifacts.ts"],
     },
 });

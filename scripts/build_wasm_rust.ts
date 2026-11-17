@@ -1,4 +1,3 @@
-
 import { execSync } from "child_process";
 import fs from "fs";
 import path from "path";
@@ -21,10 +20,13 @@ const CRATES = [
 
 console.log("Building Rust workspace...");
 try {
-    execSync("cargo build --workspace --target wasm32-unknown-unknown --release", {
-        cwd: ROOT_DIR,
-        stdio: "inherit",
-    });
+    execSync(
+        "cargo build --workspace --target wasm32-unknown-unknown --release",
+        {
+            cwd: ROOT_DIR,
+            stdio: "inherit",
+        }
+    );
 } catch (e) {
     console.error("Cargo build failed");
     process.exit(1);
@@ -42,7 +44,8 @@ try {
 } catch {
     // If not in PATH, try default cargo bin
     const home = process.env.HOME || process.env.USERPROFILE || "";
-    const exe = process.platform === "win32" ? "wasm-bindgen.exe" : "wasm-bindgen";
+    const exe =
+        process.platform === "win32" ? "wasm-bindgen.exe" : "wasm-bindgen";
     const candidate = path.join(home, ".cargo", "bin", exe);
     if (home && fs.existsSync(candidate)) {
         wasmBindgen = `"${candidate}"`;
@@ -66,11 +69,13 @@ for (const crate of CRATES) {
     try {
         // Run wasm-bindgen
         // Use --target web to get standard ES module with init function
-        execSync(`${wasmBindgen} "${wasmPath}" --out-dir "${outDir}" --target web`, {
-            cwd: ROOT_DIR,
-            stdio: "inherit",
-        });
-
+        execSync(
+            `${wasmBindgen} "${wasmPath}" --out-dir "${outDir}" --target web`,
+            {
+                cwd: ROOT_DIR,
+                stdio: "inherit",
+            }
+        );
     } catch (e) {
         console.error(`wasm-bindgen failed for ${crate.name}`, e);
         process.exit(1);

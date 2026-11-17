@@ -10,7 +10,9 @@ function makeSamples(count: number, max: number): number[] {
     let seed = 0x9e3779b9;
     return Array.from({ length: count }, (_, i) => {
         seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0;
-        return Math.floor(i / 300) % 2 === 0 ? (i >> 9) % (max + 1) : (seed >>> 8) % (max + 1);
+        return Math.floor(i / 300) % 2 === 0
+            ? (i >> 9) % (max + 1)
+            : (seed >>> 8) % (max + 1);
     });
 }
 

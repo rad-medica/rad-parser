@@ -13,6 +13,8 @@ export {
 export {
     canParse,
     parseWithMetadata,
+    inflateDicom,
+    type PixelDataMode,
     type ParseResult,
     type ParseOptions,
     extractPixelData,
@@ -38,6 +40,9 @@ export {
     parseDateTime,
     parsePersonName,
     parseTime,
+    type DicomDateParts,
+    type DicomTimeParts,
+    type DicomDateTimeParts,
     parseValueByVR,
 } from "./utils/valueParsers";
 export {

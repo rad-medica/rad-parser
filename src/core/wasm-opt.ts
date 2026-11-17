@@ -92,7 +92,13 @@ export function applyModalityLutWasm(
 ): Float32Array | null {
     if (!isWasmInitialized) return null;
     try {
-        return coreExports.apply_modality_lut(pixelData, slope, intercept, bitsAllocated, pixelRepresentation);
+        return coreExports.apply_modality_lut(
+            pixelData,
+            slope,
+            intercept,
+            bitsAllocated,
+            pixelRepresentation
+        );
     } catch {
         return null;
     }

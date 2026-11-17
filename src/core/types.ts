@@ -14,36 +14,50 @@ export interface SequenceItem {
 }
 
 /**
+ * Location of one encapsulated Pixel Data fragment (PS3.5 A.4).
+ * `offset` is the absolute byte offset of the fragment value (after the
+ * 8-byte Item header) in the parsed byte array; `length` is its byte length.
+ */
+export interface PixelDataFragment {
+    offset: number;
+    length: number;
+}
+
+/** Any decoded element value. */
+export type DicomValue =
+    | string
+    | number
+    | bigint
+    | Array<string | number | bigint>
+    | Record<string, unknown>
+    | Uint8Array
+    | Array<Uint8Array>
+    | ArrayBuffer
+    | Float64Array
+    | Int32Array
+    | SequenceItem[];
+
+/**
  * DICOM Element structure
  * Compatible with SmallVis parser types (matches src/core/parsers/types.ts)
  */
 export interface DicomElement {
     vr?: string;
     VR?: string;
-    Value?:
-        | string
-        | number
-        | Array<string | number>
-        | Record<string, unknown>
-        | Uint8Array
-        | Array<Uint8Array>
-        | ArrayBuffer
-        | Float64Array
-        | Int32Array;
-    value?:
-        | string
-        | number
-        | Array<string | number>
-        | Record<string, unknown>
-        | Uint8Array
-        | Array<Uint8Array>
-        | ArrayBuffer
-        | Float64Array
-        | Int32Array;
+    Value?: DicomValue;
+    value?: DicomValue;
     length?: number;
     Length?: number;
     items?: unknown[];
     Items?: unknown[];
+    /** Absolute byte offset of the Value Field in the parsed byte array. */
+    dataOffset?: number;
+    /** True for encapsulated (undefined length) Pixel Data. */
+    isEncapsulated?: boolean;
+    /** Basic Offset Table entries (encapsulated Pixel Data), may be empty. */
+    basicOffsetTable?: number[];
+    /** Fragment locations (encapsulated Pixel Data), Basic Offset Table excluded. */
+    fragments?: PixelDataFragment[];
     [key: string]: unknown;
 }
 
@@ -65,6 +79,12 @@ export interface DicomDataSet {
 
     // Optional Metadata
     transferSyntax?: string;
+    /**
+     * The bytes that `dataOffset` / `fragments` offsets refer to: the input
+     * array, or for Deflated Explicit VR Little Endian the inflated file
+     * (original header followed by the inflated Data Set). Non-enumerable.
+     */
+    byteArray?: Uint8Array;
     characterSet?: string;
     rows?: number;
     columns?: number;
@@ -79,6 +99,10 @@ export interface ShallowDicomElement {
     vr: string;
     length: number;
     dataOffset: number;
+    /** Encapsulated Pixel Data only: fragment locations. */
+    fragments?: PixelDataFragment[];
+    /** Encapsulated Pixel Data only: Basic Offset Table entries. */
+    basicOffsetTable?: number[];
 }
 
 /**

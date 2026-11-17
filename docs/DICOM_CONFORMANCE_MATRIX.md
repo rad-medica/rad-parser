@@ -6,16 +6,16 @@ and WebAssembly (WASM) implementations.
 
 ## 1. Core Parser Compliance (PS3.5 & PS3.10)
 
-| Standard Requirement          |    JS Implementation     |  WASM Optimization  | Compliance Status |
-| :---------------------------- | :----------------------: | :-----------------: | :---------------: |
-| **Media Storage (PS3.10)**    |   ✅ Full (Group 0002)   |  N/A (JS Handled)   |     **Full**      |
-| **Implicit VR Little Endian** |       ✅ Supported       |  N/A (JS Handled)   |     **Full**      |
-| **Explicit VR Little Endian** |       ✅ Supported       |  N/A (JS Handled)   |     **Full**      |
-| **Explicit VR Big Endian**    |       ✅ Supported       |  N/A (JS Handled)   |     **Full**      |
-| **Deflated Explicit VR LE**   |       ✅ Supported       |  N/A (JS Handled)   |     **Full**      |
-| **Undefined Length Sequence** | ✅ Robust Delimiter Find | 🚀 Optimized Search |     **Full**      |
-| **Private Tag Support**       |     ✅ Parity-checks     |  N/A (JS Handled)   |     **Full**      |
-| **Specific Character Sets**   | ✅ Multi-charset Support |  N/A (JS Handled)   |   **Compliant**   |
+| Standard Requirement          |    JS Implementation     |  WASM Optimization  |                      Compliance Status                      |
+| :---------------------------- | :----------------------: | :-----------------: | :---------------------------------------------------------: |
+| **Media Storage (PS3.10)**    |   ✅ Full (Group 0002)   |  N/A (JS Handled)   |                          **Full**                           |
+| **Implicit VR Little Endian** |       ✅ Supported       |  N/A (JS Handled)   |                          **Full**                           |
+| **Explicit VR Little Endian** |       ✅ Supported       |  N/A (JS Handled)   |                          **Full**                           |
+| **Explicit VR Big Endian**    |       ✅ Supported       |  N/A (JS Handled)   |      **Full** (OW/OF/OL/OD/OV returned swapped to LE)       |
+| **Deflated Explicit VR LE**   |       ✅ Supported       |  N/A (JS Handled)   | **Full** (bundled sync inflater; writer uses stored blocks) |
+| **Undefined Length Sequence** | ✅ Robust Delimiter Find | 🚀 Optimized Search |                          **Full**                           |
+| **Private Tag Support**       |     ✅ Parity-checks     |  N/A (JS Handled)   |                          **Full**                           |
+| **Specific Character Sets**   | ✅ Multi-charset Support |  N/A (JS Handled)   |                        **Compliant**                        |
 
 ---
 
@@ -23,20 +23,21 @@ and WebAssembly (WASM) implementations.
 
 `rad-parser` handles all standard VRs as defined in PS3.5 Section 6.2.
 
-| VR Type                | Categorization | Handling Mechanism  | Implementation     |
-| :--------------------- | :------------- | :------------------ | :----------------- |
-| **AE, AS, CS, LO, SH** | String         | Character Decoding  | JS (`TextDecoder`) |
-| **DA, TM, DT**         | Date/Time      | ISO/JS Date object  | 🚀 WASM Optimized  |
-| **DS, IS**             | Numeric String | IEEE 754 Conversion | 🚀 WASM Optimized  |
-| **FL, FD**             | Binary Float   | TypedArray View     | Native JS          |
-| **SS, US, SL, UL**     | Binary Integer | TypedArray View     | Native JS          |
-| **OB, OW, OF, OD, OL** | Other Binary   | Raw Buffer View     | Native JS          |
-| **PN**                 | Person Name    | Structured Object   | 🚀 WASM Optimized  |
-| **ST, LT, UT**         | Text           | Character Decoding  | JS (`TextDecoder`) |
-| **SQ**                 | Sequence       | Recursive Parsing   | 🚀 WASM Optimized  |
-| **UC, UR**             | Long String    | Character Decoding  | JS (`TextDecoder`) |
-| **UI**                 | UID            | Null-stripped Str   | Native JS          |
-| **UN**                 | Unknown        | Raw Byte Skip       | Native JS          |
+| VR Type                    | Categorization | Handling Mechanism                                                                | Implementation     |
+| :------------------------- | :------------- | :-------------------------------------------------------------------------------- | :----------------- |
+| **AE, AS, CS, LO, SH**     | String         | Character Decoding                                                                | JS (`TextDecoder`) |
+| **DA, TM, DT**             | Date/Time      | Text as stored (helpers return components)                                        | Native JS          |
+| **DS, IS**                 | Numeric String | IEEE 754 Conversion                                                               | Native JS          |
+| **FL, FD**                 | Binary Float   | TypedArray View                                                                   | Native JS          |
+| **SS, US, SL, UL**         | Binary Integer | TypedArray View                                                                   | Native JS          |
+| **OB, OW, OF, OD, OL, OV** | Other Binary   | Raw Buffer View                                                                   | Native JS          |
+| **SV, UV**                 | 64-bit Integer | `bigint`                                                                          | Native JS          |
+| **PN**                     | Person Name    | Text as stored (`parsePersonName` splits)                                         | Native JS          |
+| **ST, LT, UT**             | Text           | Character Decoding                                                                | JS (`TextDecoder`) |
+| **SQ**                     | Sequence       | Recursive Parsing (structural, no delimiter scan)                                 | Native JS          |
+| **UC, UR**                 | Long String    | Character Decoding                                                                | JS (`TextDecoder`) |
+| **UI**                     | UID            | Null-stripped Str                                                                 | Native JS          |
+| **UN**                     | Unknown        | Known tag: re-read with PS3.6 VR as Implicit VR LE (PS3.5 6.2.2); otherwise bytes | Native JS          |
 
 ---
 
@@ -108,12 +109,13 @@ The parser supports all major character sets defined in PS3.3 Annex D.
 `rad-parser` provides a high-level API for de-identification aligned with
 **PS3.15 Basic Application Level Confidentiality Profile**.
 
-| Capability            | Implementation            | Audit Trail                    |
-| :-------------------- | :------------------------ | :----------------------------- |
-| **Tag Removal**       | Configurable Rule Engine  | Optional Metadata Log          |
-| **Tag Blanking**      | Pattern-based Replacement | User-controlled                |
-| **UID Regeneration**  | Cryptographic Random UIDs | Deterministic option available |
-| **Anonymizer Stream** | Incremental Processing    | High-speed pipeline            |
+| Capability            | Implementation                                 | Audit Trail                                                 |
+| :-------------------- | :--------------------------------------------- | :---------------------------------------------------------- |
+| **Basic Profile**     | Full Table E.1-1 (generated), nested sequences | Compound actions: first (most protective) unless overridden |
+| **Tag Removal**       | Configurable Rule Engine                       | Optional Metadata Log                                       |
+| **Tag Blanking**      | Pattern-based Replacement                      | User-controlled                                             |
+| **UID Regeneration**  | 2.25 UUID-derived UIDs (PS3.5 B.2)             | Consistent via `uidMap`                                     |
+| **Anonymizer Stream** | Incremental Processing                         | High-speed pipeline                                         |
 
 ---
 

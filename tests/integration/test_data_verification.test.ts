@@ -1,9 +1,11 @@
 import { describe, it, expect } from "vitest";
 import { parse } from "../../src/index";
+import { FIXTURES_DIR } from "../helpers/fixtures";
 import * as fs from "fs";
 import * as path from "path";
 
-const TEST_DATA_DIR = path.resolve(__dirname, "../test_data/patient/DICOM");
+// Committed synthetic fixtures (no patient data)
+const TEST_DATA_DIR = FIXTURES_DIR;
 
 describe("Test Data Verification", () => {
     it("should successfully parse all DICOM files in the test directory", () => {

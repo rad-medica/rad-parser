@@ -29,7 +29,8 @@ interface CodecModule {
 export class ZigWasmCodecLoader {
     private static instance: ZigWasmCodecLoader;
     private loadedModules: Map<WasmModuleName, CodecModule> = new Map();
-    private loadingPromises: Map<WasmModuleName, Promise<CodecModule>> = new Map();
+    private loadingPromises: Map<WasmModuleName, Promise<CodecModule>> =
+        new Map();
     private basePath: string = "";
 
     private constructor() {}
@@ -63,7 +64,9 @@ export class ZigWasmCodecLoader {
             try {
                 let jsPath: string;
                 let wasmPathOrBytes: string | BufferSource | undefined;
-                const isNode = typeof window === "undefined" && typeof process !== "undefined";
+                const isNode =
+                    typeof window === "undefined" &&
+                    typeof process !== "undefined";
 
                 if (isNode) {
                     const path = await import("path");
@@ -75,11 +78,17 @@ export class ZigWasmCodecLoader {
                         const __filename = url.fileURLToPath(import.meta.url);
                         const __dirname = path.dirname(__filename);
                         // Try src (dev) or dist
-                        const devPath = path.resolve(__dirname, `../../dist/package/rad-codecs-${moduleName}`);
+                        const devPath = path.resolve(
+                            __dirname,
+                            `../../dist/package/rad-codecs-${moduleName}`
+                        );
                         if (fs.existsSync(path.join(devPath, jsFileName))) {
                             dir = devPath;
                         } else {
-                            dir = path.resolve(__dirname, `../../rad-codecs-${moduleName}`); // from dist/package/{esm,cjs}/codecs
+                            dir = path.resolve(
+                                __dirname,
+                                `../../rad-codecs-${moduleName}`
+                            ); // from dist/package/{esm,cjs}/codecs
                         }
                     }
 
@@ -91,7 +100,6 @@ export class ZigWasmCodecLoader {
                     }
 
                     jsPath = url.pathToFileURL(jsPath).href;
-
                 } else {
                     const prefix = this.basePath || "wasm-codecs/";
                     jsPath = prefix + jsFileName;
@@ -100,7 +108,9 @@ export class ZigWasmCodecLoader {
 
                 const glue = await import(jsPath);
                 // wasm-bindgen `--target web` glue: init resolves to the raw instance exports.
-                const instanceExports = await glue.default({ module_or_path: wasmPathOrBytes });
+                const instanceExports = await glue.default({
+                    module_or_path: wasmPathOrBytes,
+                });
 
                 const module: CodecModule = {
                     instance: null,
@@ -111,7 +121,10 @@ export class ZigWasmCodecLoader {
                 this.loadedModules.set(moduleName, module);
                 return module;
             } catch (e) {
-                console.error(`Failed to load codec ${codec} (module ${moduleName}):`, e);
+                console.error(
+                    `Failed to load codec ${codec} (module ${moduleName}):`,
+                    e
+                );
                 throw e;
             } finally {
                 this.loadingPromises.delete(moduleName);
@@ -125,7 +138,9 @@ export class ZigWasmCodecLoader {
     public getCodec(codec: CodecType): CodecModule {
         const module = this.loadedModules.get(MODULE_FOR_CODEC[codec]);
         if (!module) {
-            throw new Error(`Codec ${codec} not loaded. Call loadCodec() first.`);
+            throw new Error(
+                `Codec ${codec} not loaded. Call loadCodec() first.`
+            );
         }
         return module;
     }
@@ -142,7 +157,9 @@ export class ZigWasmCodecLoader {
         this.loadedModules.clear();
     }
 
-    public static getCodecForTransferSyntax(transferSyntaxUid: string): CodecType | null {
+    public static getCodecForTransferSyntax(
+        transferSyntaxUid: string
+    ): CodecType | null {
         switch (transferSyntaxUid) {
             case "1.2.840.10008.1.2.4.50":
             case "1.2.840.10008.1.2.4.51":

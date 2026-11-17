@@ -13,8 +13,7 @@ import {
 } from "fs";
 import { join, dirname } from "path";
 import { fileURLToPath } from "url";
-import { parse } from "../src/index.js";
-import { StreamingParser } from "../src/index.js";
+import { parse, StreamingParser } from "../src/index.js";
 import dcmjs from "dcmjs";
 import dicomParser from "dicom-parser";
 import efferentDicom from "efferent-dicom";

@@ -17,6 +17,7 @@ export function createAnonymizerStream(options: AnonymizationOptions = {}) {
         uidMap: options.uidMap || {},
         keepPrivateTags: !!options.keepPrivateTags,
         customReplacements: options.replacements,
+        actionOverrides: options.actionOverrides,
     };
 
     return {

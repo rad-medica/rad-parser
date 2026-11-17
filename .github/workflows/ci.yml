@@ -40,6 +40,15 @@ jobs:
             - uses: oven-sh/setup-bun@v1
               with:
                   bun-version: latest
+            - uses: dtolnay/rust-toolchain@stable
+              with:
+                  targets: wasm32-unknown-unknown
+            - name: Install wasm-bindgen-cli matching Cargo.lock
+              run: |
+                  cargo generate-lockfile
+                  cargo install wasm-bindgen-cli --locked --version "$(cargo pkgid wasm-bindgen | sed 's/.*[@#]//')"
             - run: bun install
+            - run: bun run build:wasm
             - run: bun run build
+            - run: bun run lint
             - run: bun run test

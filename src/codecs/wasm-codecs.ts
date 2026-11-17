@@ -20,7 +20,9 @@ export class WasmCodecs {
         await this.loader.loadCodec(codec);
     }
 
-    public static getCodecForTransferSyntax(transferSyntaxUid: string): CodecType | null {
+    public static getCodecForTransferSyntax(
+        transferSyntaxUid: string
+    ): CodecType | null {
         return ZigWasmCodecLoader.getCodecForTransferSyntax(transferSyntaxUid);
     }
 
@@ -47,7 +49,15 @@ export class WasmCodecs {
         quality: number
     ): Promise<Uint8Array> {
         const exports = await this.getCodecExports("jpeg");
-        return exports.rad_encode_jpeg(pixels, width, height, bits, components, quality, 0);
+        return exports.rad_encode_jpeg(
+            pixels,
+            width,
+            height,
+            bits,
+            components,
+            quality,
+            0
+        );
     }
 
     /** JPEG Lossless, Process 14 (SOF3). `predictor` is the selection value, 1-7. */
@@ -60,7 +70,15 @@ export class WasmCodecs {
         predictor: number
     ): Promise<Uint8Array> {
         const exports = await this.getCodecExports("ljpeg");
-        return exports.rad_encode_jpeg(pixels, width, height, bits, components, 100, predictor);
+        return exports.rad_encode_jpeg(
+            pixels,
+            width,
+            height,
+            bits,
+            components,
+            100,
+            predictor
+        );
     }
 
     // ==================== JPEG 2000 / HTJ2K (jpegexp-rs) ====================
@@ -113,7 +131,13 @@ export class WasmCodecs {
         components: number
     ): Promise<Uint8Array> {
         const exports = await this.getCodecExports("jpegls");
-        return exports.rad_encode_jpegls(pixels, width, height, bits, components);
+        return exports.rad_encode_jpegls(
+            pixels,
+            width,
+            height,
+            bits,
+            components
+        );
     }
 
     // ==================== RLE ====================

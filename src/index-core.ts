@@ -19,6 +19,8 @@ export { DicomParseError, createParseError } from "./core/errors";
 export {
     canParse,
     parseWithMetadata,
+    inflateDicom,
+    type PixelDataMode,
     parse, // Unified API
     parseAndDecode,
     type ParseResult,
@@ -30,7 +32,11 @@ export {
 export { initCoreWasm } from "./core/wasm-opt";
 
 export { write, type WriteOptions } from "./core/writer";
-export { anonymize, type AnonymizationOptions } from "./core/anonymizer";
+export {
+    anonymize,
+    generateUID,
+    type AnonymizationOptions,
+} from "./core/anonymizer";
 
 export {
     extractTransferSyntax,
@@ -60,6 +66,9 @@ export type {
     DicomElement,
     ShallowDicomDataSet,
     ShallowDicomElement,
+    PixelDataFragment,
+    DicomValue,
+    SequenceItem,
     PixelDataInfo,
 } from "./core/types";
 
@@ -69,6 +78,9 @@ export {
     parseDateTime,
     parsePersonName,
     parseTime,
+    type DicomDateParts,
+    type DicomTimeParts,
+    type DicomDateTimeParts,
     parseValueByVR,
 } from "./utils/valueParsers";
 

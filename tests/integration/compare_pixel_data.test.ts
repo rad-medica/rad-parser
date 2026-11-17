@@ -3,8 +3,10 @@ import * as fs from "fs";
 import * as path from "path";
 import dcmjs from "dcmjs";
 import { parse } from "../../src/index";
+import { FIXTURES_DIR } from "../helpers/fixtures";
 
-const TEST_DIR = path.resolve(__dirname, "../test_data/patient/DICOM");
+// Committed synthetic fixtures (no patient data)
+const TEST_DIR = FIXTURES_DIR;
 
 describe("Pixel Data Comparison with dcmjs", () => {
     it("should match pixel data from dcmjs for multiple files", () => {

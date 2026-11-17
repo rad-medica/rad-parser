@@ -54,21 +54,51 @@ export function extractPixelData(dataset: any): PixelDataInfo | null {
     };
 }
 
-export function extractRescaledPixelData(dataset: any): Float32Array {
-    // Get rescale parameters (default to y = x if not present)
-    // Rescale Intercept (0028,1052)
-    // DS (Decimal String) - use floatString or check element directly
-    const intercept = dataset.floatString("x00281052") ?? 0;
+/**
+ * First numeric value of an attribute, from the element itself or, for
+ * datasets that only provide accessors, from `uint16` / `floatString`.
+ */
+function numberOf(dataset: any, tag: string): number | undefined {
+    const value = dataset?.dict?.[tag]?.Value;
+    const first = Array.isArray(value) ? value[0] : value;
+    if (typeof first === "number" && Number.isFinite(first)) return first;
+    if (typeof first === "string" && first.trim() !== "") {
+        const n = Number(first.split("\\")[0]);
+        if (Number.isFinite(n)) return n;
+    }
+    for (const accessor of ["floatString", "uint16"]) {
+        if (typeof dataset?.[accessor] === "function") {
+            const n = dataset[accessor](tag);
+            if (typeof n === "number" && Number.isFinite(n)) return n;
+        }
+    }
+    return undefined;
+}
 
-    // Rescale Slope (0028,1053)
-    const slope = dataset.floatString("x00281053") ?? 1;
+/** View 16-bit samples without copying when the bytes are 2-byte aligned. */
+function view16<T extends Uint16Array | Int16Array>(
+    raw: Uint8Array,
+    ctor: new (buffer: ArrayBufferLike, byteOffset: number, length: number) => T
+): T {
+    const bytes = raw.byteOffset % 2 === 0 ? raw : raw.slice();
+    return new ctor(
+        bytes.buffer,
+        bytes.byteOffset,
+        Math.floor(bytes.byteLength / 2)
+    );
+}
+
+export function extractRescaledPixelData(dataset: any): Float32Array {
+    // Modality LUT (PS3.3 C.11.1): Rescale Intercept (0028,1052), Slope (0028,1053)
+    const intercept = numberOf(dataset, "x00281052") ?? 0;
+    const slope = numberOf(dataset, "x00281053") ?? 1;
 
     // Get pixel data dimensions
-    const rows = dataset.uint16("x00280010") ?? 0;
-    const columns = dataset.uint16("x00280011") ?? 0;
-    const numberOfFrames = dataset.uint16("x00280008") ?? 1;
-    const bitsAllocated = dataset.uint16("x00280100") ?? 16;
-    const pixelRepresentation = dataset.uint16("x00280103") ?? 0; // 0 = unsigned, 1 = signed
+    const rows = numberOf(dataset, "x00280010") ?? 0;
+    const columns = numberOf(dataset, "x00280011") ?? 0;
+    const numberOfFrames = numberOf(dataset, "x00280008") ?? 1;
+    const bitsAllocated = numberOf(dataset, "x00280100") ?? 16;
+    const pixelRepresentation = numberOf(dataset, "x00280103") ?? 0; // 0 = unsigned, 1 = signed
 
     if (rows === 0 || columns === 0) {
         throw new Error(
@@ -95,22 +125,14 @@ export function extractRescaledPixelData(dataset: any): Float32Array {
             if (!(raw instanceof Uint8Array)) {
                 throw new Error("Pixel data not found or invalid format");
             }
-            pixelData = new Int16Array(
-                raw.buffer,
-                raw.byteOffset,
-                raw.byteLength / 2
-            );
+            pixelData = view16(raw, Int16Array);
         } else {
             // Unsigned 16-bit
             const raw = dataset.dict["x7fe00010"]?.Value;
             if (!(raw instanceof Uint8Array)) {
                 throw new Error("Pixel data not found or invalid format");
             }
-            pixelData = new Uint16Array(
-                raw.buffer,
-                raw.byteOffset,
-                raw.byteLength / 2
-            );
+            pixelData = view16(raw, Uint16Array);
         }
     } else {
         throw new Error(

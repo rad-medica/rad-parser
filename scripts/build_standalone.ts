@@ -59,7 +59,9 @@ async function buildCodecs() {
             defines[`__RAD_PARSER_CODEC_${codec.toUpperCase()}_WASM__`] =
                 `"${b64}"`;
         } catch (e) {
-            console.warn(`Skipping embedded WASM for ${codec}: ${e.message}`);
+            console.warn(
+                `Skipping embedded WASM for ${codec}: ${e instanceof Error ? e.message : String(e)}`
+            );
         }
     }
 
