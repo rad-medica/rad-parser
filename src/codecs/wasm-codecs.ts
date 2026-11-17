@@ -20,7 +20,9 @@ export class WasmCodecs {
         await this.loader.loadCodec(codec);
     }
 
-    public static getCodecForTransferSyntax(transferSyntaxUid: string): CodecType | null {
+    public static getCodecForTransferSyntax(
+        transferSyntaxUid: string
+    ): CodecType | null {
         return ZigWasmCodecLoader.getCodecForTransferSyntax(transferSyntaxUid);
     }
 
@@ -66,7 +68,15 @@ export class WasmCodecs {
         quality?: number
     ): Promise<Uint8Array> {
         const exports = await this.getCodecExports("j2k");
-        return exports.encode_jpeg2000(pixels, width, height, bits, components, lossless, quality || 0.0);
+        return exports.encode_jpeg2000(
+            pixels,
+            width,
+            height,
+            bits,
+            components,
+            lossless,
+            quality || 0.0
+        );
     }
 
     // ==================== JPEG-LS ====================

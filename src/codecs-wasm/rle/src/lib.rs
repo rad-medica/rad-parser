@@ -80,7 +80,7 @@ fn decode_segment(src: &[u8], dest: &mut [u8]) {
 
         if n >= 0 {
             // Literal
-            let count = (n + 1) as usize;
+            let count = n as usize + 1;
             for _ in 0..count {
                 if src_idx < src_len && dest_idx < dest_len {
                     dest[dest_idx] = src[src_idx];

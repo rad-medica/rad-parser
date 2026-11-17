@@ -111,8 +111,8 @@ pub fn apply_voi_lut(input: &[f32], wc: f64, ww: f64) -> Vec<u8> {
     let mut out = Vec::with_capacity(input.len());
     for &val in input {
         let val = val as f64;
-        let res = if val <= (wc - 0.5 - (ww - 1.0) / 2.0) { 0 }
-        else if val > (wc - 0.5 + (ww - 1.0) / 2.0) { 255 }
+        let res = if val <= (wc - 0.5 - (ww - 1.0) / 2.0) { 0.0 }
+        else if val > (wc - 0.5 + (ww - 1.0) / 2.0) { 255.0 }
         else { ((val - (wc - 0.5)) / (ww - 1.0) + 0.5) * 255.0 };
         out.push(clamp_u8(res));
     }

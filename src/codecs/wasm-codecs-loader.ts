@@ -52,7 +52,9 @@ export class ZigWasmCodecLoader {
             try {
                 let jsPath: string;
                 let wasmPathOrBytes: string | BufferSource | undefined;
-                const isNode = typeof window === "undefined" && typeof process !== "undefined";
+                const isNode =
+                    typeof window === "undefined" &&
+                    typeof process !== "undefined";
 
                 if (isNode) {
                     const path = await import("path");
@@ -64,11 +66,17 @@ export class ZigWasmCodecLoader {
                         const __filename = url.fileURLToPath(import.meta.url);
                         const __dirname = path.dirname(__filename);
                         // Try src (dev) or dist
-                        const devPath = path.resolve(__dirname, `../../dist/package/rad-codecs-${codec}`);
+                        const devPath = path.resolve(
+                            __dirname,
+                            `../../dist/package/rad-codecs-${codec}`
+                        );
                         if (fs.existsSync(path.join(devPath, jsFileName))) {
                             dir = devPath;
                         } else {
-                            dir = path.resolve(__dirname, `wasm-codecs/${codec}`); // Hypothetical dist loc
+                            dir = path.resolve(
+                                __dirname,
+                                `wasm-codecs/${codec}`
+                            ); // Hypothetical dist loc
                         }
                     }
 
@@ -80,7 +88,6 @@ export class ZigWasmCodecLoader {
                     }
 
                     jsPath = url.pathToFileURL(jsPath).href;
-
                 } else {
                     const prefix = this.basePath || "wasm-codecs/";
                     jsPath = prefix + jsFileName;
@@ -89,11 +96,16 @@ export class ZigWasmCodecLoader {
 
                 const glue = await import(jsPath);
                 const init = glue.default;
-                await init(wasmPathOrBytes);
+                // wasm-bindgen (--target web) init resolves to the raw wasm exports
+                const wasmExports = (await init(
+                    wasmPathOrBytes === undefined
+                        ? undefined
+                        : { module_or_path: wasmPathOrBytes }
+                )) as { memory: WebAssembly.Memory };
 
                 const module: CodecModule = {
                     instance: null,
-                    memory: glue.wasm.memory,
+                    memory: wasmExports.memory,
                     exports: glue,
                 };
 
@@ -114,7 +126,9 @@ export class ZigWasmCodecLoader {
     public getCodec(codec: CodecType): CodecModule {
         const module = this.loadedModules.get(codec);
         if (!module) {
-            throw new Error(`Codec ${codec} not loaded. Call loadCodec() first.`);
+            throw new Error(
+                `Codec ${codec} not loaded. Call loadCodec() first.`
+            );
         }
         return module;
     }
@@ -131,7 +145,9 @@ export class ZigWasmCodecLoader {
         this.loadedModules.clear();
     }
 
-    public static getCodecForTransferSyntax(transferSyntaxUid: string): CodecType | null {
+    public static getCodecForTransferSyntax(
+        transferSyntaxUid: string
+    ): CodecType | null {
         switch (transferSyntaxUid) {
             case "1.2.840.10008.1.2.4.50":
             case "1.2.840.10008.1.2.4.51":

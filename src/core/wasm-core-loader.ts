@@ -10,7 +10,13 @@ interface CoreExports {
     parse_date: (input: Uint8Array) => string;
     parse_time: (input: Uint8Array) => string;
     find_sequence_delimiter: (input: Uint8Array) => number;
-    apply_modality_lut: (input: Uint8Array, slope: number, intercept: number, bits: number, repr: number) => Float32Array;
+    apply_modality_lut: (
+        input: Uint8Array,
+        slope: number,
+        intercept: number,
+        bits: number,
+        repr: number
+    ) => Float32Array;
     apply_voi_lut: (input: Float32Array, wc: number, ww: number) => Uint8Array;
     memory: WebAssembly.Memory;
     [key: string]: unknown;
@@ -53,7 +59,8 @@ export class ZigCoreLoader {
 
             let jsPath: string;
             // Check environment
-            const isNode = typeof window === "undefined" && typeof process !== "undefined";
+            const isNode =
+                typeof window === "undefined" && typeof process !== "undefined";
 
             // In a real bundler setup, we might import this statically, but we want dynamic loading.
             // We try to locate the file.
@@ -73,7 +80,10 @@ export class ZigCoreLoader {
                     const __filename = url.fileURLToPath(import.meta.url);
                     const __dirname = path.dirname(__filename);
                     // Try src/core-wasm/dist (dev) or dist/package/rad-core (build)
-                    const devPath = path.resolve(__dirname, "../../dist/package/rad-core");
+                    const devPath = path.resolve(
+                        __dirname,
+                        "../../dist/package/rad-core"
+                    );
                     if (fs.existsSync(path.join(devPath, "rad_core_wasm.js"))) {
                         dir = devPath;
                     } else {
@@ -91,7 +101,6 @@ export class ZigCoreLoader {
 
                 // In Node, we need to import via file URL
                 jsPath = url.pathToFileURL(jsPath).href;
-
             } else {
                 // Browser
                 // Assume generated JS is served at basePath/rad_core_wasm.js
@@ -111,19 +120,23 @@ export class ZigCoreLoader {
             // If wasmPathOrBytes is provided, use it.
             // If Node, it must be bytes (Buffer).
             // If Browser, it can be URL.
-            await init(wasmPathOrBytes);
+            // wasm-bindgen (--target web) init resolves to the raw wasm exports
+            const wasmExports = (await init(
+                wasmPathOrBytes === undefined
+                    ? undefined
+                    : { module_or_path: wasmPathOrBytes }
+            )) as { memory: WebAssembly.Memory };
 
             this.module = {
                 instance: null, // bindgen hides it
-                memory: glue.wasm.memory, // Exposed via glue.wasm (if using target web?)
-                exports: glue as CoreExports
+                memory: wasmExports.memory,
+                exports: glue as CoreExports,
             };
 
             // Note: glue exports function directly. glue.parse_is calls wasm.
             // glue.wasm object holds memory and direct exports.
 
             return this.module;
-
         } catch (e) {
             console.error("Failed to load core WASM:", e);
             throw e;

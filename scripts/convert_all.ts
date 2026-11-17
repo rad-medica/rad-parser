@@ -1,3 +1,4 @@
+import * as fs from "fs";
 import { readFileSync, writeFileSync } from "fs";
 import * as path from "path";
 import { initCoreWasm, parse, write } from "../src/index";
@@ -7,10 +8,9 @@ import { transcode } from "../src/utils/transcode";
 import "../src/codecs/auto-register";
 
 const logFile = path.resolve(__dirname, "../conversion_debug.txt");
-require("fs").writeFileSync(logFile, "");
+fs.writeFileSync(logFile, "");
 const originalLog = console.log;
 const originalError = console.error;
-const fs = require("fs");
 
 console.log = (...args) => {
     const msg = args.map(a => String(a)).join(" ");
@@ -35,14 +35,12 @@ async function main() {
     console.log(`Output Dir: ${outputDir}`);
 
     // Clean output directory
-    if (require("fs").existsSync(outputDir)) {
-        require("fs")
-            .readdirSync(outputDir)
-            .forEach((file: string) => {
-                require("fs").unlinkSync(path.join(outputDir, file));
-            });
+    if (fs.existsSync(outputDir)) {
+        fs.readdirSync(outputDir).forEach((file: string) => {
+            fs.unlinkSync(path.join(outputDir, file));
+        });
     } else {
-        require("fs").mkdirSync(outputDir, { recursive: true });
+        fs.mkdirSync(outputDir, { recursive: true });
     }
 
     // Init Core WASM
@@ -50,7 +48,7 @@ async function main() {
         __dirname,
         "../src/zig-core/zig-out/bin/rad-core.wasm"
     );
-    if (!require("fs").existsSync(wasmCorePath)) {
+    if (!fs.existsSync(wasmCorePath)) {
         throw new Error(
             `Core WASM not found at ${wasmCorePath}. Please run 'bun run build:wasm:core'`
         );
