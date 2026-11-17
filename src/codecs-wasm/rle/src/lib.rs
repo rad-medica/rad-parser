@@ -75,7 +75,8 @@ fn decode_segment(src: &[u8], dest: &mut [u8]) {
     let dest_len = dest.len();
 
     while src_idx < src_len && dest_idx < dest_len {
-        let n = src[src_idx] as i8;
+        // Widen before arithmetic: n + 1 and 1 - n overflow i8 for 128-byte runs.
+        let n = i32::from(src[src_idx] as i8);
         src_idx += 1;
 
         if n >= 0 {
@@ -90,7 +91,7 @@ fn decode_segment(src: &[u8], dest: &mut [u8]) {
             }
         } else if n > -128 {
             // Repeat
-            let count = (-n + 1) as usize;
+            let count = (1 - n) as usize;
             if src_idx < src_len {
                 let val = src[src_idx];
                 src_idx += 1;

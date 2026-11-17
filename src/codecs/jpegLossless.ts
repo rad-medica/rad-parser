@@ -2,7 +2,7 @@
  * JPEG Lossless Decoder Plugin
  * Transfer Syntaxes: 1.2.840.10008.1.2.4.57 (Process 14), 1.2.840.10008.1.2.4.70 (Process 14 SV1)
  *
- * Note: JPEG Lossless uses the same LibJPEG-Turbo decoder as baseline JPEG.
+ * Decoded and encoded by the jpegexp-rs JPEG 1 codec (SOF3).
  */
 import { CodecInfo, PixelDataCodec } from "../core/registry";
 import { concatFragments } from "../utils/bufferUtils";
@@ -42,7 +42,7 @@ export class JpegLosslessDecoder implements PixelDataCodec {
     }
 
     canEncode(transferSyntax: string): boolean {
-        return false; // JPEG Lossless encoding not currently supported
+        return this.canDecode(transferSyntax);
     }
 
     async decode(encodedBuffer: Uint8Array[], info: any): Promise<Uint8Array> {
@@ -64,7 +64,21 @@ export class JpegLosslessDecoder implements PixelDataCodec {
         samples: number,
         bits: number
     ): Promise<Uint8Array[]> {
-        throw new Error("JPEG Lossless encoding not implemented");
+        if (!this.initPromise) {
+            this.initPromise = this.initWasm();
+        }
+        await this.initPromise;
+
+        // .70 mandates selection value 1; it is also the usual choice for .57.
+        const encoded = await this.wasmCodecs.encodeLjpeg(
+            pixelData,
+            width,
+            height,
+            bits,
+            samples,
+            1
+        );
+        return [encoded];
     }
 }
 

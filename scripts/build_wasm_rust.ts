@@ -13,12 +13,9 @@ const DIST_PKG = path.join(ROOT_DIR, "dist/package");
 // Codec mapping
 const CRATES = [
     { name: "rad-core-wasm", outName: "rad-core" },
-    { name: "rad-codecs-jpeg", outName: "rad-codecs-jpeg" },
     { name: "rad-codecs-rle", outName: "rad-codecs-rle" },
-    { name: "rad-codecs-jpegls", outName: "rad-codecs-jpegls" },
-    { name: "rad-codecs-j2k", outName: "rad-codecs-j2k" },
-    { name: "rad-codecs-htj2k", outName: "rad-codecs-htj2k" },
-    { name: "rad-codecs-ljpeg", outName: "rad-codecs-ljpeg" },
+    // JPEG 1 (incl. lossless), JPEG-LS, JPEG 2000 and HTJ2K via jpegexp-rs.
+    { name: "rad-codecs-jpegexp", outName: "rad-codecs-jpegexp" },
 ];
 
 console.log("Building Rust workspace...");
@@ -43,15 +40,15 @@ if (!fs.existsSync(DIST_PKG)) fs.mkdirSync(DIST_PKG, { recursive: true });
 // Try to find wasm-bindgen
 let wasmBindgen = "wasm-bindgen";
 try {
-    execSync("which wasm-bindgen");
+    execSync("wasm-bindgen --version", { stdio: "ignore" });
 } catch {
     // If not in PATH, try default cargo bin
     const home = process.env.HOME || process.env.USERPROFILE || "";
-    if (home) {
-        const candidate = path.join(home, ".cargo/bin/wasm-bindgen");
-        if (fs.existsSync(candidate)) {
-            wasmBindgen = candidate;
-        }
+    const exe =
+        process.platform === "win32" ? "wasm-bindgen.exe" : "wasm-bindgen";
+    const candidate = path.join(home, ".cargo", "bin", exe);
+    if (home && fs.existsSync(candidate)) {
+        wasmBindgen = `"${candidate}"`;
     }
 }
 

@@ -9,7 +9,7 @@ import { resolve } from "path";
 const REQUIRED = [
     "dist/package/rad-core/rad_core_wasm_bg.wasm",
     "dist/package/rad-codecs-rle/rad_codecs_rle_bg.wasm",
-    "dist/package/rad-codecs-jpeg/rad_codecs_jpeg_bg.wasm",
+    "dist/package/rad-codecs-jpegexp/rad_codecs_jpegexp_bg.wasm",
 ];
 
 export default function setup(): void {

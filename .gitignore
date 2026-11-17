@@ -110,5 +110,5 @@ output/*
 # Agent Environment Config
 agent_environment.md
 
-# Rust build output
+# Cargo build output
 target/

@@ -31,11 +31,12 @@ export class WasmCodecs {
         return module.exports;
     }
 
-    // ==================== JPEG ====================
+    // ==================== JPEG 1 (jpegexp-rs) ====================
+    // Decoders return interleaved samples: one byte each up to 8 bits, little-endian
+    // 16-bit words above. Encoders take the same layout.
 
     public async decodeJpeg(data: Uint8Array): Promise<Uint8Array> {
         const exports = await this.getCodecExports("jpeg");
-        // Rust returns Uint8Array (throws on error)
         return exports.decode_jpeg(data);
     }
 
@@ -48,16 +49,49 @@ export class WasmCodecs {
         quality: number
     ): Promise<Uint8Array> {
         const exports = await this.getCodecExports("jpeg");
-        return exports.encode_jpeg(pixels, width, height, components, quality);
+        return exports.rad_encode_jpeg(
+            pixels,
+            width,
+            height,
+            bits,
+            components,
+            quality,
+            0
+        );
     }
 
-    // ==================== JPEG 2000 ====================
+    /** JPEG Lossless, Process 14 (SOF3). `predictor` is the selection value, 1-7. */
+    public async encodeLjpeg(
+        pixels: Uint8Array,
+        width: number,
+        height: number,
+        bits: number,
+        components: number,
+        predictor: number
+    ): Promise<Uint8Array> {
+        const exports = await this.getCodecExports("ljpeg");
+        return exports.rad_encode_jpeg(
+            pixels,
+            width,
+            height,
+            bits,
+            components,
+            100,
+            predictor
+        );
+    }
+
+    // ==================== JPEG 2000 / HTJ2K (jpegexp-rs) ====================
 
     public async decodeJpeg2000(data: Uint8Array): Promise<Uint8Array> {
         const exports = await this.getCodecExports("j2k");
-        return exports.decode_jpeg2000(data);
+        return exports.decode_j2k(data);
     }
 
+    /**
+     * @param quality Lossy only: 1-99, defaults to 90. Ignored when `lossless`.
+     * @param htj2k Use High-Throughput block coding (HTJ2K).
+     */
     public async encodeJpeg2000(
         pixels: Uint8Array,
         width: number,
@@ -65,27 +99,30 @@ export class WasmCodecs {
         bits: number,
         components: number,
         lossless: boolean,
-        quality?: number
+        quality: number = 90,
+        htj2k: boolean = false
     ): Promise<Uint8Array> {
-        const exports = await this.getCodecExports("j2k");
-        return exports.encode_jpeg2000(
+        const exports = await this.getCodecExports(htj2k ? "htj2k" : "j2k");
+        return exports.rad_encode_j2k(
             pixels,
             width,
             height,
             bits,
             components,
             lossless,
-            quality || 0.0
+            lossless ? 100 : quality,
+            htj2k
         );
     }
 
-    // ==================== JPEG-LS ====================
+    // ==================== JPEG-LS (jpegexp-rs) ====================
 
     public async decodeJpegLs(data: Uint8Array): Promise<Uint8Array> {
         const exports = await this.getCodecExports("jpegls");
         return exports.decode_jpegls(data);
     }
 
+    /** Lossless JPEG-LS (NEAR = 0), valid for both .80 and .81 transfer syntaxes. */
     public async encodeJpegLs(
         pixels: Uint8Array,
         width: number,
@@ -94,7 +131,13 @@ export class WasmCodecs {
         components: number
     ): Promise<Uint8Array> {
         const exports = await this.getCodecExports("jpegls");
-        return exports.encode_jpegls(pixels, width, height, bits, components);
+        return exports.rad_encode_jpegls(
+            pixels,
+            width,
+            height,
+            bits,
+            components
+        );
     }
 
     // ==================== RLE ====================
@@ -119,18 +162,18 @@ export class WasmCodecs {
         return exports.encode_rle(pixels, width, height, components);
     }
 
-    // ==================== HTJ2K ====================
+    // ==================== HTJ2K (jpegexp-rs) ====================
 
     public async decodeHtj2k(data: Uint8Array): Promise<Uint8Array> {
         const exports = await this.getCodecExports("htj2k");
-        return exports.decode_htj2k(data);
+        return exports.decode_j2k(data);
     }
 
-    // ==================== JPEG Lossless ====================
+    // ==================== JPEG Lossless, Process 14 (jpegexp-rs) ====================
 
     public async decodeLjpeg(data: Uint8Array): Promise<Uint8Array> {
         const exports = await this.getCodecExports("ljpeg");
-        return exports.decode_ljpeg(data);
+        return exports.decode_jpeg(data);
     }
 
     public unloadAll(): void {

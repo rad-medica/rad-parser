@@ -1,0 +1,3 @@
+[net]
+# jpegexp-rs is a private GitHub repository; let the git CLI use the system credential helper.
+git-fetch-with-cli = true
