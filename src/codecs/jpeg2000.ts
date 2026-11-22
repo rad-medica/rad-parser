@@ -51,7 +51,7 @@ export class Jpeg2000Decoder implements PixelDataCodec {
         try {
             await this.wasmCodecs!.initCodec("j2k");
         } catch (e) {
-            console.warn("Failed to init JPEG 2000 Zig WASM codec", e);
+            console.warn("Failed to init JPEG 2000 WASM codec", e);
         }
     }
 

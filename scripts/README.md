@@ -6,14 +6,12 @@ This directory contains utility scripts for building, testing, verification, and
 
 - **`build_package.ts`**: Main build script for the npm package.
 - **`build_standalone.ts`**: Builds the standalone browser bundle.
-- **`copy_wasm_package.ts`**: Helper to copy WASM assets during build.
 - **`post_build_package.ts`**: Post-processing for package distribution.
 
 ## Verification & Testing
 
 - **`verify_codecs.ts`**: The primary verification suite for the Codecs module. detailed round-trip testing (Transcode -> Write -> Read -> Decode -> Compare) for all supported transfer syntaxes.
     - Usage: `bun run scripts/verify_codecs.ts`
-- **`manual_test_zig.ts`**: Manual test script for Zig/WASM codecs (formerly `src/codecs/test-zig.ts`).
 - **`verify_unified_api.ts`**: Verifies the high-level unified API surface.
 
 ## Data Generation & Output

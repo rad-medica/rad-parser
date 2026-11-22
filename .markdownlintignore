@@ -1,10 +1,6 @@
-src/zig-codecs/deps/
 node_modules/
 dist/
 build/
-zig-out/
-zig-cache/
-.zig-cache/
 coverage/
 
 agent_environment.md

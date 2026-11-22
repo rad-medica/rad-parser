@@ -24,7 +24,7 @@ export class Htj2kDecoder implements PixelDataCodec {
         try {
             await this.wasmCodecs.initCodec("htj2k");
         } catch (e) {
-            console.warn("Failed to init HTJ2K Zig WASM codec", e);
+            console.warn("Failed to init HTJ2K WASM codec", e);
         }
     }
 

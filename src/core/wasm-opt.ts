@@ -4,11 +4,11 @@
  * Provides WASM-accelerated parsing functions via wasm-bindgen.
  */
 
-import { ZigCoreLoader } from "./wasm-core-loader";
+import { WasmCoreLoader } from "./wasm-core-loader";
 
 let isWasmInitialized = false;
 let coreExports: any = null;
-const loader = ZigCoreLoader.getInstance();
+const loader = WasmCoreLoader.getInstance();
 
 export async function initCoreWasm(): Promise<void> {
     if (isWasmInitialized) return;

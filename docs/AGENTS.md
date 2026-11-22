@@ -21,7 +21,7 @@ Cursor is configured with detailed project context and coding standards for inte
 #### Configuration Highlights
 
 - Multi-runtime support (Node.js, Bun, Deno, browsers)
-- WASM codec integration with Zig compilation
+- WASM codec integration with Rust compilation
 - Medical imaging domain expertise
 - Zero-dependency architecture understanding
 
@@ -95,7 +95,7 @@ All AI agents are configured to maintain these standards:
 ### Architecture Compliance
 
 - **Modular Design**: Core parser, codec system, utilities separation
-- **WASM Integration**: Zig-compiled codecs with WASI interface
+- **WASM Integration**: Rust-compiled codecs with wasm-bindgen glue
 - **Multi-Runtime**: Node.js, Bun, Deno, browser compatibility
 - **Zero Dependencies**: No external runtime dependencies
 
@@ -140,7 +140,7 @@ bun run fix             # Auto-fix linting and formatting
 ### Context Awareness
 
 - **Domain Expertise**: Medical imaging, DICOM parsing, healthcare data
-- **Technical Stack**: TypeScript, Zig, WASM, esbuild, Bun runtime
+- **Technical Stack**: TypeScript, Rust, WASM, esbuild, Bun runtime
 - **Architecture Knowledge**: Core parser, codec system, streaming capabilities
 - **Performance Requirements**: Sub-10ms parsing, memory-efficient operations
 

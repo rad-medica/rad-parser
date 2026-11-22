@@ -12,9 +12,6 @@
         "vitest.explorer",
         "ms-vscode.test-adapter-converter",
 
-        // Zig language support (for WASM codecs)
-        "ziglang.vscode-zig",
-
         // WebAssembly
         "dtsvet.vscode-wasm",
 

@@ -3,8 +3,6 @@ node_modules/
 
 # Build outputs
 dist/
-zig-out/
-.zig-cache/
 
 # Logs
 *.log

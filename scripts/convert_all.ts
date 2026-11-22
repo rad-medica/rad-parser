@@ -44,16 +44,7 @@ async function main() {
     }
 
     // Init Core WASM
-    const wasmCorePath = path.resolve(
-        __dirname,
-        "../src/zig-core/zig-out/bin/rad-core.wasm"
-    );
-    if (!fs.existsSync(wasmCorePath)) {
-        throw new Error(
-            `Core WASM not found at ${wasmCorePath}. Please run 'bun run build:wasm:core'`
-        );
-    }
-    await initCoreWasm(new Uint8Array(readFileSync(wasmCorePath)));
+    await initCoreWasm();
 
     // Load Input
     const buffer = new Uint8Array(readFileSync(inputFile));

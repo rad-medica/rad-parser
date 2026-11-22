@@ -29,8 +29,7 @@
         "src/**/*.ts",
         "scripts/build_package.ts",
         "scripts/build_standalone.ts",
-        "scripts/build_wasm_rust.ts",
-        "scripts/copy_wasm_package.ts"
+        "scripts/build_wasm_rust.ts"
     ],
     "exclude": ["node_modules", "dist", "**/*.test.ts"]
 }

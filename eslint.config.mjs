@@ -11,9 +11,6 @@ export default tseslint.config(
             "byte_code_check.js",
             "**/*.d.ts",
             "**/*.config.*",
-            "zig-out/**",
-            "zig-cache/**",
-            ".zig-cache/**",
         ],
     },
     {

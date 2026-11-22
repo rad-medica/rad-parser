@@ -7,7 +7,7 @@ describe("Wasm Encoding", () => {
     let jpegCodec: JpegNativeCodec;
 
     beforeAll(async () => {
-        // Initialize codecs - they use Zig WASM codecs internally
+        // Initialize codecs - they use WASM codecs internally
         rleCodec = new RleCodec();
         jpegCodec = new JpegNativeCodec();
 

@@ -33,12 +33,5 @@ interface GPUDevice {
     queue: { submit(cmds: any[]): void };
 }
 
-// Global variable definitions for WASM embedding and standalone build
+// Global variable definitions for the standalone build
 declare var __RAD_STANDALONE__: boolean;
-declare var __RAD_PARSER_CORE_WASM__: string;
-declare var __RAD_PARSER_CODEC_JPEG_WASM__: string;
-declare var __RAD_PARSER_CODEC_J2K_WASM__: string;
-declare var __RAD_PARSER_CODEC_JPEGLS_WASM__: string;
-declare var __RAD_PARSER_CODEC_RLE_WASM__: string;
-declare var __RAD_PARSER_CODEC_HTJ2K_WASM__: string;
-declare var __RAD_PARSER_CODEC_LJPEG_WASM__: string;

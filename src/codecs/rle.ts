@@ -26,10 +26,7 @@ export class RleCodec implements PixelDataCodec {
             await this.wasmCodecs.initCodec("rle");
             this.wasmAvailable = true;
         } catch (e) {
-            console.warn(
-                "Failed to init RLE Zig WASM codec, using JS fallback",
-                e
-            );
+            console.warn("Failed to init RLE WASM codec, using JS fallback", e);
         }
     }
 
@@ -100,7 +97,7 @@ export class RleCodec implements PixelDataCodec {
         const height = info?.height || info?.rows || 512;
         const samples = info?.samplesPerPixel || numSegments;
 
-        // Try Zig WASM first
+        // Try WASM first
         if (this.wasmAvailable) {
             try {
                 return await this.wasmCodecs.decodeRle(
@@ -231,7 +228,7 @@ export class RleCodec implements PixelDataCodec {
         }
         await this.initPromise;
 
-        // Try Zig WASM first (but not for 16-bit single-component - WASM doesn't handle MSB/LSB splitting)
+        // Try WASM first (but not for 16-bit single-component - WASM doesn't handle MSB/LSB splitting)
         if (this.wasmAvailable && !(bits === 16 && samples === 1)) {
             try {
                 const encoded = await this.wasmCodecs.encodeRle(

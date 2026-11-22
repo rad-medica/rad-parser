@@ -28,18 +28,18 @@ interface CoreModule {
     exports: CoreExports;
 }
 
-export class ZigCoreLoader {
-    private static instance: ZigCoreLoader;
+export class WasmCoreLoader {
+    private static instance: WasmCoreLoader;
     private module: CoreModule | null = null;
     private basePath: string = "";
 
     private constructor() {}
 
-    public static getInstance(): ZigCoreLoader {
-        if (!ZigCoreLoader.instance) {
-            ZigCoreLoader.instance = new ZigCoreLoader();
+    public static getInstance(): WasmCoreLoader {
+        if (!WasmCoreLoader.instance) {
+            WasmCoreLoader.instance = new WasmCoreLoader();
         }
-        return ZigCoreLoader.instance;
+        return WasmCoreLoader.instance;
     }
 
     public setBasePath(path: string): void {
