@@ -6,10 +6,8 @@ import { initCoreWasm, parse, write } from "../src/index";
 import { dicomToImage } from "../src/utils/dicomToImage";
 import { transcode } from "../src/utils/transcode";
 // Codec Init
-import { resolve } from "path";
 import { JpegNativeCodec } from "../src/codecs/jpegNative";
 import { RleCodec } from "../src/codecs/rle";
-import { WasmCodecLoader } from "../src/codecs/wasm-codecs-loader";
 import { registry } from "../src/core/registry"; // To register native manual
 import { DicomDataSet } from "../src/core/types";
 
@@ -22,31 +20,8 @@ async function main() {
         return;
     }
 
-    // Initialize environment
-    const wasmCorePath = new URL(
-        "../src/wasm-core-build/rad_parser_wasm_core_bg.wasm",
-        import.meta.url
-    );
-
-    // Core WASM Setup
-    // Use the loader if possible, or keep manual init content if initCoreWasm expects buffer.
-    // initCoreWasm in wasm-opt.ts uses exports/imports.
-    // The previous code read file and passed buffer.
-    // Let's stick to initCoreWasm but fix the path if needed.
-    // Actually, initCoreWasm in src/index (from core/wasm-opt) handles loading internally if no buffer provided?
-    // Looking at wasm-opt.ts: initCoreWasm() calls loader.load().
-
-    // So we can just call await initCoreWasm(); without arguments.
-    // But we need to make sure loader knows where to find files.
-
-    // For now, let's trust initCoreWasm default behavior (which locates dist/package/rad-core itself).
+    // The core and codec loaders locate the wasm-bindgen output in dist/package/rad-* themselves.
     await initCoreWasm();
-
-    // Codecs Setup (New)
-    const codecsLoader = WasmCodecLoader.getInstance();
-    // Point to dist/package/wasm-codecs which contains the built artifacts
-    const codecsPath = resolve(__dirname, "../dist/package/wasm-codecs");
-    codecsLoader.setBasePath(codecsPath);
 
     // Register Node.js-friendly codecs manually just in case auto-register relies on bundling
     registry.register(new JpegNativeCodec());

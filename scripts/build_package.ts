@@ -1,4 +1,6 @@
 import { spawnSync } from "child_process";
+import { build } from "esbuild";
+import { readdirSync } from "fs";
 
 function run(command: string, args: string[]) {
     console.log(`Running: ${command} ${args.join(" ")}`);
@@ -27,22 +29,25 @@ async function main() {
 
     // CJS Build
     console.log("Building CJS...");
-    run("bun", [
-        "run",
-        "tsc",
-        "--project",
-        "tsconfig.build.json",
-        "--module",
-        "commonjs",
-        "--moduleResolution",
-        "node",
-        "--outDir",
-        "dist/package/cjs",
-        "--declaration",
-        "false",
-        "--declarationMap",
-        "false",
-    ]);
+    // tsc rejects import.meta under --module commonjs (TS1343) and would turn the
+    // loaders' import() of the ESM wasm-bindgen glue into require(). esbuild keeps
+    // import() and lets import.meta.url be mapped onto __filename.
+    const sources = (readdirSync("src", { recursive: true }) as string[])
+        .map(file => "src/" + file.split("\\").join("/"))
+        .filter(file => file.endsWith(".ts") && !file.endsWith(".d.ts"));
+    await build({
+        entryPoints: sources,
+        outdir: "dist/package/cjs",
+        outbase: "src",
+        format: "cjs",
+        platform: "node",
+        target: "es2022",
+        sourcemap: true,
+        define: { "import.meta.url": "__radImportMetaUrl" },
+        banner: {
+            js: 'const __radImportMetaUrl = require("url").pathToFileURL(__filename).href;',
+        },
+    });
 
     // Post Build
     console.log("Running Post-Build...");

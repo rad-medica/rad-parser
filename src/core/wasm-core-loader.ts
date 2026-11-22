@@ -79,7 +79,7 @@ export class WasmCoreLoader {
                     // Try to resolve relative to this file
                     const __filename = url.fileURLToPath(import.meta.url);
                     const __dirname = path.dirname(__filename);
-                    // Try src/core-wasm/dist (dev) or dist/package/rad-core (build)
+                    // From src/core (dev) or from dist/package/{esm,cjs}/core (build)
                     const devPath = path.resolve(
                         __dirname,
                         "../../dist/package/rad-core"
@@ -87,8 +87,7 @@ export class WasmCoreLoader {
                     if (fs.existsSync(path.join(devPath, "rad_core_wasm.js"))) {
                         dir = devPath;
                     } else {
-                        // Fallback
-                        dir = path.resolve(__dirname, "wasm-core");
+                        dir = path.resolve(__dirname, "../../rad-core");
                     }
                 }
 
