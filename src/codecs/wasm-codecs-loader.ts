@@ -26,8 +26,8 @@ interface CodecModule {
     exports: any;
 }
 
-export class ZigWasmCodecLoader {
-    private static instance: ZigWasmCodecLoader;
+export class WasmCodecLoader {
+    private static instance: WasmCodecLoader;
     private loadedModules: Map<WasmModuleName, CodecModule> = new Map();
     private loadingPromises: Map<WasmModuleName, Promise<CodecModule>> =
         new Map();
@@ -35,11 +35,11 @@ export class ZigWasmCodecLoader {
 
     private constructor() {}
 
-    public static getInstance(): ZigWasmCodecLoader {
-        if (!ZigWasmCodecLoader.instance) {
-            ZigWasmCodecLoader.instance = new ZigWasmCodecLoader();
+    public static getInstance(): WasmCodecLoader {
+        if (!WasmCodecLoader.instance) {
+            WasmCodecLoader.instance = new WasmCodecLoader();
         }
-        return ZigWasmCodecLoader.instance;
+        return WasmCodecLoader.instance;
     }
 
     public setBasePath(path: string): void {

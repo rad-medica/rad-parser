@@ -1,5 +1,5 @@
 /**
- * Standard JPEG Decoder Plugin via Zig WASM
+ * Standard JPEG Decoder Plugin via WASM
  * Transfer Syntaxes:
  *  - 1.2.840.10008.1.2.4.50 (JPEG Baseline)
  *  - 1.2.840.10008.1.2.4.51 (JPEG Extended 12-bit)
@@ -27,7 +27,7 @@ export class JpegDecoder implements PixelDataCodec {
         try {
             await this.wasmCodecs.initCodec("jpeg");
         } catch (e) {
-            console.warn("Failed to init JPEG Zig WASM codec", e);
+            console.warn("Failed to init JPEG WASM codec", e);
         }
     }
 
@@ -50,11 +50,11 @@ export class JpegDecoder implements PixelDataCodec {
             await this.initPromise;
         }
 
-        // 1. Try Zig WASM
+        // 1. Try WASM
         try {
             return await this.wasmCodecs.decodeJpeg(combined);
         } catch (e) {
-            console.warn("Zig WASM JPEG decode failed, fallback to Browser", e);
+            console.warn("WASM JPEG decode failed, fallback to Browser", e);
         }
 
         // 2. Fallback to Browser Native
@@ -79,7 +79,7 @@ export class JpegDecoder implements PixelDataCodec {
         }
 
         throw new Error(
-            "No JPEG decoder available (Zig WASM failed and no ImageDecoder)"
+            "No JPEG decoder available (WASM failed and no ImageDecoder)"
         );
     }
 }

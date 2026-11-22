@@ -235,19 +235,13 @@ A head-to-head comparison of capabilities, ecosystem, and performance.
 
 ## Building from Source
 
-To build the project and its WASM dependencies from source, you need [Zig](https://ziglang.org/) (tested with 0.13.0) installed.
+To build the project and its WASM modules from source, you need [Bun](https://bun.sh/) and a Rust toolchain. The codecs are Rust crates; there are no git submodules.
 
-1. **Clone the repository with submodules:**
+1. **Clone the repository:**
 
     ```bash
-    git clone --recursive https://github.com/rad-medica/rad-parser.git
+    git clone https://github.com/rad-medica/rad-parser.git
     cd rad-parser
-    ```
-
-    If you already cloned it without submodules, initialize them:
-
-    ```bash
-    git submodule update --init --recursive
     ```
 
 2. **Install dependencies with Bun:**
@@ -278,7 +272,7 @@ To build the project and its WASM dependencies from source, you need [Zig](https
 
 This project includes optimized VS Code configurations for Bun development:
 
-- **Extensions**: Recommended extensions for TypeScript, Zig, WASM, and Bun development
+- **Extensions**: Recommended extensions for TypeScript, WASM, and Bun development
 - **Tasks**: Build and test tasks using Bun runtime
 - **Debugging**: Launch configurations for CLI, tests, and benchmarks
 - **Settings**: Optimized editor settings for the project

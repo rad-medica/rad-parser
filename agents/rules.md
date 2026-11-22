@@ -3,7 +3,7 @@
 ## Project Identity
 
 **rad-parser** is a high-performance, zero-dependency DICOM parser built with TypeScript and WASM
-codecs compiled from Zig. It provides medical imaging parsing capabilities for Node.js, Bun, Deno,
+codecs compiled from Rust. It provides medical imaging parsing capabilities for Node.js, Bun, Deno,
 and browser environments.
 
 ## Technical Specifications
@@ -13,7 +13,7 @@ and browser environments.
 - **Primary Development**: Bun runtime
 - **Compatibility**: Node.js, npm, Deno, browsers
 - **Module System**: ESM with CJS fallbacks
-- **Build Tools**: esbuild, Zig compiler, Binaryen
+- **Build Tools**: esbuild, Rust (cargo), wasm-bindgen
 
 ### Code Quality Standards
 
@@ -187,10 +187,8 @@ function readUint16LE(buffer: Uint8Array, offset: number): number {
 
 ### WASM Codec Integration
 
-- Zig-compiled codecs for performance
-- WASI interface for system operations
+- Rust-compiled codecs for performance
 - Lazy loading with fallback mechanisms
-- Binaryen optimization for size reduction
 
 ### Multi-Runtime Support
 

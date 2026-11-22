@@ -9,7 +9,7 @@ import { transcode } from "../src/utils/transcode";
 import { resolve } from "path";
 import { JpegNativeCodec } from "../src/codecs/jpegNative";
 import { RleCodec } from "../src/codecs/rle";
-import { ZigWasmCodecLoader } from "../src/codecs/wasm-codecs-loader";
+import { WasmCodecLoader } from "../src/codecs/wasm-codecs-loader";
 import { registry } from "../src/core/registry"; // To register native manual
 import { DicomDataSet } from "../src/core/types";
 
@@ -39,12 +39,11 @@ async function main() {
     // So we can just call await initCoreWasm(); without arguments.
     // But we need to make sure loader knows where to find files.
 
-    // For now, let's trust initCoreWasm default behavior (which uses ZigCoreLoader).
-    // ZigCoreLoader usually finds ../src/core/rad-core.wasm or similar.
+    // For now, let's trust initCoreWasm default behavior (which locates dist/package/rad-core itself).
     await initCoreWasm();
 
     // Codecs Setup (New)
-    const codecsLoader = ZigWasmCodecLoader.getInstance();
+    const codecsLoader = WasmCodecLoader.getInstance();
     // Point to dist/package/wasm-codecs which contains the built artifacts
     const codecsPath = resolve(__dirname, "../dist/package/wasm-codecs");
     codecsLoader.setBasePath(codecsPath);

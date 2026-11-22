@@ -50,7 +50,7 @@ export class JpegLsDecoder implements PixelDataCodec {
         try {
             await this.wasmCodecs!.initCodec("jpegls");
         } catch (e) {
-            console.warn("Failed to init JPEG-LS Zig WASM codec", e);
+            console.warn("Failed to init JPEG-LS WASM codec", e);
         }
     }
 

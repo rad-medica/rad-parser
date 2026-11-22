@@ -2,9 +2,9 @@
     "name": "rad-parser",
     "description": "High-performance DICOM parser with WASM codecs",
     "version": "2.0.0",
-    "languages": ["typescript", "zig"],
+    "languages": ["typescript", "rust"],
     "frameworks": ["node", "bun", "deno", "browser"],
-    "buildTools": ["esbuild", "zig", "binaryen"],
+    "buildTools": ["esbuild", "cargo", "wasm-bindgen"],
     "testing": ["vitest"],
     "linting": ["eslint", "prettier"],
     "codeStyle": {

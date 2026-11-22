@@ -26,7 +26,7 @@ export class JpegLosslessDecoder implements PixelDataCodec {
         try {
             await this.wasmCodecs.initCodec("ljpeg");
         } catch (e) {
-            console.warn("Failed to init JPEG Lossless Zig WASM codec", e);
+            console.warn("Failed to init JPEG Lossless WASM codec", e);
         }
     }
 

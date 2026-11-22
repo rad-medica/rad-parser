@@ -60,19 +60,19 @@ The parser supports all major character sets defined in PS3.3 Annex D.
 
 ## 4. Transfer Syntax & Codec Matrix
 
-| Transfer Syntax UID    | Name                        | JS Codec |    WASM Codec    |   Status   |
-| :--------------------- | :-------------------------- | :------: | :--------------: | :--------: |
-| 1.2.840.10008.1.2      | Implicit VR Little Endian   |    ✅    |       N/A        |  Default   |
-| 1.2.840.10008.1.2.1    | Explicit VR Little Endian   |    ✅    |       N/A        |  Default   |
-| 1.2.840.10008.1.2.2    | Explicit VR Big Endian      |    ✅    |       N/A        |  Default   |
-| 1.2.840.10008.1.2.5    | RLE Lossless                |    ✅    |  🚀 High Speed   | **Native** |
-| 1.2.840.10008.1.2.4.50 | JPEG Baseline (Proc 1)      |    ❌    | 🚀 libjpeg-turbo |  **Full**  |
-| 1.2.840.10008.1.2.4.57 | JPEG Lossless (Proc 14)     |    ❌    |   🚀 OpenJPEG    |  **Full**  |
-| 1.2.840.10008.1.2.4.70 | JPEG Lossless (Selection 1) |    ❌    |   🚀 OpenJPEG    |  **Full**  |
-| 1.2.840.10008.1.2.4.80 | JPEG-LS Lossless            |    ❌    |    🚀 CharLS     |  **Full**  |
-| 1.2.840.10008.1.2.4.81 | JPEG-LS Near-Lossless       |    ❌    |    🚀 CharLS     |  **Full**  |
-| 1.2.840.10008.1.2.4.90 | JPEG 2000 Lossless          |    ❌    |   🚀 OpenJPEG    |  **Full**  |
-| 1.2.840.10008.1.2.4.91 | JPEG 2000 (Lossy)           |    ❌    |   🚀 OpenJPEG    |  **Full**  |
+| Transfer Syntax UID    | Name                        | JS Codec |  WASM Codec   |   Status   |
+| :--------------------- | :-------------------------- | :------: | :-----------: | :--------: |
+| 1.2.840.10008.1.2      | Implicit VR Little Endian   |    ✅    |      N/A      |  Default   |
+| 1.2.840.10008.1.2.1    | Explicit VR Little Endian   |    ✅    |      N/A      |  Default   |
+| 1.2.840.10008.1.2.2    | Explicit VR Big Endian      |    ✅    |      N/A      |  Default   |
+| 1.2.840.10008.1.2.5    | RLE Lossless                |    ✅    | 🚀 High Speed | **Native** |
+| 1.2.840.10008.1.2.4.50 | JPEG Baseline (Proc 1)      |    ❌    | 🚀 jpegexp-rs |  **Full**  |
+| 1.2.840.10008.1.2.4.57 | JPEG Lossless (Proc 14)     |    ❌    | 🚀 jpegexp-rs |  **Full**  |
+| 1.2.840.10008.1.2.4.70 | JPEG Lossless (Selection 1) |    ❌    | 🚀 jpegexp-rs |  **Full**  |
+| 1.2.840.10008.1.2.4.80 | JPEG-LS Lossless            |    ❌    | 🚀 jpegexp-rs |  **Full**  |
+| 1.2.840.10008.1.2.4.81 | JPEG-LS Near-Lossless       |    ❌    | 🚀 jpegexp-rs |  **Full**  |
+| 1.2.840.10008.1.2.4.90 | JPEG 2000 Lossless          |    ❌    | 🚀 jpegexp-rs |  **Full**  |
+| 1.2.840.10008.1.2.4.91 | JPEG 2000 (Lossy)           |    ❌    | 🚀 jpegexp-rs |  **Full**  |
 
 ---
 

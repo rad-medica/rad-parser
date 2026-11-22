@@ -1,6 +1,6 @@
 /**
  * Native JPEG Codec Plugin
- * Uses Zig WASM for encoding and decoding.
+ * Uses WASM for encoding and decoding.
  * Provides JPEG Baseline encoding support for Node.js environments.
  */
 import { CodecInfo, PixelDataCodec } from "../core/registry";
@@ -25,7 +25,7 @@ export class JpegNativeCodec implements PixelDataCodec {
         try {
             await this.wasmCodecs.initCodec("jpeg");
         } catch (e) {
-            console.warn("Failed to init JPEG Native Zig WASM codec", e);
+            console.warn("Failed to init JPEG Native WASM codec", e);
         }
     }
 

@@ -2,7 +2,7 @@
 
 ## Project Context
 
-You are working on **rad-parser**, a high-performance DICOM parser written in TypeScript with WASM codecs compiled from Zig. This library provides zero-dependency DICOM parsing for Node.js, Bun, Deno, and browsers.
+You are working on **rad-parser**, a high-performance DICOM parser written in TypeScript with WASM codecs compiled from Rust. This library provides zero-dependency DICOM parsing for Node.js, Bun, Deno, and browsers.
 
 ## Code Standards
 
@@ -35,7 +35,7 @@ You are working on **rad-parser**, a high-performance DICOM parser written in Ty
     - `registry.ts`: Plugin system for image codecs
 
 - **`src/codecs/`**: Image compression/decompression
-    - WASM modules compiled from Zig source
+    - WASM modules compiled from Rust source
     - Support for JPEG, JPEG2000, RLE, PNG, JPEGLS
     - Automatic codec detection and loading
 
@@ -46,8 +46,7 @@ You are working on **rad-parser**, a high-performance DICOM parser written in Ty
 
 ### WASM Integration
 
-- Zig-compiled codecs with WASI interface
-- Binaryen optimization for size reduction
+- Rust codecs (`src/codecs-wasm/`) with wasm-bindgen glue
 - Runtime loading with fallback mechanisms
 - Memory-efficient binary operations
 
@@ -68,8 +67,7 @@ bun run fix           # Auto-fix linting and formatting
 
 1. TypeScript compilation with `tsc`
 2. CJS bundle generation with esbuild
-3. Zig WASM codec compilation
-4. Binary optimization with `wasm-opt`
+3. Rust WASM compilation with `bun run build:wasm`
 
 ## Coding Patterns
 

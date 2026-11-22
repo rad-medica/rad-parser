@@ -41,39 +41,6 @@
             "problemMatcher": ["$tsc"]
         },
         {
-            "label": "Build Zig codecs",
-            "type": "shell",
-            "command": "bun",
-            "args": ["run", "build:zig-codecs"],
-            "group": "build",
-            "presentation": {
-                "echo": true,
-                "reveal": "silent",
-                "focus": false,
-                "panel": "shared",
-                "showReuseMessage": true,
-                "clear": false
-            },
-            "problemMatcher": []
-        },
-        {
-            "label": "Optimize Zig codecs",
-            "type": "shell",
-            "command": "bun",
-            "args": ["run", "optimize:zig-codecs"],
-            "group": "build",
-            "presentation": {
-                "echo": true,
-                "reveal": "silent",
-                "focus": false,
-                "panel": "shared",
-                "showReuseMessage": true,
-                "clear": false
-            },
-            "dependsOn": ["Build Zig codecs"],
-            "problemMatcher": []
-        },
-        {
             "label": "Run tests with Bun",
             "type": "shell",
             "command": "bun",
@@ -193,14 +160,7 @@
             "label": "Clean build artifacts",
             "type": "shell",
             "command": "Remove-Item",
-            "args": [
-                "-Recurse",
-                "-Force",
-                "dist",
-                "zig-out",
-                "zig-cache",
-                "*.log"
-            ],
+            "args": ["-Recurse", "-Force", "dist", "*.log"],
             "group": "build",
             "presentation": {
                 "echo": true,

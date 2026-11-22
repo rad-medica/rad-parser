@@ -4,7 +4,7 @@ This directory contains VS Code configurations optimized for developing rad-pars
 
 ## Files
 
-- `settings.json` - Editor settings optimized for Bun, TypeScript, Zig, and WASM development
+- `settings.json` - Editor settings optimized for Bun, TypeScript, and WASM development
 - `extensions.json` - Recommended extensions for the best development experience
 - `launch.json` - Debug configurations for CLI, tests, and benchmarks using Bun
 - `tasks.json` - Build and development tasks using Bun runtime
@@ -13,7 +13,6 @@ This directory contains VS Code configurations optimized for developing rad-pars
 
 - **Bun Runtime**: All tasks and debugging use Bun as the primary runtime
 - **TypeScript**: Full TypeScript support with auto-imports and formatting
-- **Zig Support**: Configurations for Zig language (used for WASM codecs)
 - **Testing**: Vitest integration for running and debugging tests
 - **Performance**: Optimized file watching and search exclusions
 

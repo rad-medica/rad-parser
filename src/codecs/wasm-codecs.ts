@@ -2,14 +2,14 @@
  * WasmCodecs - High-level API for DICOM image codec operations.
  */
 
-import { CodecType, ZigWasmCodecLoader } from "./wasm-codecs-loader";
+import { CodecType, WasmCodecLoader } from "./wasm-codecs-loader";
 
 export class WasmCodecs {
-    private loader: ZigWasmCodecLoader;
+    private loader: WasmCodecLoader;
     private basePath?: string;
 
     constructor(basePath?: string) {
-        this.loader = ZigWasmCodecLoader.getInstance();
+        this.loader = WasmCodecLoader.getInstance();
         this.basePath = basePath;
         if (basePath) {
             this.loader.setBasePath(basePath);
@@ -23,7 +23,7 @@ export class WasmCodecs {
     public static getCodecForTransferSyntax(
         transferSyntaxUid: string
     ): CodecType | null {
-        return ZigWasmCodecLoader.getCodecForTransferSyntax(transferSyntaxUid);
+        return WasmCodecLoader.getCodecForTransferSyntax(transferSyntaxUid);
     }
 
     private async getCodecExports(codec: CodecType): Promise<any> {

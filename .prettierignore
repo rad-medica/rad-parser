@@ -1,9 +1,5 @@
-src/zig-codecs/deps
 dist/
 build/
-zig-out/
-zig-cache/
-.zig-cache/
 coverage/
 node_modules/
 
