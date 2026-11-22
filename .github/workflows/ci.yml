@@ -28,9 +28,9 @@ jobs:
             - run: bun run build
             - name: Check build output
               run: |
-                  test -d dist || exit 1
-                  test -f dist/index.js || exit 1
-                  test -f dist/index.d.ts || exit 1
+                  test -f dist/package/esm/index.js || exit 1
+                  test -f dist/package/esm/index.d.ts || exit 1
+                  test -f dist/package/cjs/index.js || exit 1
 
     test:
         runs-on: ubuntu-latest
