@@ -16,29 +16,9 @@ This directory contains VS Code configurations optimized for developing rad-pars
 - **Testing**: Vitest integration for running and debugging tests
 - **Performance**: Optimized file watching and search exclusions
 
-## AI Agent Integration
+## AI agents
 
-This project includes comprehensive rules and configurations for AI coding assistants:
-
-### Cursor
-
-- **File**: `.cursorrules` (project root)
-- **Features**: Detailed project context, coding standards, architecture guidelines
-- **Integration**: Automatic context awareness for Cursor AI editor
-
-### GitHub Copilot
-
-- **File**: `.github/copilot-instructions.md`
-- **Features**: Project overview, code standards, development workflow
-- **Integration**: GitHub Copilot reads these instructions for better code suggestions
-
-### Antigravity
-
-- **Files**: `agents/rules.md` and `agents/config.json`
-- **Features**: Comprehensive coding guidelines, architecture patterns, quality gates
-- **Integration**: Antigravity AI assistant uses these for context-aware code generation
-
-**[📖 Complete AI Agents Documentation](../docs/AGENTS.md)** - Comprehensive guide to all AI agent configurations and usage guidelines.
+Rules for every coding agent: [`AGENTS.md`](../AGENTS.md).
 
 ## Getting Started
 
@@ -51,15 +31,3 @@ This project includes comprehensive rules and configurations for AI coding assis
 
 You can override these settings in your user settings or workspace settings. The configurations here are optimized for this specific project.
 
-## AI Assistant Guidelines
-
-When using AI coding assistants with this project:
-
-1. **Follow the established patterns** in the rules files
-2. **Maintain code standards** (double quotes, LF endings, TypeScript strict mode)
-3. **Consider performance implications** for medical imaging code
-4. **Ensure cross-platform compatibility** (Node.js, Bun, Deno, browsers)
-5. **Add appropriate tests** when modifying functionality
-6. **Follow the architecture** (core parser, codec system, utilities)
-
-The AI agent configurations ensure consistent, high-quality code generation that matches the project's standards and architecture.
