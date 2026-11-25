@@ -39,7 +39,7 @@ A comprehensive test suite that compares `rad-parser` with:
 #### Running the Tests
 
 ```bash
-npm test tests/parser_comparison.test.ts
+npx vitest run tests/integration/parser_comparison.test.ts
 ```
 
 Or run all tests:
@@ -73,7 +73,7 @@ A performance benchmarking script that compares parsing speed and memory usage a
 
 - Outputs:
     - Console summary with performance comparison
-    - Detailed JSON results in `benchmarks/results/benchmark-summary.json`
+    - Detailed JSON results in `benchmarks/results/benchmark-summary-<timestamp>.json`
     - Individual parser outputs in `benchmarks/results/{parser-name}/`
 
 #### Running the Benchmark

@@ -111,7 +111,7 @@ describe("External codec integration", () => {
 Run:
 
 ```bash
-npm test tests/codec_integration_external.test.ts
+npx vitest run tests/integration/codec_external.test.ts
 ```
 
 ## 6) Practical Tips

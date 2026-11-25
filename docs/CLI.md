@@ -1,6 +1,6 @@
 # Rad-Parser CLI Reference
 
-The `rad` CLI tool provides a set of powerful utilities for inspecting, manipulating, and converting DICOM files directly from the command line.
+The `rad-parser` CLI provides a set of powerful utilities for inspecting, manipulating, and converting DICOM files directly from the command line.
 
 ## Installation
 
@@ -27,7 +27,7 @@ Parses a DICOM file and prints a structured dump of all data elements, including
 **Usage:**
 
 ```bash
-rad dump <file>
+rad-parser dump <file>
 ```
 
 **Output:**
@@ -52,7 +52,7 @@ Transcodes a DICOM file from one Transfer Syntax to another. This involves decod
 **Usage:**
 
 ```bash
-rad transcode <input_file> <output_file> --format <format_alias_or_uid>
+rad-parser transcode <input_file> <output_file> --format <format_alias_or_uid>
 ```
 
 **Parameters:**
@@ -75,19 +75,19 @@ rad transcode <input_file> <output_file> --format <format_alias_or_uid>
 1. **Compress to RLE:**
 
     ```bash
-    rad transcode study.dcm output_rle.dcm --format rle
+    rad-parser transcode study.dcm output_rle.dcm --format rle
     ```
 
 2. **Decompress to Native (Implicit Little Endian):**
 
     ```bash
-    rad transcode compressed.dcm output_native.dcm --format native
+    rad-parser transcode compressed.dcm output_native.dcm --format native
     ```
 
 3. **Convert to JPEG 2000:**
 
     ```bash
-    rad transcode explicit.dcm output_j2k.dcm --format j2k
+    rad-parser transcode explicit.dcm output_j2k.dcm --format j2k
     ```
 
 **Notes:**
@@ -105,7 +105,7 @@ Exports one or all frames from a DICOM file to standard image formats (PNG, JPEG
 **Usage:**
 
 ```bash
-rad image <input_file> <output_path> --format <png|jpeg> [--frame <index>]
+rad-parser image <input_file> <output_path> --format <png|jpeg> [--frame <index>]
 ```
 
 **Parameters:**
@@ -120,13 +120,13 @@ rad image <input_file> <output_path> --format <png|jpeg> [--frame <index>]
 1. **Export the first frame to PNG:**
 
     ```bash
-    rad image scan.dcm output.png
+    rad-parser image scan.dcm output.png
     ```
 
 2. **Export the 10th frame to JPEG:**
 
     ```bash
-    rad image multiframe.dcm frame_10.jpg --frame 9
+    rad-parser image multiframe.dcm frame_10.jpg --frame 9
     ```
 
 **Behind the Scenes:**
