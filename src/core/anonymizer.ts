@@ -200,8 +200,7 @@ export function anonymizeElement(
 
     if (isSequence) {
         const items = (element.items ?? element.Value) as
-            | SequenceItem[]
-            | undefined;
+            SequenceItem[] | undefined;
         if (Array.isArray(items)) {
             const cleaned = items.map(item => ({
                 elements: anonymizeDict(item.elements ?? {}, context),

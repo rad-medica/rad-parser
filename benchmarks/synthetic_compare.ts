@@ -1,7 +1,7 @@
 /**
  * Parse-time comparison with dicom-parser over a directory of DICOM files.
  *
- *   bun run benchmarks/synthetic_compare.ts <dir> [rounds]
+ *   npx tsx benchmarks/synthetic_compare.ts <dir> [rounds]
  *
  * Files are read into memory first; each round parses every file once per
  * parser. Reports the median round time per parser/mode.

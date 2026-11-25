@@ -21,7 +21,7 @@ export default function setup(): void {
             `WASM artifacts missing (${missing.join(", ")}). Build them first:\n` +
                 "  rustup target add wasm32-unknown-unknown\n" +
                 "  cargo install wasm-bindgen-cli --version <version of wasm-bindgen in Cargo.lock>\n" +
-                "  bun run build:wasm"
+                "  npm run build:wasm"
         );
     }
 }

@@ -18,8 +18,7 @@ async function main() {
 
     // ESM Build
     console.log("Building ESM...");
-    run("bun", [
-        "run",
+    run("npx", [
         "tsc",
         "--project",
         "tsconfig.build.json",
@@ -51,7 +50,7 @@ async function main() {
 
     // Post Build
     console.log("Running Post-Build...");
-    run("bun", ["run", "scripts/post_build_package.ts"]);
+    run("npx", ["tsx", "scripts/post_build_package.ts"]);
 
     console.log("Package build finished.");
 }

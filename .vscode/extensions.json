@@ -1,27 +1,10 @@
 {
     "recommendations": [
-        // Bun runtime support
-        "oven.bun-vscode",
-
-        // TypeScript and JavaScript
-        "ms-vscode.vscode-typescript-next",
         "esbenp.prettier-vscode",
         "dbaeumer.vscode-eslint",
-
-        // Testing
         "vitest.explorer",
-        "ms-vscode.test-adapter-converter",
-
-        // WebAssembly
-        "dtsvet.vscode-wasm",
-
-        // Development tools
-        "ms-vscode.vscode-json",
         "davidanson.vscode-markdownlint",
-        "ms-vscode.vscode-markdown-preview-enhanced",
-        "christian-kohler.path-intellisense",
-        "bradlc.vscode-tailwindcss",
-        "ms-vscode.vscode-css-peek"
+        "rust-lang.rust-analyzer"
     ],
     "unwantedRecommendations": []
 }

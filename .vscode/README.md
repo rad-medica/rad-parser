@@ -1,33 +1,15 @@
-# VS Code Configuration for Bun Development
+# VS Code configuration
 
-This directory contains VS Code configurations optimized for developing rad-parser with Bun.
+TL;DR: open the folder, accept the recommended extensions, `Ctrl+Shift+P` → *Tasks: Run Task*. Everything runs on
+Node.js 22+ and npm.
 
-## Files
-
-- `settings.json` - Editor settings optimized for Bun, TypeScript, and WASM development
-- `extensions.json` - Recommended extensions for the best development experience
-- `launch.json` - Debug configurations for CLI, tests, and benchmarks using Bun
-- `tasks.json` - Build and development tasks using Bun runtime
-
-## Key Features
-
-- **Bun Runtime**: All tasks and debugging use Bun as the primary runtime
-- **TypeScript**: Full TypeScript support with auto-imports and formatting
-- **Testing**: Vitest integration for running and debugging tests
-- **Performance**: Optimized file watching and search exclusions
+| File | Holds |
+|---|---|
+| `settings.json` | Editor, Prettier, ESLint, markdownlint and Vitest settings |
+| `extensions.json` | Prettier, ESLint, Vitest, markdownlint, rust-analyzer (WASM codecs) |
+| `launch.json` | Debug the CLI (`src/cli.ts` via `tsx`, asks for a file), the tests, the benchmarks; attach on port 9229 |
+| `tasks.json` | The `package.json` scripts: install, build, test, lint, format, benchmarks |
 
 ## AI agents
 
 Rules for every coding agent: [`AGENTS.md`](../AGENTS.md).
-
-## Getting Started
-
-1. Install recommended extensions when prompted
-2. Use `Ctrl+Shift+P` → "Tasks: Run Task" to access Bun-powered build tasks
-3. Use `F5` or debug panel to run debug configurations
-4. All scripts in package.json work with Bun automatically
-
-## Customization
-
-You can override these settings in your user settings or workspace settings. The configurations here are optimized for this specific project.
-

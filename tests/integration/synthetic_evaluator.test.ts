@@ -6,7 +6,7 @@
  *   cargo run --release --example synth_ct -- <dir>/ct 128 40
  *   cargo run --release --example synth_documents -- <dir>/objects 128 40
  * then run:
- *   RAD_PARSER_SYNTH_DIR=<dir> bun run vitest run tests/integration/synthetic_evaluator.test.ts
+ *   RAD_PARSER_SYNTH_DIR=<dir> npx vitest run tests/integration/synthetic_evaluator.test.ts
  *
  * Skipped when RAD_PARSER_SYNTH_DIR is not set. Per file it compares a fixed
  * list of top-level and nested attributes and the Pixel Data bytes with
@@ -208,8 +208,7 @@ function radItems(
     el: DicomElement | undefined
 ): Array<Record<string, DicomElement>> {
     const items = (el?.items ?? el?.Value) as
-        | Array<{ elements: Record<string, DicomElement> }>
-        | undefined;
+        Array<{ elements: Record<string, DicomElement> }> | undefined;
     return Array.isArray(items) ? items.map(i => i.elements ?? {}) : [];
 }
 

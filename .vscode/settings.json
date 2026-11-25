@@ -1,5 +1,4 @@
 {
-    // VS Code settings optimized for Bun development
     "typescript.preferences.importModuleSpecifier": "relative",
     "typescript.suggest.autoImports": true,
     "typescript.updateImportsOnFileMove.enabled": "always",
@@ -72,9 +71,7 @@
         "MD048": { "style": "backtick" }
     },
 
-    // Bun-specific settings
-    "npm.packageManager": "bun",
-    "bun.enable": true,
+    "npm.packageManager": "npm",
 
     // Testing with Vitest
     "vitest.enable": true,
@@ -82,8 +79,7 @@
 
     // File associations
     "files.associations": {
-        "*.wasm": "wasm",
-        "bun.lockb": "json"
+        "*.wasm": "wasm"
     },
 
     // Search exclusions

@@ -255,7 +255,7 @@ first (`parseAndDecode`).
 (`parseDSWasm`, `applyModalityLutWasm`, `applyVoiLutWasm`, ...). Parsing does
 not need them;
 `enableWasm` is accepted for compatibility and has no effect on decoding. The
-WASM modules are built with `bun run build:wasm` (Rust,
+WASM modules are built with `npm run build:wasm` (Rust,
 `wasm32-unknown-unknown`, and `wasm-bindgen-cli` matching `Cargo.lock`).
 
 ## Tag formats

@@ -551,11 +551,9 @@ export class StreamingParser {
                     vr: "SQ",
                     VR: "SQ",
                     Value: sequence as unknown as
-                        | Array<string | number>
-                        | Record<string, unknown>,
+                        Array<string | number> | Record<string, unknown>,
                     value: sequence as unknown as
-                        | Array<string | number>
-                        | Record<string, unknown>,
+                        Array<string | number> | Record<string, unknown>,
                     length: undefined,
                     Length: undefined,
                     items: sequence as unknown[],
@@ -580,11 +578,9 @@ export class StreamingParser {
                     vr: "SQ",
                     VR: "SQ",
                     Value: sequence as unknown as
-                        | Array<string | number>
-                        | Record<string, unknown>,
+                        Array<string | number> | Record<string, unknown>,
                     value: sequence as unknown as
-                        | Array<string | number>
-                        | Record<string, unknown>,
+                        Array<string | number> | Record<string, unknown>,
                     length: length,
                     Length: length,
                     items: sequence as unknown[],

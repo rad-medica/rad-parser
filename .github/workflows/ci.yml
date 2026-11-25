@@ -11,21 +11,23 @@ jobs:
         runs-on: ubuntu-latest
         steps:
             - uses: actions/checkout@v4
-            - uses: oven-sh/setup-bun@v1
+            - uses: actions/setup-node@v4
               with:
-                  bun-version: latest
-            - run: bun install
-            - run: bun run type-check
+                  node-version: 22
+                  cache: npm
+            - run: npm ci
+            - run: npm run type-check
 
     build:
         runs-on: ubuntu-latest
         steps:
             - uses: actions/checkout@v4
-            - uses: oven-sh/setup-bun@v1
+            - uses: actions/setup-node@v4
               with:
-                  bun-version: latest
-            - run: bun install
-            - run: bun run build
+                  node-version: 22
+                  cache: npm
+            - run: npm ci
+            - run: npm run build
             - name: Check build output
               run: |
                   test -f dist/package/esm/index.js || exit 1
@@ -37,18 +39,18 @@ jobs:
         needs: build
         steps:
             - uses: actions/checkout@v4
-            - uses: oven-sh/setup-bun@v1
+            - uses: actions/setup-node@v4
               with:
-                  bun-version: latest
+                  node-version: 22
+                  cache: npm
             - uses: dtolnay/rust-toolchain@stable
               with:
                   targets: wasm32-unknown-unknown
             - name: Install wasm-bindgen-cli matching Cargo.lock
               run: |
-                  cargo generate-lockfile
                   cargo install wasm-bindgen-cli --locked --version "$(cargo pkgid wasm-bindgen | sed 's/.*[@#]//')"
-            - run: bun install
-            - run: bun run build:wasm
-            - run: bun run build
-            - run: bun run lint
-            - run: bun run test
+            - run: npm ci
+            - run: npm run build:wasm
+            - run: npm run build
+            - run: npm run lint
+            - run: npm test

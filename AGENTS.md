@@ -6,7 +6,7 @@
 2. Proprietary, © 2025-2026 Alberto Rojas Astorga, RadMedica E.I.R.L. (`LICENSE`). Permissive deps only.
 3. Less is more: reuse what exists, smallest diff that fully works, fewest tokens.
 4. Test the minimum that proves the change. Never walk every translation through the GUI.
-5. Run `bun run check` and `bun run test` before saying anything is done.
+5. Run `npm run check` and `npm test` before saying anything is done.
 
 ## What this is
 
@@ -38,11 +38,11 @@ obtained before commit `c08887c` were MIT.
 ## Commands
 
 ```sh
-bun run check        # tsc --noEmit, eslint, markdownlint, prettier --check
-bun run test         # vitest
-bun run build        # package + standalone bundles
-bun run build:wasm   # Rust codecs (src/core-wasm, src/codecs-wasm)
-bun run benchmark    # see benchmarks/README.md
+npm run check        # tsc --noEmit, eslint, markdownlint, prettier --check
+npm test         # vitest
+npm run build        # package + standalone bundles
+npm run build:wasm   # Rust codecs (src/core-wasm, src/codecs-wasm)
+npm run benchmark    # see benchmarks/README.md
 ```
 
 ## Where things are
