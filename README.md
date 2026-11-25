@@ -57,26 +57,6 @@ npm run build
 | `image <in> <out> --frame <n>`        | Export DICOM frames to PNG or JPEG images.             |
 | `help`                                | Show detailed help message.                            |
 
-### **Examples**
-
-**1. Dump tags:**
-
-```bash
-node bin/rad-parser.js dump "scan.dcm"
-```
-
-**2. Compress to RLE:**
-
-```bash
-node bin/rad-parser.js transcode "native.dcm" "compressed.dcm" --format rle
-```
-
-**3. Export frame to PNG:**
-
-```bash
-node bin/rad-parser.js image "scan.dcm" "output.png" --frame 0
-```
-
 ---
 
 ## Benchmarks
@@ -262,7 +242,6 @@ To build the project and its WASM modules from source, you need Node.js 22+ (npm
 
     ```bash
     rustup target add wasm32-unknown-unknown
-    cargo generate-lockfile
     cargo install wasm-bindgen-cli --version "$(cargo pkgid wasm-bindgen | sed 's/.*[@#]//')"
     npm run build:wasm
     ```
