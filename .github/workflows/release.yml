@@ -21,6 +21,15 @@ jobs:
                   node-version: 22
                   cache: npm
 
+            - name: Set up Rust
+              uses: dtolnay/rust-toolchain@stable
+              with:
+                  targets: wasm32-unknown-unknown
+
+            - name: Install wasm-bindgen-cli matching Cargo.lock
+              run: |
+                  cargo install wasm-bindgen-cli --locked --version "$(cargo pkgid wasm-bindgen | sed 's/.*[@#]//')"
+
             - name: Install dependencies
               run: npm ci
 
