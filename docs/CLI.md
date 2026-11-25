@@ -1,15 +1,20 @@
 # Rad-Parser CLI Reference
 
-The `rad-parser` CLI provides a set of powerful utilities for inspecting, manipulating, and converting DICOM files directly from the command line.
+## TL;DR
+
+- Command-line tools to inspect, transcode and convert DICOM files.
+- `dump <file>`: print every data element (tag, VR, value).
+- `transcode <in> <out> --format <alias|uid>`: re-encode Pixel Data to another Transfer Syntax.
+- `image <in> <out> --format <png|jpeg> [--frame <n>]`: export frames as PNG or JPEG.
 
 ## Installation
 
 The CLI is included with the `rad-parser` package.
 
+From a built checkout (`npm run build`):
+
 ```bash
-npm install -g rad-parser
-# OR run via npx
-npx rad-parser [command]
+node bin/rad-parser.js [command]
 ```
 
 ## Global Options

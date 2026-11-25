@@ -1,8 +1,10 @@
 # DICOM Conformance & Capability Matrix
 
-This document provides a detailed technical breakdown of `rad-parser` capabilities,
-its alignment with DICOM standards (PS3.x), and a comparison between its JavaScript (JS)
-and WebAssembly (WASM) implementations.
+## TL;DR
+
+- Capability matrix of `rad-parser` against DICOM PS3.x, JS vs WASM implementation.
+- Covers transfer syntaxes, VRs, character sets, codecs, IODs, writing and anonymization.
+- Ends with performance quality gates, the planned-features roadmap and a conformance summary.
 
 ## 1. Core Parser Compliance (PS3.5 & PS3.10)
 

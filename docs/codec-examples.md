@@ -1,6 +1,10 @@
 # Third-Party Codec Integration Examples
 
-`rad-parser` is designed to be a lightweight core, and it uses an "adapter" pattern to integrate with powerful, third-party libraries for decoding complex compressed formats. This guide provides practical examples of how to use popular WebAssembly (WASM) and JavaScript libraries with `rad-parser`.
+## TL;DR
+
+- Wiring third-party WASM/JS decoders into `rad-parser` through adapter codecs.
+- Pattern: pass the library's decoder to an adapter (e.g. `Jpeg2000Decoder`), then register it.
+- Examples: JPEG 2000 (`openjpeg-js`, `jpeg2000-js`) and JPEG-LS (`charls-js`).
 
 ## The Adapter Pattern
 

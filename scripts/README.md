@@ -1,6 +1,10 @@
 # RAD-Parser Scripts
 
-This directory contains utility scripts for building, testing, verification, and debugging of the `rad-parser` library.
+## TL;DR
+
+- Build, verify and debug scripts; run with `npx tsx scripts/<name>.ts`.
+- Main codec check: `verify_codecs.ts` (round trip for every transfer syntax).
+- Inspection: `dump_dicom.ts`, `dump_header.ts`, `hex_dump.ts`, `compare_outputs.ts`.
 
 ## Build & Publishing
 

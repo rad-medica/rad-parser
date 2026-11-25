@@ -1,7 +1,10 @@
 # Parser Comparison Tests and Benchmarks
 
-This directory contains comprehensive tests and benchmarks comparing `rad-parser` with other DICOM
-parsers in the ecosystem.
+## TL;DR
+
+- Compares `rad-parser` with dcmjs, dicom-parser and efferent-dicom: correctness tests, speed benchmark.
+- Tests: `npx vitest run tests/integration/parser_comparison.test.ts`.
+- Benchmark: `npm run benchmark`; up to 100 `test_data/` files, JSON in `benchmarks/results/`.
 
 ## Test Files
 

@@ -1,10 +1,14 @@
 # rad-parser
 
-**rad-parser** is a lightweight, performant, and self-contained DICOM parser for Node.js, Bun, Deno, and browsers, built with TypeScript and with **zero external dependencies**.
+## TL;DR
+
+- Zero-dependency TypeScript DICOM parser for Node.js, Bun, Deno and browsers.
+- Parse modes: `fast`/`shallow`, `light`, `full`, `lazy`, `streaming`; Pixel Data as views.
+- Also: on-demand codecs, `anonymize` (PS3.15), `write`, CLI (`dump`, `transcode`, `image`).
+- Details: [API reference](./docs/api.md), [CLI reference](./docs/CLI.md).
 
 It is designed for safety, efficiency, and reliability in medical imaging applications, command-line utilities, and cloud-based pipelines where dependency bloat and performance are critical concerns.
 
-[![npm version](https://img.shields.io/npm/v/rad-parser.svg)](https://www.npmjs.com/package/rad-parser)
 [![License: Proprietary](https://img.shields.io/badge/License-Proprietary-red.svg)](LICENSE)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.0+-blue.svg)](https://www.typescriptlang.org/)
 
@@ -28,8 +32,12 @@ More docs:
 
 ## Installation
 
+Not published to npm (proprietary). Add the repository as a git submodule, as radspider-web does
+(`lib/rad-parser`), or build it here:
+
 ```bash
-npm install rad-parser
+npm install
+npm run build
 ```
 
 ---
@@ -54,19 +62,19 @@ npm install rad-parser
 **1. Dump tags:**
 
 ```bash
-npx rad-parser dump "scan.dcm"
+node bin/rad-parser.js dump "scan.dcm"
 ```
 
 **2. Compress to RLE:**
 
 ```bash
-npx rad-parser transcode "native.dcm" "compressed.dcm" --format rle
+node bin/rad-parser.js transcode "native.dcm" "compressed.dcm" --format rle
 ```
 
 **3. Export frame to PNG:**
 
 ```bash
-npx rad-parser image "scan.dcm" "output.png" --frame 0
+node bin/rad-parser.js image "scan.dcm" "output.png" --frame 0
 ```
 
 ---

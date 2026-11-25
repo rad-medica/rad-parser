@@ -1,6 +1,10 @@
 # Encoding Pixel Data Examples
 
-This guide demonstrates how to take a raw pixel data buffer and encode it into a compressed format, such as JPEG 2000, before writing it to a new DICOM file.
+## TL;DR
+
+- Compressing raw Pixel Data (e.g. to JPEG 2000) and writing it to a new DICOM file.
+- Set `(7FE0,0010)` to the new fragments, VR `OB`; set `(0002,0010)` to the new Transfer Syntax UID.
+- Serialize with `write()`; the example uses a dummy encoder in place of a real one.
 
 The general workflow for encoding is:
 

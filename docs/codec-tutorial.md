@@ -1,5 +1,11 @@
 # Rad-Parser: Image Codec Tutorial
 
+## TL;DR
+
+- Built-in codecs: RLE, JPEG Baseline, JPEG 2000, JPEG-LS, with Wasm acceleration and JS fallbacks.
+- Calibrated values (e.g. Hounsfield units): `extractRescaledPixelData(dataset)`.
+- Also: Wasm init, streaming large files, multi-frame data and a DICOM-to-PNG example.
+
 ## Overview
 
 Rad-parser includes built-in support for multiple DICOM image compression formats with automatic Wasm acceleration and JavaScript fallbacks.

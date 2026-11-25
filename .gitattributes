@@ -1,5 +1,53 @@
+# Same file in every radspider repository. Text is stored and checked out with LF on every OS;
+# only Windows scripts get CRLF. Binaries are never converted.
 * text=auto eol=lf
-*.wasm binary
-*.dcm binary
+
+*.ps1 text eol=crlf
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# Images, video, medical and codec data
 *.png binary
 *.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.webp binary
+*.dcm binary
+*.dicom binary
+*.nii binary
+*.nrrd binary
+*.raw binary
+*.yuv binary
+*.pgm binary
+*.ppm binary
+*.pnm binary
+*.jls binary
+*.j2k binary
+*.j2c binary
+*.jhc binary
+*.jp2 binary
+*.jph binary
+*.jpf binary
+*.mpg binary
+*.m2v binary
+*.mp4 binary
+*.avi binary
+
+# Archives, fonts, models, build outputs
+*.zip binary
+*.gz binary
+*.zst binary
+*.ttf binary
+*.otf binary
+*.woff binary
+*.woff2 binary
+*.onnx binary
+*.pt binary
+*.pth binary
+*.npy binary
+*.wasm binary
+*.pdf binary
+*.exe binary
+*.dll binary
+*.so binary

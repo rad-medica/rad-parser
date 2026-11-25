@@ -1,5 +1,11 @@
 # Rad-Parser: Utilities Reference
 
+## TL;DR
+
+- Reference for helper functions exported by `rad-parser`.
+- Pixel: `extractRescaledPixelData` (slope/intercept, Float32Array), `transcode`, `dicomToImage`.
+- Also: tags, dictionary, value parsing, VR detection, `SafeDataView`, transfer syntax.
+
 ## Pixel Data Utilities
 
 ### extractRescaledPixelData(dataset)

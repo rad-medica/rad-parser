@@ -1,13 +1,19 @@
 # Rad-Parser API Reference
 
-`rad-parser` parses DICOM Part 10 files (and raw Data Sets) in Node.js, Bun,
-Deno and browsers with no runtime dependencies. Everything below is exported
-from `rad-parser` (and, unless noted, from `rad-parser/core`).
+## TL;DR
+
+- API reference: everything is exported from `rad-parser` (and, unless noted, `rad-parser/core`).
+- Parses DICOM Part 10 files and raw Data Sets in Node.js, Bun, Deno and browsers; no runtime deps.
+- Entry points: `parse`, `write`, `anonymize`, streaming, pixel and WASM helpers.
 
 ## Installation
 
+Not published to npm (proprietary). Add the repository as a git submodule, as radspider-web does
+(`lib/rad-parser`), or build it here:
+
 ```bash
-npm install rad-parser
+npm install
+npm run build
 ```
 
 ## Parsing

@@ -1,6 +1,10 @@
 # Handling Encapsulated Documents (PDF, ECG, etc.)
 
-DICOM is not just for images. It is a container format that can store many different types of data, including raw documents like PDFs or structured reports like ECG waveforms. This guide provides examples of how to extract this data using `rad-parser`.
+## TL;DR
+
+- Extracting non-image payloads with `rad-parser`.
+- PDF: the raw bytes are the value of Encapsulated Document `(0042,0011)`; write them to a `.pdf`.
+- ECG/waveforms: items of Waveform Sequence `(5400,1000)`, samples in Waveform Data `(5400,1010)`.
 
 ---
 

@@ -1,6 +1,10 @@
 # Codec Integration Tutorial
 
-This guide shows how to integrate external codecs (WASM/native) with **rad-parser** using the codec registry and functional registration helpers.
+## TL;DR
+
+- Integrating external WASM/native codecs through the codec registry.
+- `registry.registerFunctional({ name, transferSyntaxes, priority, isSupported, decode })`: no class.
+- Higher `priority` wins; `isSupported` returning `false` skips the codec in that environment.
 
 ## 1) Quick Start: Functional Codec
 
