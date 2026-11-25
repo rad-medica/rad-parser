@@ -34,11 +34,11 @@ This project includes comprehensive rules and configurations for AI coding assis
 
 ### Antigravity
 
-- **Files**: `.antigravity/rules.md` and `.antigravity/config.json`
+- **Files**: `agents/rules.md` and `agents/config.json`
 - **Features**: Comprehensive coding guidelines, architecture patterns, quality gates
 - **Integration**: Antigravity AI assistant uses these for context-aware code generation
 
-**[📖 Complete AI Agents Documentation](../../AGENTS.md)** - Comprehensive guide to all AI agent configurations and usage guidelines.
+**[📖 Complete AI Agents Documentation](../docs/AGENTS.md)** - Comprehensive guide to all AI agent configurations and usage guidelines.
 
 ## Getting Started
 

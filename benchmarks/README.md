@@ -50,7 +50,7 @@ npm test
 
 ## Benchmark Script
 
-### `scripts/benchmark.ts`
+### `benchmarks/benchmark.ts`
 
 A performance benchmarking script that compares parsing speed and memory usage across parsers.
 
@@ -73,8 +73,8 @@ A performance benchmarking script that compares parsing speed and memory usage a
 
 - Outputs:
     - Console summary with performance comparison
-    - Detailed JSON results in `scripts/results/benchmark-summary.json`
-    - Individual parser outputs in `scripts/results/{parser-name}/`
+    - Detailed JSON results in `benchmarks/results/benchmark-summary.json`
+    - Individual parser outputs in `benchmarks/results/{parser-name}/`
 
 #### Running the Benchmark
 
@@ -85,7 +85,7 @@ npm run benchmark
 Or directly:
 
 ```bash
-tsx scripts/benchmark.ts
+tsx benchmarks/benchmark.ts
 ```
 
 #### Test Data

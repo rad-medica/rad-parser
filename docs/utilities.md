@@ -370,4 +370,4 @@ const items = parseSequence(view, true, true, "utf-8", false);
 
 ---
 
-_For complete examples, see [API.md](API.md) and [CODEC_TUTORIAL.md](CODEC_TUTORIAL.md)_
+_For complete examples, see [api.md](api.md) and [codec-tutorial.md](codec-tutorial.md)_

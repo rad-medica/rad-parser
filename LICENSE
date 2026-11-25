@@ -1,22 +1,58 @@
-MIT License
+rad-parser — Proprietary Software License
 
-Copyright (c) 2024 SmallVis Team
+Copyright (c) 2025-2026 Alberto Rojas Astorga, RadMedica E.I.R.L. All rights reserved.
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+1. Ownership
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+   This software, including its source code, object code, documentation, user interface,
+   translations and all other files in this repository (together, the "Software"), is the
+   exclusive property of Alberto Rojas Astorga, RadMedica E.I.R.L. (the "Owner") and is protected
+   by copyright law and international treaties.
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+2. No license granted
 
+   No right or license to use, copy, modify, merge, publish, distribute, sublicense, sell,
+   rent, lease, lend, host, decompile, disassemble, reverse engineer or create derivative works
+   of the Software, in whole or in part, is granted by possession of or access to the Software.
+   Any such use requires a separate written license agreement signed by the Owner. The terms,
+   scope and fees of any commercial use are set solely by that agreement.
+
+3. Confidentiality
+
+   The source code is a trade secret of the Owner. Anyone given access to it must keep it
+   confidential, must not disclose it to third parties and must use it only as permitted by a
+   written agreement with the Owner.
+
+4. Third-party components
+
+   The Software incorporates third-party components distributed under their own licenses
+   (including MIT, Apache-2.0, BSD and SIL Open Font License 1.1). Those components remain
+   subject to their respective licenses, and nothing in this license restricts rights granted
+   by them. Their copyright notices and license texts are retained as those licenses require.
+
+5. Not a medical device
+
+   The Software is not cleared or approved as a medical device and must not be used for
+   diagnosis or treatment decisions unless a written agreement with the Owner expressly states
+   otherwise.
+
+6. Disclaimer of warranty
+
+   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
+   INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR
+   PURPOSE AND NON-INFRINGEMENT, EXCEPT AS EXPRESSLY STATED IN A WRITTEN AGREEMENT WITH THE
+   OWNER.
+
+7. Limitation of liability
+
+   TO THE MAXIMUM EXTENT PERMITTED BY APPLICABLE LAW, IN NO EVENT SHALL THE OWNER BE LIABLE FOR
+   ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
+   ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR ITS USE.
+
+8. Termination
+
+   Any use of the Software outside a written agreement with the Owner is unauthorized and
+   automatically terminates any access given; the user must then destroy every copy in their
+   possession.
+
+Licensing inquiries: Alberto Rojas Astorga, RadMedica E.I.R.L. <arojasastorga@gmail.com>

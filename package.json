@@ -48,16 +48,16 @@
         "transfer-syntax",
         "pixel-data"
     ],
-    "author": "AjRoAs",
-    "license": "MIT",
+    "author": "Alberto Rojas Astorga, RadMedica E.I.R.L.",
+    "license": "SEE LICENSE IN LICENSE",
     "repository": {
         "type": "git",
-        "url": "https://github.com/rad-medica/rad-parse.git"
+        "url": "https://github.com/rad-medica/rad-parser.git"
     },
     "bugs": {
-        "url": "https://github.com/rad-medica/rad-parse/issues"
+        "url": "https://github.com/rad-medica/rad-parser/issues"
     },
-    "homepage": "https://github.com/rad-medica/rad-parse#readme",
+    "homepage": "https://github.com/rad-medica/rad-parser#readme",
     "files": [
         "dist/package/**/*",
         "docs/**/*.md",

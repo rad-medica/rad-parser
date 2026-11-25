@@ -2,6 +2,9 @@
 name = "rad-codecs-jpegexp"
 version = "0.1.0"
 edition = "2021"
+authors = ["Alberto Rojas Astorga, RadMedica E.I.R.L."]
+license-file = "../../../LICENSE"
+publish = false
 
 [lib]
 crate-type = ["cdylib"]

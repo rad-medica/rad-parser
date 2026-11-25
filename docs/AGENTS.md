@@ -2,6 +2,12 @@
 
 This document provides a comprehensive overview of all AI coding assistants configured for the rad-parser project, ensuring consistent, high-quality code generation across different development environments.
 
+## License
+
+Proprietary, © 2025-2026 Alberto Rojas Astorga, RadMedica E.I.R.L. All rights reserved (`LICENSE`). Dependencies: permissive
+licences only (MIT / Apache-2.0 / BSD / Zlib / OFL); no GPL / AGPL / LGPL / MPL unless dual-licensed with a
+permissive option. Keep the notices of every third-party component that ships.
+
 ## 🤖 Supported AI Agents
 
 ### 1. Cursor AI Editor
@@ -49,8 +55,8 @@ GitHub Copilot receives project-specific instructions to generate contextually a
 
 **Configuration Files**:
 
-- `.antigravity/rules.md` - Comprehensive coding guidelines
-- `.antigravity/config.json` - Technical specifications and settings
+- `agents/rules.md` - Comprehensive coding guidelines
+- `agents/config.json` - Technical specifications and settings
 
 Antigravity receives detailed behavioral guidelines and technical specifications for advanced code generation.
 
@@ -173,7 +179,7 @@ dist/               # Build outputs
 - **Scope**: Code completion and suggestions
 - **Integration**: GitHub platform integration
 
-### Antigravity (`.antigravity/`)
+### Antigravity (`agents/`)
 
 - **Purpose**: Advanced AI code generation
 - **Scope**: Comprehensive code writing and refactoring
@@ -304,8 +310,8 @@ To maintain a clean repository, all agents must strictly follow the output gener
 
 - `.cursorrules` - Cursor AI editor rules
 - `.github/copilot-instructions.md` - GitHub Copilot instructions
-- `.antigravity/rules.md` - Antigravity behavioral guidelines
-- `.antigravity/config.json` - Antigravity technical configuration
+- `agents/rules.md` - Antigravity behavioral guidelines
+- `agents/config.json` - Antigravity technical configuration
 - `.vscode/` - VS Code integration settings
 
 ### Documentation

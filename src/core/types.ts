@@ -2,7 +2,7 @@
  * Type definitions for RAD-Parser
  *
  * These types define the interface for DICOM data structures
- * compatible with the SmallVis parser system.
+ * compatible with the radspider web parser system.
  */
 
 /**
@@ -39,7 +39,7 @@ export type DicomValue =
 
 /**
  * DICOM Element structure
- * Compatible with SmallVis parser types (matches src/core/parsers/types.ts)
+ * Compatible with radspider web parser types
  */
 export interface DicomElement {
     vr?: string;

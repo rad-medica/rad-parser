@@ -5,7 +5,7 @@
 It is designed for safety, efficiency, and reliability in medical imaging applications, command-line utilities, and cloud-based pipelines where dependency bloat and performance are critical concerns.
 
 [![npm version](https://img.shields.io/npm/v/rad-parser.svg)](https://www.npmjs.com/package/rad-parser)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![License: Proprietary](https://img.shields.io/badge/License-Proprietary-red.svg)](LICENSE)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.0+-blue.svg)](https://www.typescriptlang.org/)
 
 ## Features
@@ -38,7 +38,7 @@ bun install rad-parser
 
 `rad-parser` includes a powerful CLI for inspecting, transcoding, and converting DICOM files.
 
-> **[View Full CLI Documentation](./docs/cli.md)**
+> **[View Full CLI Documentation](./docs/CLI.md)**
 
 ### **Quick Command Summary**
 
@@ -217,7 +217,7 @@ A head-to-head comparison of capabilities, ecosystem, and performance.
 | **Browser Support**      |    ✅ **Modern**     |   ✅ Modern   |   ✅ Modern    |   ⚠️ Modern    |
 | **Node.js Support**      |      ✅ **Yes**      |    ✅ Yes     |     ✅ Yes     |     ✅ Yes     |
 | **Maintenance**          |    ✅ **Active**     |   ✅ Active   |    ⚠️ Slow     |    ⚠️ Slow     |
-| **License**              |      ✅ **MIT**      |    ✅ MIT     |     ✅ MIT     |     ✅ MIT     |
+| **License**              | 🔒 **Proprietary**   |    ✅ MIT     |     ✅ MIT     |     ✅ MIT     |
 
 ## Full Documentation
 
@@ -347,4 +347,5 @@ For a deep dive into the library's features, including advanced codec registrati
 
 ## License
 
-`rad-parser` is licensed under the MIT License.
+Proprietary software, © 2025-2026 Alberto Rojas Astorga, RadMedica E.I.R.L. All rights reserved; use requires a written
+agreement with the owner. See [LICENSE](LICENSE).

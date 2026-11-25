@@ -1,6 +1,6 @@
 # RAD-Parser GitHub Wiki Content
 
-This file represents the narrative content that should appear on the GitHub wiki (`https://github.com/AjRoAs/rad-parse/wiki`). Copy these sections into wiki pages or link back to this file from the wiki so the documentation is easier to browse.
+This file represents the narrative content that should appear on the GitHub wiki (`https://github.com/rad-medica/rad-parser/wiki`). Copy these sections into wiki pages or link back to this file from the wiki so the documentation is easier to browse.
 
 ## Overview
 
