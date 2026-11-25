@@ -30,6 +30,7 @@ Runs on Node.js, Bun, Deno and browsers. radspider-web and rad-renvol consume it
 | Licences | No GPL / AGPL / LGPL / MPL unless dual-licensed with a permissive option. Keep third-party notices |
 
 Full version: `radspider/AGENTS.md`.
+
 ## License
 
 Proprietary, © 2025-2026 Alberto Rojas Astorga, RadMedica E.I.R.L. All rights reserved (`LICENSE`). Copies
@@ -63,5 +64,6 @@ npm run benchmark    # see benchmarks/README.md
 1. No runtime dependencies.
 2. Strict TypeScript: no `any`, no `@ts-ignore`.
 3. Malformed DICOM returns an error, never throws an unhandled exception or reads out of bounds (`SafeDataView`).
-4. Formatting: Prettier (double quotes, 4 spaces, trailing commas es5). Keep each file's line endings.
+4. Formatting: Prettier with the `.prettierrc` shared by radspider-web, rad-parser and rad-renvol (single quotes, 2
+   spaces, 100 columns); `npm run format`.
 5. Generated reports and artifacts go to `output/`, never into `src/` or `docs/`.

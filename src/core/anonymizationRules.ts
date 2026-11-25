@@ -17,59 +17,56 @@
  * Institution Name "X/Z/D" is removed). Override per tag with
  * `AnonymizationOptions.actionOverrides` when an IOD requires otherwise.
  */
-import {
-    BASIC_PROFILE_MASKED,
-    BASIC_PROFILE_TABLE,
-} from "./anonymizationRules-data";
+import { BASIC_PROFILE_MASKED, BASIC_PROFILE_TABLE } from './anonymizationRules-data';
 
 /** A single resolved action. */
-export type AnonymizationAction = "X" | "Z" | "D" | "U" | "K" | "C";
+export type AnonymizationAction = 'X' | 'Z' | 'D' | 'U' | 'K' | 'C';
 
 export interface AnonymizationRule {
-    tag: string; // xggggeeee (lower case)
-    name: string;
-    /** Action as listed in Table E.1-1, e.g. "X/Z/D". */
-    profileAction: string;
-    /** Action applied by default (first of a compound action). */
-    action: AnonymizationAction;
+  tag: string; // xggggeeee (lower case)
+  name: string;
+  /** Action as listed in Table E.1-1, e.g. "X/Z/D". */
+  profileAction: string;
+  /** Action applied by default (first of a compound action). */
+  action: AnonymizationAction;
 }
 
 /** Resolve a Table E.1-1 action code to the action applied by default. */
 export function resolveAction(profileAction: string): AnonymizationAction {
-    return profileAction.split("/")[0]!.replace("*", "") as AnonymizationAction;
+  return profileAction.split('/')[0]!.replace('*', '') as AnonymizationAction;
 }
 
 export const BASIC_PROFILE_RULES: Record<string, AnonymizationRule> = {};
 for (const [tag, profileAction, name] of BASIC_PROFILE_TABLE) {
-    BASIC_PROFILE_RULES[tag] = {
-        tag,
-        name,
-        profileAction,
-        action: resolveAction(profileAction),
-    };
+  BASIC_PROFILE_RULES[tag] = {
+    tag,
+    name,
+    profileAction,
+    action: resolveAction(profileAction),
+  };
 }
 
 /** Rule for a tag ("xggggeeee", any case), including repeating groups. */
 export function getProfileRule(tag: string): AnonymizationRule | undefined {
-    const key = tag.toLowerCase();
-    const rule = BASIC_PROFILE_RULES[key];
-    if (rule) return rule;
-    if (!/^x[0-9a-f]{8}$/.test(key)) return undefined;
-    const num = parseInt(key.slice(1), 16) >>> 0;
-    for (const [mask, value, profileAction, name] of BASIC_PROFILE_MASKED) {
-        if ((num & mask) >>> 0 === value) {
-            return {
-                tag: key,
-                name,
-                profileAction,
-                action: resolveAction(profileAction),
-            };
-        }
+  const key = tag.toLowerCase();
+  const rule = BASIC_PROFILE_RULES[key];
+  if (rule) return rule;
+  if (!/^x[0-9a-f]{8}$/.test(key)) return undefined;
+  const num = parseInt(key.slice(1), 16) >>> 0;
+  for (const [mask, value, profileAction, name] of BASIC_PROFILE_MASKED) {
+    if ((num & mask) >>> 0 === value) {
+      return {
+        tag: key,
+        name,
+        profileAction,
+        action: resolveAction(profileAction),
+      };
     }
-    return undefined;
+  }
+  return undefined;
 }
 
 // Helper: Check if a tag is a UID tag that needs replacement
 export function isUIDTag(tag: string): boolean {
-    return getProfileRule(tag)?.action === "U";
+  return getProfileRule(tag)?.action === 'U';
 }

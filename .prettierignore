@@ -1,7 +1,10 @@
+# Same file in radspider-web, rad-parser and rad-renvol. Prettier formats code only (see package.json).
+node_modules/
 dist/
 build/
 coverage/
-node_modules/
-
-agent_environment.md
-
+lib/
+public/
+.vite/
+**/pkg/
+*.min.js

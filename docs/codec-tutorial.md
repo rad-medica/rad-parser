@@ -8,7 +8,8 @@
 
 ## Overview
 
-Rad-parser includes built-in support for multiple DICOM image compression formats with automatic Wasm acceleration and JavaScript fallbacks.
+Rad-parser includes built-in support for multiple DICOM image compression formats with automatic Wasm acceleration and
+JavaScript fallbacks.
 
 ## Supported Codecs
 
@@ -28,12 +29,12 @@ Rad-parser includes built-in support for multiple DICOM image compression format
 ### Get Hounsfield Units (CT) or Calibrated Values
 
 ```typescript
-import { parse, extractRescaledPixelData } from "rad-parser";
-import { readFileSync } from "fs";
+import { parse, extractRescaledPixelData } from 'rad-parser';
+import { readFileSync } from 'fs';
 
 // Load and parse DICOM
-const buffer = readFileSync("ct-scan.dcm");
-const dataset = parse(buffer, { type: "full" });
+const buffer = readFileSync('ct-scan.dcm');
+const dataset = parse(buffer, { type: 'full' });
 
 // Extract rescaled pixel data (Float32Array)
 const pixels = extractRescaledPixelData(dataset);
@@ -62,42 +63,42 @@ console.log(`Max value: ${Math.max(...Array.from(pixels))}`);
 ### 1. Parse DICOM with Pixel Data
 
 ```typescript
-import { parse } from "rad-parser";
-import { readFileSync } from "fs";
+import { parse } from 'rad-parser';
+import { readFileSync } from 'fs';
 
 // Load DICOM file
-const buffer = readFileSync("image.dcm");
-const dataset = parse(buffer, { type: "full" });
+const buffer = readFileSync('image.dcm');
+const dataset = parse(buffer, { type: 'full' });
 
 // Access pixel data
-const pixelData = dataset.uint8("x7fe00010"); // Pixel Data tag
-console.log("Pixel data length:", pixelData?.length);
+const pixelData = dataset.uint8('x7fe00010'); // Pixel Data tag
+console.log('Pixel data length:', pixelData?.length);
 ```
 
 ### 2. Decode Compressed Images
 
 ```typescript
-import { decodeImage } from "rad-parser";
+import { decodeImage } from 'rad-parser';
 
 // Get pixel data and metadata
-const pixelData = dataset.uint8("x7fe00010");
-const transferSyntax = dataset.string("x00020010");
-const rows = dataset.uint16("x00280010");
-const columns = dataset.uint16("x00280011");
-const bitsAllocated = dataset.uint16("x00280100");
+const pixelData = dataset.uint8('x7fe00010');
+const transferSyntax = dataset.string('x00020010');
+const rows = dataset.uint16('x00280010');
+const columns = dataset.uint16('x00280011');
+const bitsAllocated = dataset.uint16('x00280100');
 
 // Decode image
 const decodedImage = await decodeImage({
-    pixelData,
-    transferSyntax,
-    rows,
-    columns,
-    bitsAllocated,
-    samplesPerPixel: dataset.uint16("x00280002") || 1,
-    photometricInterpretation: dataset.string("x00280004") || "MONOCHROME2",
+  pixelData,
+  transferSyntax,
+  rows,
+  columns,
+  bitsAllocated,
+  samplesPerPixel: dataset.uint16('x00280002') || 1,
+  photometricInterpretation: dataset.string('x00280004') || 'MONOCHROME2',
 });
 
-console.log("Decoded:", decodedImage); // Uint8Array or Uint16Array
+console.log('Decoded:', decodedImage); // Uint8Array or Uint16Array
 ```
 
 ---
@@ -107,52 +108,52 @@ console.log("Decoded:", decodedImage); // Uint8Array or Uint16Array
 ### JPEG 2000 Decoding
 
 ```typescript
-import { parse } from "rad-parser";
-import { initCodecsWasm } from "rad-parser-wasm-codecs";
+import { parse } from 'rad-parser';
+import { initCodecsWasm } from 'rad-parser-wasm-codecs';
 
 // Initialize Wasm codecs (optional but faster)
 await initCodecsWasm();
 
 // Parse JPEG 2000 compressed file
-const dataset = parse(j2kBuffer, { type: "full" });
+const dataset = parse(j2kBuffer, { type: 'full' });
 
 // Pixel data is automatically available
-const pixels = dataset.uint16("x7fe00010");
+const pixels = dataset.uint16('x7fe00010');
 ```
 
 ### RLE Decoding
 
 ```typescript
-import { rle_decode } from "rad-parser-wasm-core";
+import { rle_decode } from 'rad-parser-wasm-core';
 
 // RLE compressed data
-const compressed = dataset.uint8("x7fe00010");
+const compressed = dataset.uint8('x7fe00010');
 
 // Decode with Wasm (fast)
 const decoded = rle_decode(compressed);
 
 // Or use JS fallback
-import { decodeRLE } from "rad-parser";
+import { decodeRLE } from 'rad-parser';
 const decodedJS = decodeRLE(compressed);
 ```
 
 ### PNG Encoding
 
 ```typescript
-import { encodePNG } from "rad-parser";
+import { encodePNG } from 'rad-parser';
 
 // Encode pixel data to PNG
 const pngBuffer = await encodePNG({
-    data: pixelData,
-    width: columns,
-    height: rows,
-    bitDepth: bitsAllocated,
-    colorType: samplesPerPixel === 1 ? "grayscale" : "rgb",
+  data: pixelData,
+  width: columns,
+  height: rows,
+  bitDepth: bitsAllocated,
+  colorType: samplesPerPixel === 1 ? 'grayscale' : 'rgb',
 });
 
 // Save to file
-import { writeFileSync } from "fs";
-writeFileSync("output.png", pngBuffer);
+import { writeFileSync } from 'fs';
+writeFileSync('output.png', pngBuffer);
 ```
 
 ---
@@ -162,8 +163,8 @@ writeFileSync("output.png", pngBuffer);
 ### Initialize Wasm Modules
 
 ```typescript
-import { initCoreWasm } from "rad-parser";
-import { initCodecsWasm } from "rad-parser-wasm-codecs";
+import { initCoreWasm } from 'rad-parser';
+import { initCodecsWasm } from 'rad-parser-wasm-codecs';
 
 // Initialize core Wasm (DS/IS/PN parsing)
 await initCoreWasm();
@@ -178,8 +179,8 @@ await initCodecsWasm();
 
 ```typescript
 // Provide custom Wasm file path
-await initCoreWasm("/custom/path/rad_parser_wasm_core.wasm");
-await initCodecsWasm("/custom/path/rad_parser_wasm_codecs.wasm");
+await initCoreWasm('/custom/path/rad_parser_wasm_core.wasm');
+await initCodecsWasm('/custom/path/rad_parser_wasm_codecs.wasm');
 ```
 
 ---
@@ -189,40 +190,40 @@ await initCodecsWasm("/custom/path/rad_parser_wasm_codecs.wasm");
 ### Stream from Network
 
 ```typescript
-import { parseFromStream } from "rad-parser";
+import { parseFromStream } from 'rad-parser';
 
-const response = await fetch("https://example.com/large.dcm");
+const response = await fetch('https://example.com/large.dcm');
 const stream = response.body; // ReadableStream
 
 await parseFromStream(stream, {
-    onElement: ({ dict }) => {
-        // Process each element as it arrives
-        const tag = Object.keys(dict)[0];
-        console.log("Received:", tag, dict[tag]);
-    },
-    onError: error => {
-        console.error("Stream error:", error);
-    },
+  onElement: ({ dict }) => {
+    // Process each element as it arrives
+    const tag = Object.keys(dict)[0];
+    console.log('Received:', tag, dict[tag]);
+  },
+  onError: error => {
+    console.error('Stream error:', error);
+  },
 });
 ```
 
 ### Stream from File (Node.js)
 
 ```typescript
-import { createReadStream } from "fs";
-import { parseFromAsyncIterator } from "rad-parser";
+import { createReadStream } from 'fs';
+import { parseFromAsyncIterator } from 'rad-parser';
 
 async function* fileChunks(path: string) {
-    const stream = createReadStream(path, { highWaterMark: 64 * 1024 });
-    for await (const chunk of stream) {
-        yield new Uint8Array(chunk);
-    }
+  const stream = createReadStream(path, { highWaterMark: 64 * 1024 });
+  for await (const chunk of stream) {
+    yield new Uint8Array(chunk);
+  }
 }
 
-await parseFromAsyncIterator(fileChunks("large.dcm"), {
-    onElement: ({ dict }) => {
-        // Process incrementally
-    },
+await parseFromAsyncIterator(fileChunks('large.dcm'), {
+  onElement: ({ dict }) => {
+    // Process incrementally
+  },
 });
 ```
 
@@ -233,13 +234,13 @@ await parseFromAsyncIterator(fileChunks("large.dcm"), {
 ### Multi-frame Images
 
 ```typescript
-const numberOfFrames = dataset.uint16("x00280008") || 1;
+const numberOfFrames = dataset.uint16('x00280008') || 1;
 const frameSize = rows * columns * (bitsAllocated / 8);
 
 // Extract specific frame
 function getFrame(pixelData: Uint8Array, frameIndex: number) {
-    const start = frameIndex * frameSize;
-    return pixelData.slice(start, start + frameSize);
+  const start = frameIndex * frameSize;
+  return pixelData.slice(start, start + frameSize);
 }
 
 const firstFrame = getFrame(pixelData, 0);
@@ -252,10 +253,10 @@ const firstFrame = getFrame(pixelData, 0);
 const pixelDataInfo = dataset.pixelData; // Returns detailed info
 
 if (pixelDataInfo?.isEncapsulated) {
-    console.log("Fragments:", pixelDataInfo.fragmentArrays?.length);
+  console.log('Fragments:', pixelDataInfo.fragmentArrays?.length);
 
-    // Get first fragment
-    const firstFragment = pixelDataInfo.fragmentArrays?.[0];
+  // Get first fragment
+  const firstFragment = pixelDataInfo.fragmentArrays?.[0];
 }
 ```
 
@@ -264,42 +265,42 @@ if (pixelDataInfo?.isEncapsulated) {
 ## Complete Example: DICOM to PNG
 
 ```typescript
-import { parse, encodePNG, initCoreWasm } from "rad-parser";
-import { readFileSync, writeFileSync } from "fs";
+import { parse, encodePNG, initCoreWasm } from 'rad-parser';
+import { readFileSync, writeFileSync } from 'fs';
 
 async function dicomToPNG(inputPath: string, outputPath: string) {
-    // Initialize Wasm for faster parsing
-    await initCoreWasm();
+  // Initialize Wasm for faster parsing
+  await initCoreWasm();
 
-    // Parse DICOM
-    const buffer = readFileSync(inputPath);
-    const dataset = parse(buffer, { type: "full" });
+  // Parse DICOM
+  const buffer = readFileSync(inputPath);
+  const dataset = parse(buffer, { type: 'full' });
 
-    // Extract metadata
-    const rows = dataset.uint16("x00280010")!;
-    const columns = dataset.uint16("x00280011")!;
-    const bitsAllocated = dataset.uint16("x00280100")!;
-    const samplesPerPixel = dataset.uint16("x00280002") || 1;
+  // Extract metadata
+  const rows = dataset.uint16('x00280010')!;
+  const columns = dataset.uint16('x00280011')!;
+  const bitsAllocated = dataset.uint16('x00280100')!;
+  const samplesPerPixel = dataset.uint16('x00280002') || 1;
 
-    // Get pixel data (automatically decoded if compressed)
-    const pixelData = dataset.uint16("x7fe00010")!;
+  // Get pixel data (automatically decoded if compressed)
+  const pixelData = dataset.uint16('x7fe00010')!;
 
-    // Encode to PNG
-    const png = await encodePNG({
-        data: new Uint8Array(pixelData.buffer),
-        width: columns,
-        height: rows,
-        bitDepth: bitsAllocated,
-        colorType: samplesPerPixel === 1 ? "grayscale" : "rgb",
-    });
+  // Encode to PNG
+  const png = await encodePNG({
+    data: new Uint8Array(pixelData.buffer),
+    width: columns,
+    height: rows,
+    bitDepth: bitsAllocated,
+    colorType: samplesPerPixel === 1 ? 'grayscale' : 'rgb',
+  });
 
-    // Save
-    writeFileSync(outputPath, png);
-    console.log(`Saved PNG: ${outputPath}`);
+  // Save
+  writeFileSync(outputPath, png);
+  console.log(`Saved PNG: ${outputPath}`);
 }
 
 // Usage
-await dicomToPNG("ct-scan.dcm", "output.png");
+await dicomToPNG('ct-scan.dcm', 'output.png');
 ```
 
 ---

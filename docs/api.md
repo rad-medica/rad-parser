@@ -31,11 +31,11 @@ const name = dataset.string("x00100010");
 
 - `buffer: Uint8Array` (a Node `Buffer` works) — never copied by the parser.
 - `options?: UnifiedParseOptions`
-    - `type?: "full" | "light" | "shallow" | "fast" | "lazy"` (default `"full"`)
-    - `tags?: string | string[]` — keep only these top-level tags
+  - `type?: "full" | "light" | "shallow" | "fast" | "lazy"` (default `"full"`)
+  - `tags?: string | string[]` — keep only these top-level tags
       (`"x00100010"`, `"0010,0010"` or `"00100010"`)
-    - `pixelData?: "view" | "copy" | "skip"` — see [Pixel Data](#pixel-data)
-    - `pixelDataPlugin?: (element, transferSyntax) => unknown` — called with
+  - `pixelData?: "view" | "copy" | "skip"` — see [Pixel Data](#pixel-data)
+  - `pixelDataPlugin?: (element, transferSyntax) => unknown` — called with
       the Pixel Data element; a non-undefined result replaces its value
 
 **Modes**

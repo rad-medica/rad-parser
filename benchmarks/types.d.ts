@@ -1,4 +1,4 @@
-declare module "dcmjs" {
-    const dcmjs: any;
-    export default dcmjs;
+declare module 'dcmjs' {
+  const dcmjs: any;
+  export default dcmjs;
 }

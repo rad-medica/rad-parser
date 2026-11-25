@@ -9,49 +9,46 @@
  * @returns Float32Array with rescaled pixel values
  */
 
-import { applyModalityLutWasm } from "../core/wasm-opt";
+import { applyModalityLutWasm } from '../core/wasm-opt';
 
 // Assuming PixelDataInfo is defined elsewhere or will be added.
 // For the purpose of this edit, we'll use 'any' for the Value property
 // as the instruction doesn't specify the structure of PixelDataInfo.
 export interface PixelDataInfo {
-    Value: any;
-    isEncapsulated: boolean;
-    fragmentArrays?: Uint8Array[];
-    pixelData?: Uint8Array;
+  Value: any;
+  isEncapsulated: boolean;
+  fragmentArrays?: Uint8Array[];
+  pixelData?: Uint8Array;
 }
 
 export function extractPixelData(dataset: any): PixelDataInfo | null {
-    // Try various tag formats
-    const element =
-        dataset.elements?.["x7fe00010"] ||
-        dataset.elements?.["7fe00010"] ||
-        dataset.dict?.["x7fe00010"] ||
-        dataset.dict?.["7fe00010"] ||
-        (dataset.elements
-            ? Object.values(dataset.elements).find(
-                  (e: any) => e.tag === "x7fe00010" || e.tag === "7fe00010"
-              )
-            : null);
+  // Try various tag formats
+  const element =
+    dataset.elements?.['x7fe00010'] ||
+    dataset.elements?.['7fe00010'] ||
+    dataset.dict?.['x7fe00010'] ||
+    dataset.dict?.['7fe00010'] ||
+    (dataset.elements
+      ? Object.values(dataset.elements).find(
+          (e: any) => e.tag === 'x7fe00010' || e.tag === '7fe00010'
+        )
+      : null);
 
-    if (!element) {
-        return null;
-    }
+  if (!element) {
+    return null;
+  }
 
-    // Check if value is an array of Uint8Array (fragments) - indicates encapsulated format
-    const isArrayOfBuffers =
-        Array.isArray(element.Value) &&
-        element.Value.length > 0 &&
-        element.Value[0] instanceof Uint8Array;
+  // Check if value is an array of Uint8Array (fragments) - indicates encapsulated format
+  const isArrayOfBuffers =
+    Array.isArray(element.Value) &&
+    element.Value.length > 0 &&
+    element.Value[0] instanceof Uint8Array;
 
-    return {
-        Value: element.Value,
-        isEncapsulated:
-            (element as any).isEncapsulated || isArrayOfBuffers || false,
-        fragmentArrays: isArrayOfBuffers
-            ? (element.Value as Uint8Array[])
-            : undefined,
-    };
+  return {
+    Value: element.Value,
+    isEncapsulated: (element as any).isEncapsulated || isArrayOfBuffers || false,
+    fragmentArrays: isArrayOfBuffers ? (element.Value as Uint8Array[]) : undefined,
+  };
 }
 
 /**
@@ -59,138 +56,126 @@ export function extractPixelData(dataset: any): PixelDataInfo | null {
  * datasets that only provide accessors, from `uint16` / `floatString`.
  */
 function numberOf(dataset: any, tag: string): number | undefined {
-    const value = dataset?.dict?.[tag]?.Value;
-    const first = Array.isArray(value) ? value[0] : value;
-    if (typeof first === "number" && Number.isFinite(first)) return first;
-    if (typeof first === "string" && first.trim() !== "") {
-        const n = Number(first.split("\\")[0]);
-        if (Number.isFinite(n)) return n;
+  const value = dataset?.dict?.[tag]?.Value;
+  const first = Array.isArray(value) ? value[0] : value;
+  if (typeof first === 'number' && Number.isFinite(first)) return first;
+  if (typeof first === 'string' && first.trim() !== '') {
+    const n = Number(first.split('\\')[0]);
+    if (Number.isFinite(n)) return n;
+  }
+  for (const accessor of ['floatString', 'uint16']) {
+    if (typeof dataset?.[accessor] === 'function') {
+      const n = dataset[accessor](tag);
+      if (typeof n === 'number' && Number.isFinite(n)) return n;
     }
-    for (const accessor of ["floatString", "uint16"]) {
-        if (typeof dataset?.[accessor] === "function") {
-            const n = dataset[accessor](tag);
-            if (typeof n === "number" && Number.isFinite(n)) return n;
-        }
-    }
-    return undefined;
+  }
+  return undefined;
 }
 
 /** View 16-bit samples without copying when the bytes are 2-byte aligned. */
 function view16<T extends Uint16Array | Int16Array>(
-    raw: Uint8Array,
-    ctor: new (buffer: ArrayBufferLike, byteOffset: number, length: number) => T
+  raw: Uint8Array,
+  ctor: new (buffer: ArrayBufferLike, byteOffset: number, length: number) => T
 ): T {
-    const bytes = raw.byteOffset % 2 === 0 ? raw : raw.slice();
-    return new ctor(
-        bytes.buffer,
-        bytes.byteOffset,
-        Math.floor(bytes.byteLength / 2)
-    );
+  const bytes = raw.byteOffset % 2 === 0 ? raw : raw.slice();
+  return new ctor(bytes.buffer, bytes.byteOffset, Math.floor(bytes.byteLength / 2));
 }
 
 export function extractRescaledPixelData(dataset: any): Float32Array {
-    // Modality LUT (PS3.3 C.11.1): Rescale Intercept (0028,1052), Slope (0028,1053)
-    const intercept = numberOf(dataset, "x00281052") ?? 0;
-    const slope = numberOf(dataset, "x00281053") ?? 1;
+  // Modality LUT (PS3.3 C.11.1): Rescale Intercept (0028,1052), Slope (0028,1053)
+  const intercept = numberOf(dataset, 'x00281052') ?? 0;
+  const slope = numberOf(dataset, 'x00281053') ?? 1;
 
-    // Get pixel data dimensions
-    const rows = numberOf(dataset, "x00280010") ?? 0;
-    const columns = numberOf(dataset, "x00280011") ?? 0;
-    const numberOfFrames = numberOf(dataset, "x00280008") ?? 1;
-    const bitsAllocated = numberOf(dataset, "x00280100") ?? 16;
-    const pixelRepresentation = numberOf(dataset, "x00280103") ?? 0; // 0 = unsigned, 1 = signed
+  // Get pixel data dimensions
+  const rows = numberOf(dataset, 'x00280010') ?? 0;
+  const columns = numberOf(dataset, 'x00280011') ?? 0;
+  const numberOfFrames = numberOf(dataset, 'x00280008') ?? 1;
+  const bitsAllocated = numberOf(dataset, 'x00280100') ?? 16;
+  const pixelRepresentation = numberOf(dataset, 'x00280103') ?? 0; // 0 = unsigned, 1 = signed
 
-    if (rows === 0 || columns === 0) {
-        throw new Error(
-            "Invalid image dimensions: rows and columns must be > 0"
-        );
-    }
+  if (rows === 0 || columns === 0) {
+    throw new Error('Invalid image dimensions: rows and columns must be > 0');
+  }
 
-    const totalPixels = rows * columns * numberOfFrames;
+  const totalPixels = rows * columns * numberOfFrames;
 
-    // Extract raw pixel data based on bits allocated
-    let pixelData: Uint8Array | Uint16Array | Int16Array;
+  // Extract raw pixel data based on bits allocated
+  let pixelData: Uint8Array | Uint16Array | Int16Array;
 
-    if (bitsAllocated === 8) {
-        const val = dataset.dict["x7fe00010"]?.Value;
-        if (val instanceof Uint8Array) {
-            pixelData = val;
-        } else {
-            pixelData = new Uint8Array(0);
-        }
-    } else if (bitsAllocated === 16) {
-        if (pixelRepresentation === 1) {
-            // Signed 16-bit
-            const raw = dataset.dict["x7fe00010"]?.Value;
-            if (!(raw instanceof Uint8Array)) {
-                throw new Error("Pixel data not found or invalid format");
-            }
-            pixelData = view16(raw, Int16Array);
-        } else {
-            // Unsigned 16-bit
-            const raw = dataset.dict["x7fe00010"]?.Value;
-            if (!(raw instanceof Uint8Array)) {
-                throw new Error("Pixel data not found or invalid format");
-            }
-            pixelData = view16(raw, Uint16Array);
-        }
+  if (bitsAllocated === 8) {
+    const val = dataset.dict['x7fe00010']?.Value;
+    if (val instanceof Uint8Array) {
+      pixelData = val;
     } else {
-        throw new Error(
-            `Unsupported bits allocated: ${bitsAllocated}. Only 8 and 16 are supported.`
-        );
+      pixelData = new Uint8Array(0);
     }
-
-    if (pixelData.length === 0) {
-        throw new Error("Pixel data is empty");
+  } else if (bitsAllocated === 16) {
+    if (pixelRepresentation === 1) {
+      // Signed 16-bit
+      const raw = dataset.dict['x7fe00010']?.Value;
+      if (!(raw instanceof Uint8Array)) {
+        throw new Error('Pixel data not found or invalid format');
+      }
+      pixelData = view16(raw, Int16Array);
+    } else {
+      // Unsigned 16-bit
+      const raw = dataset.dict['x7fe00010']?.Value;
+      if (!(raw instanceof Uint8Array)) {
+        throw new Error('Pixel data not found or invalid format');
+      }
+      pixelData = view16(raw, Uint16Array);
     }
+  } else {
+    throw new Error(`Unsupported bits allocated: ${bitsAllocated}. Only 8 and 16 are supported.`);
+  }
 
-    // Ensure we have the expected number of pixels
-    const expectedLength = Math.min(totalPixels, pixelData.length);
+  if (pixelData.length === 0) {
+    throw new Error('Pixel data is empty');
+  }
 
-    // Create output Float32Array
-    const output = new Float32Array(expectedLength);
+  // Ensure we have the expected number of pixels
+  const expectedLength = Math.min(totalPixels, pixelData.length);
 
-    // Try Wasm optimization first
+  // Create output Float32Array
+  const output = new Float32Array(expectedLength);
+
+  // Try Wasm optimization first
+  if (pixelData instanceof Uint8Array) {
+    // We need to pass the raw bytes. If pixelData is derived from a buffer view (like Int16Array),
+    // we might need the underlying buffer.
+    // However, the Wasm signature takes &[u8].
+    // If we extracted `pixelData` as TypedArray, we can access `.buffer` but need careful offset handling.
+
+    // Simpler approach: If bitsAllocated is 8, pixelData IS Uint8Array check above.
+    // If 16, we created a view. We can map back to u8 slice.
+
+    let rawBytes: Uint8Array;
     if (pixelData instanceof Uint8Array) {
-        // We need to pass the raw bytes. If pixelData is derived from a buffer view (like Int16Array),
-        // we might need the underlying buffer.
-        // However, the Wasm signature takes &[u8].
-        // If we extracted `pixelData` as TypedArray, we can access `.buffer` but need careful offset handling.
-
-        // Simpler approach: If bitsAllocated is 8, pixelData IS Uint8Array check above.
-        // If 16, we created a view. We can map back to u8 slice.
-
-        let rawBytes: Uint8Array;
-        if (pixelData instanceof Uint8Array) {
-            rawBytes = pixelData;
-        } else {
-            // TypedArray (U16/I16)
-            const typed = pixelData as Uint16Array | Int16Array;
-            rawBytes = new Uint8Array(
-                typed.buffer,
-                typed.byteOffset,
-                typed.byteLength
-            );
-        }
-
-        const wasmResult = applyModalityLutWasm(
-            rawBytes,
-            slope,
-            intercept,
-            bitsAllocated,
-            pixelRepresentation
-        );
-
-        if (wasmResult) {
-            return wasmResult;
-        }
+      rawBytes = pixelData;
+    } else {
+      // TypedArray (U16/I16)
+      const typed = pixelData as Uint16Array | Int16Array;
+      rawBytes = new Uint8Array(typed.buffer, typed.byteOffset, typed.byteLength);
     }
 
-    // Apply rescale transformation: rescaled = stored * slope + intercept
-    for (let i = 0; i < expectedLength; i++) {
-        const storedValue = pixelData[i]!;
-        output[i] = storedValue * slope + intercept;
-    }
+    const wasmResult = applyModalityLutWasm(
+      rawBytes,
+      slope,
+      intercept,
+      bitsAllocated,
+      pixelRepresentation
+    );
 
-    return output;
+    if (wasmResult) {
+      return wasmResult;
+    }
+  }
+
+  // Apply rescale transformation: rescaled = stored * slope + intercept
+  for (let i = 0; i < expectedLength; i++) {
+    const storedValue = pixelData[i]!;
+    output[i] = storedValue * slope + intercept;
+  }
+
+  return output;
 }

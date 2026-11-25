@@ -27,7 +27,8 @@ node bin/rad-parser.js [command]
 
 ### `dump`
 
-Parses a DICOM file and prints a structured dump of all data elements, including tags, VRs (Value Representations), and values.
+Parses a DICOM file and prints a structured dump of all data elements, including tags, VRs (Value Representations), and
+values.
 
 **Usage:**
 
@@ -52,7 +53,8 @@ rad-parser dump <file>
 
 ### `transcode`
 
-Transcodes a DICOM file from one Transfer Syntax to another. This involves decoding the pixel data (if compressed) and re-encoding it into the target format.
+Transcodes a DICOM file from one Transfer Syntax to another. This involves decoding the pixel data (if compressed) and
+re-encoding it into the target format.
 
 **Usage:**
 
@@ -79,21 +81,21 @@ rad-parser transcode <input_file> <output_file> --format <format_alias_or_uid>
 
 1. **Compress to RLE:**
 
-    ```bash
-    rad-parser transcode study.dcm output_rle.dcm --format rle
-    ```
+   ```bash
+   rad-parser transcode study.dcm output_rle.dcm --format rle
+   ```
 
 2. **Decompress to Native (Implicit Little Endian):**
 
-    ```bash
-    rad-parser transcode compressed.dcm output_native.dcm --format native
-    ```
+   ```bash
+   rad-parser transcode compressed.dcm output_native.dcm --format native
+   ```
 
 3. **Convert to JPEG 2000:**
 
-    ```bash
-    rad-parser transcode explicit.dcm output_j2k.dcm --format j2k
-    ```
+   ```bash
+   rad-parser transcode explicit.dcm output_j2k.dcm --format j2k
+   ```
 
 **Notes:**
 
@@ -124,15 +126,15 @@ rad-parser image <input_file> <output_path> --format <png|jpeg> [--frame <index>
 
 1. **Export the first frame to PNG:**
 
-    ```bash
-    rad-parser image scan.dcm output.png
-    ```
+   ```bash
+   rad-parser image scan.dcm output.png
+   ```
 
 2. **Export the 10th frame to JPEG:**
 
-    ```bash
-    rad-parser image multiframe.dcm frame_10.jpg --frame 9
-    ```
+   ```bash
+   rad-parser image multiframe.dcm frame_10.jpg --frame 9
+   ```
 
 **Behind the Scenes:**
 
@@ -145,5 +147,7 @@ rad-parser image <input_file> <output_path> --format <png|jpeg> [--frame <index>
 
 ### Troubleshooting
 
-- **"Missing Transfer Syntax UID"**: The input file might be missing the File Meta Information header. Try converting it with another tool first if possible, or ensure it's a valid Part 10 file.
-- **"Codec not supported"**: Ensure you have the necessary Wasm modules available. `rad-parser` bundles essential Wasm codecs, but some formats might require additional initialization or are currently read-only.
+- **"Missing Transfer Syntax UID"**: The input file might be missing the File Meta Information header. Try converting it
+  with another tool first if possible, or ensure it's a valid Part 10 file.
+- **"Codec not supported"**: Ensure you have the necessary Wasm modules available. `rad-parser` bundles essential Wasm
+  codecs, but some formats might require additional initialization or are currently read-only.

@@ -1,112 +1,110 @@
-import { beforeAll, describe, expect, it } from "vitest";
-import { JpegNativeCodec } from "../../src/codecs/jpegNative";
-import { RleCodec } from "../../src/codecs/rle";
+import { beforeAll, describe, expect, it } from 'vitest';
+import { JpegNativeCodec } from '../../src/codecs/jpegNative';
+import { RleCodec } from '../../src/codecs/rle';
 
-describe("Wasm Encoding", () => {
-    let rleCodec: RleCodec;
-    let jpegCodec: JpegNativeCodec;
+describe('Wasm Encoding', () => {
+  let rleCodec: RleCodec;
+  let jpegCodec: JpegNativeCodec;
 
-    beforeAll(async () => {
-        // Initialize codecs - they use WASM codecs internally
-        rleCodec = new RleCodec();
-        jpegCodec = new JpegNativeCodec();
+  beforeAll(async () => {
+    // Initialize codecs - they use WASM codecs internally
+    rleCodec = new RleCodec();
+    jpegCodec = new JpegNativeCodec();
 
-        // Wait for WASM initialization to complete
-        // RLE codec initializes WASM in constructor
-        await new Promise(resolve => setTimeout(resolve, 100));
+    // Wait for WASM initialization to complete
+    // RLE codec initializes WASM in constructor
+    await new Promise(resolve => setTimeout(resolve, 100));
 
-        // JpegNativeCodec also initializes in constructor
-        await new Promise(resolve => setTimeout(resolve, 100));
+    // JpegNativeCodec also initializes in constructor
+    await new Promise(resolve => setTimeout(resolve, 100));
+  });
+
+  it('should round-trip encode/decode RLE', async () => {
+    // Create synthetic gradient image (8-bit grayscale)
+    const width = 256;
+    const height = 256;
+    const input = new Uint8Array(width * height);
+    for (let i = 0; i < input.length; i++) {
+      input[i] = i % 256;
+    }
+
+    // Encode
+    const encodedFragments = await rleCodec.encode(
+      input,
+      '1.2.840.10008.1.2.5',
+      width,
+      height,
+      1,
+      8
+    );
+    expect(encodedFragments.length).toBeGreaterThan(0);
+
+    // Decode
+    const decoded = await rleCodec.decode(encodedFragments, {
+      rows: height,
+      columns: width,
+      bitsAllocated: 8,
+      samplesPerPixel: 1,
     });
 
-    it("should round-trip encode/decode RLE", async () => {
-        // Create synthetic gradient image (8-bit grayscale)
-        const width = 256;
-        const height = 256;
-        const input = new Uint8Array(width * height);
-        for (let i = 0; i < input.length; i++) {
-            input[i] = i % 256;
-        }
+    // Verify
+    expect(decoded.length).toBe(input.length);
+    // RLE is lossless, should be identical
+    for (let i = 0; i < input.length; i++) {
+      if (input[i] !== decoded[i]) {
+        throw new Error(`Mismatch at index ${i}: expected ${input[i]}, got ${decoded[i]}`);
+      }
+    }
+  });
 
-        // Encode
-        const encodedFragments = await rleCodec.encode(
-            input,
-            "1.2.840.10008.1.2.5",
-            width,
-            height,
-            1,
-            8
-        );
-        expect(encodedFragments.length).toBeGreaterThan(0);
+  it('should encode JPEG (Wasm)', async () => {
+    // Synthetic image
+    const width = 64;
+    const height = 64;
+    const input = new Uint8Array(width * height);
+    input.fill(128); // Grey
 
-        // Decode
-        const decoded = await rleCodec.decode(encodedFragments, {
-            rows: height,
-            columns: width,
-            bitsAllocated: 8,
-            samplesPerPixel: 1,
-        });
+    // Encode
+    // 1.2.840.10008.1.2.4.50 = JPEG Baseline
+    const encodedFragments = await jpegCodec.encode(
+      input,
+      '1.2.840.10008.1.2.4.50',
+      width,
+      height,
+      1,
+      8
+    );
+    expect(encodedFragments.length).toBe(1);
+    const jpegData = encodedFragments[0];
 
-        // Verify
-        expect(decoded.length).toBe(input.length);
-        // RLE is lossless, should be identical
-        for (let i = 0; i < input.length; i++) {
-            if (input[i] !== decoded[i]) {
-                throw new Error(
-                    `Mismatch at index ${i}: expected ${input[i]}, got ${decoded[i]}`
-                );
-            }
-        }
-    });
+    // Check JPEG SOI marker (FF D8)
+    expect(jpegData[0]).toBe(0xff);
+    expect(jpegData[1]).toBe(0xd8);
+  });
 
-    it("should encode JPEG (Wasm)", async () => {
-        // Synthetic image
-        const width = 64;
-        const height = 64;
-        const input = new Uint8Array(width * height);
-        input.fill(128); // Grey
+  it('should round-trip encode/decode JPEG (Lossy)', async () => {
+    // Synthetic gradient
+    const width = 128;
+    const height = 128;
+    const input = new Uint8Array(width * height);
+    for (let i = 0; i < input.length; i++) input[i] = i % 255;
 
-        // Encode
-        // 1.2.840.10008.1.2.4.50 = JPEG Baseline
-        const encodedFragments = await jpegCodec.encode(
-            input,
-            "1.2.840.10008.1.2.4.50",
-            width,
-            height,
-            1,
-            8
-        );
-        expect(encodedFragments.length).toBe(1);
-        const jpegData = encodedFragments[0];
+    // Encode
+    const encodedFragments = await jpegCodec.encode(
+      input,
+      '1.2.840.10008.1.2.4.50',
+      width,
+      height,
+      1,
+      8
+    );
 
-        // Check JPEG SOI marker (FF D8)
-        expect(jpegData[0]).toBe(0xff);
-        expect(jpegData[1]).toBe(0xd8);
-    });
+    // Decode (using same codec, which uses Wasm decoder)
+    const decoded = await jpegCodec.decode(encodedFragments, {});
 
-    it("should round-trip encode/decode JPEG (Lossy)", async () => {
-        // Synthetic gradient
-        const width = 128;
-        const height = 128;
-        const input = new Uint8Array(width * height);
-        for (let i = 0; i < input.length; i++) input[i] = i % 255;
+    expect(decoded.length).toBe(input.length);
 
-        // Encode
-        const encodedFragments = await jpegCodec.encode(
-            input,
-            "1.2.840.10008.1.2.4.50",
-            width,
-            height,
-            1,
-            8
-        );
-
-        // Decode (using same codec, which uses Wasm decoder)
-        const decoded = await jpegCodec.decode(encodedFragments, {});
-
-        expect(decoded.length).toBe(input.length);
-
-        // JPEG is lossy, so exact match isn't expected, but distinct features should be preserved.
-        // We'll check sizes match and no error occurred.
-    });
+    // JPEG is lossy, so exact match isn't expected, but distinct features should be preserved.
+    // We'll check sizes match and no error occurred.
+  });
 });

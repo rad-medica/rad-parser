@@ -9,12 +9,12 @@
  * @returns A single Uint8Array containing all the data from the fragments.
  */
 export function concatFragments(fragments: Uint8Array[]): Uint8Array {
-    const totalLength = fragments.reduce((acc, curr) => acc + curr.length, 0);
-    const combined = new Uint8Array(totalLength);
-    let offset = 0;
-    for (const arr of fragments) {
-        combined.set(arr, offset);
-        offset += arr.length;
-    }
-    return combined;
+  const totalLength = fragments.reduce((acc, curr) => acc + curr.length, 0);
+  const combined = new Uint8Array(totalLength);
+  let offset = 0;
+  for (const arr of fragments) {
+    combined.set(arr, offset);
+    offset += arr.length;
+  }
+  return combined;
 }

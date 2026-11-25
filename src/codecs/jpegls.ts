@@ -2,129 +2,116 @@
  * JPEG-LS Decoder Plugin
  * Transfer Syntaxes: 1.2.840.10008.1.2.4.80 (Lossless), 1.2.840.10008.1.2.4.81 (Near-lossless)
  */
-import { CodecInfo, PixelDataCodec } from "../core/registry";
-import { concatFragments } from "../utils/bufferUtils";
-import { WasmCodecs } from "./wasm-codecs";
+import { CodecInfo, PixelDataCodec } from '../core/registry';
+import { concatFragments } from '../utils/bufferUtils';
+import { WasmCodecs } from './wasm-codecs';
 
 export class JpegLsDecoder implements PixelDataCodec {
-    name = "jpegls-wasm";
-    priority = 20;
-    codecInfo: CodecInfo = {
-        multiFrame: false,
-    };
+  name = 'jpegls-wasm';
+  priority = 20;
+  codecInfo: CodecInfo = {
+    multiFrame: false,
+  };
 
-    private wasmCodecs: WasmCodecs | null = null;
-    private initPromise: Promise<void> | null = null;
-    private injectedDecode?: (data: Uint8Array) => Promise<Uint8Array>;
-    private injectedEncode?: (
-        pixelData: Uint8Array,
-        transferSyntax: string,
-        width: number,
-        height: number,
-        samples: number,
-        bits: number
-    ) => Promise<Uint8Array[]>;
+  private wasmCodecs: WasmCodecs | null = null;
+  private initPromise: Promise<void> | null = null;
+  private injectedDecode?: (data: Uint8Array) => Promise<Uint8Array>;
+  private injectedEncode?: (
+    pixelData: Uint8Array,
+    transferSyntax: string,
+    width: number,
+    height: number,
+    samples: number,
+    bits: number
+  ) => Promise<Uint8Array[]>;
 
-    constructor(
-        injectedDecode?: (data: Uint8Array) => Promise<Uint8Array>,
-        injectedEncode?: (
-            pixelData: Uint8Array,
-            transferSyntax: string,
-            width: number,
-            height: number,
-            samples: number,
-            bits: number
-        ) => Promise<Uint8Array[]>
-    ) {
-        if (injectedDecode || injectedEncode) {
-            // Use injected functions for testing
-            this.injectedDecode = injectedDecode;
-            this.injectedEncode = injectedEncode;
-        } else {
-            // Use WASM implementation
-            this.wasmCodecs = new WasmCodecs();
-        }
+  constructor(
+    injectedDecode?: (data: Uint8Array) => Promise<Uint8Array>,
+    injectedEncode?: (
+      pixelData: Uint8Array,
+      transferSyntax: string,
+      width: number,
+      height: number,
+      samples: number,
+      bits: number
+    ) => Promise<Uint8Array[]>
+  ) {
+    if (injectedDecode || injectedEncode) {
+      // Use injected functions for testing
+      this.injectedDecode = injectedDecode;
+      this.injectedEncode = injectedEncode;
+    } else {
+      // Use WASM implementation
+      this.wasmCodecs = new WasmCodecs();
+    }
+  }
+
+  private async initWasm(): Promise<void> {
+    try {
+      await this.wasmCodecs!.initCodec('jpegls');
+    } catch (e) {
+      console.warn('Failed to init JPEG-LS WASM codec', e);
+    }
+  }
+
+  isSupported(): boolean {
+    return true;
+  }
+
+  canDecode(transferSyntax: string): boolean {
+    return [
+      '1.2.840.10008.1.2.4.80', // JPEG-LS Lossless
+      '1.2.840.10008.1.2.4.81', // JPEG-LS Near-Lossless
+    ].includes(transferSyntax);
+  }
+
+  canEncode(transferSyntax: string): boolean {
+    return this.canDecode(transferSyntax);
+  }
+
+  async decode(encodedBuffer: Uint8Array[], info: any): Promise<Uint8Array> {
+    const combined = concatFragments(encodedBuffer);
+
+    if (this.injectedDecode) {
+      return await this.injectedDecode(combined);
     }
 
-    private async initWasm(): Promise<void> {
-        try {
-            await this.wasmCodecs!.initCodec("jpegls");
-        } catch (e) {
-            console.warn("Failed to init JPEG-LS WASM codec", e);
-        }
+    if (!this.wasmCodecs) {
+      throw new Error('Codec not initialized');
     }
 
-    isSupported(): boolean {
-        return true;
+    if (!this.initPromise) {
+      this.initPromise = this.initWasm();
+    }
+    await this.initPromise;
+
+    return await this.wasmCodecs.decodeJpegLs(combined);
+  }
+
+  async encode(
+    pixelData: Uint8Array,
+    transferSyntax: string,
+    width: number,
+    height: number,
+    samples: number,
+    bits: number
+  ): Promise<Uint8Array[]> {
+    if (this.injectedEncode) {
+      return await this.injectedEncode(pixelData, transferSyntax, width, height, samples, bits);
     }
 
-    canDecode(transferSyntax: string): boolean {
-        return [
-            "1.2.840.10008.1.2.4.80", // JPEG-LS Lossless
-            "1.2.840.10008.1.2.4.81", // JPEG-LS Near-Lossless
-        ].includes(transferSyntax);
+    if (!this.wasmCodecs) {
+      throw new Error('Codec not initialized');
     }
 
-    canEncode(transferSyntax: string): boolean {
-        return this.canDecode(transferSyntax);
+    if (!this.initPromise) {
+      this.initPromise = this.initWasm();
     }
+    await this.initPromise;
 
-    async decode(encodedBuffer: Uint8Array[], info: any): Promise<Uint8Array> {
-        const combined = concatFragments(encodedBuffer);
-
-        if (this.injectedDecode) {
-            return await this.injectedDecode(combined);
-        }
-
-        if (!this.wasmCodecs) {
-            throw new Error("Codec not initialized");
-        }
-
-        if (!this.initPromise) {
-            this.initPromise = this.initWasm();
-        }
-        await this.initPromise;
-
-        return await this.wasmCodecs.decodeJpegLs(combined);
-    }
-
-    async encode(
-        pixelData: Uint8Array,
-        transferSyntax: string,
-        width: number,
-        height: number,
-        samples: number,
-        bits: number
-    ): Promise<Uint8Array[]> {
-        if (this.injectedEncode) {
-            return await this.injectedEncode(
-                pixelData,
-                transferSyntax,
-                width,
-                height,
-                samples,
-                bits
-            );
-        }
-
-        if (!this.wasmCodecs) {
-            throw new Error("Codec not initialized");
-        }
-
-        if (!this.initPromise) {
-            this.initPromise = this.initWasm();
-        }
-        await this.initPromise;
-
-        const encoded = await this.wasmCodecs.encodeJpegLs(
-            pixelData,
-            width,
-            height,
-            bits,
-            samples
-        );
-        return [encoded];
-    }
+    const encoded = await this.wasmCodecs.encodeJpegLs(pixelData, width, height, bits, samples);
+    return [encoded];
+  }
 }
 
 // Auto-register

@@ -60,24 +60,24 @@ A performance benchmarking script that compares parsing speed and memory usage a
 #### Features
 
 - Tests multiple parser modes:
-    - `rad-parser` (full parse)
-    - `rad-parser-shallow` (shallow parse)
-    - `rad-parser-medium` (light parse, skips pixel data)
-    - `dcmjs`
-    - `dicom-parser`
-    - `efferent-dicom`
+  - `rad-parser` (full parse)
+  - `rad-parser-shallow` (shallow parse)
+  - `rad-parser-medium` (light parse, skips pixel data)
+  - `dcmjs`
+  - `dicom-parser`
+  - `efferent-dicom`
 
 - Collects statistics:
-    - Parse time (min, max, average)
-    - Success rate
-    - Element count
-    - File size statistics
-    - Error reporting
+  - Parse time (min, max, average)
+  - Success rate
+  - Element count
+  - File size statistics
+  - Error reporting
 
 - Outputs:
-    - Console summary with performance comparison
-    - Detailed JSON results in `benchmarks/results/benchmark-summary-<timestamp>.json`
-    - Individual parser outputs in `benchmarks/results/{parser-name}/`
+  - Console summary with performance comparison
+  - Detailed JSON results in `benchmarks/results/benchmark-summary-<timestamp>.json`
+  - Individual parser outputs in `benchmarks/results/{parser-name}/`
 
 #### Running the Benchmark
 

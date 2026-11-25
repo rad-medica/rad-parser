@@ -2,69 +2,69 @@
  * HTJ2K (High-Throughput JPEG 2000) Decoder Plugin
  * Transfer Syntaxes: 1.2.840.10008.1.2.4.201 (Lossless), .202 (Lossless RPCL), .203 (HTJ2K)
  */
-import { CodecInfo, PixelDataCodec } from "../core/registry";
-import { concatFragments } from "../utils/bufferUtils";
-import { WasmCodecs } from "./wasm-codecs";
+import { CodecInfo, PixelDataCodec } from '../core/registry';
+import { concatFragments } from '../utils/bufferUtils';
+import { WasmCodecs } from './wasm-codecs';
 
 export class Htj2kDecoder implements PixelDataCodec {
-    name = "htj2k-wasm";
-    priority = 20;
-    codecInfo: CodecInfo = {
-        multiFrame: false,
-    };
+  name = 'htj2k-wasm';
+  priority = 20;
+  codecInfo: CodecInfo = {
+    multiFrame: false,
+  };
 
-    private wasmCodecs: WasmCodecs;
-    private initPromise: Promise<void> | null = null;
+  private wasmCodecs: WasmCodecs;
+  private initPromise: Promise<void> | null = null;
 
-    constructor() {
-        this.wasmCodecs = new WasmCodecs();
+  constructor() {
+    this.wasmCodecs = new WasmCodecs();
+  }
+
+  private async initWasm(): Promise<void> {
+    try {
+      await this.wasmCodecs.initCodec('htj2k');
+    } catch (e) {
+      console.warn('Failed to init HTJ2K WASM codec', e);
     }
+  }
 
-    private async initWasm(): Promise<void> {
-        try {
-            await this.wasmCodecs.initCodec("htj2k");
-        } catch (e) {
-            console.warn("Failed to init HTJ2K WASM codec", e);
-        }
+  isSupported(): boolean {
+    return true;
+  }
+
+  canDecode(transferSyntax: string): boolean {
+    return [
+      '1.2.840.10008.1.2.4.201', // HTJ2K Lossless
+      '1.2.840.10008.1.2.4.202', // HTJ2K Lossless RPCL
+      '1.2.840.10008.1.2.4.203', // HTJ2K
+    ].includes(transferSyntax);
+  }
+
+  canEncode(transferSyntax: string): boolean {
+    return false;
+  }
+
+  async decode(encodedBuffer: Uint8Array[], info: any): Promise<Uint8Array> {
+    const combined = concatFragments(encodedBuffer);
+
+    if (!this.initPromise) {
+      this.initPromise = this.initWasm();
     }
+    await this.initPromise;
 
-    isSupported(): boolean {
-        return true;
-    }
+    return await this.wasmCodecs.decodeHtj2k(combined);
+  }
 
-    canDecode(transferSyntax: string): boolean {
-        return [
-            "1.2.840.10008.1.2.4.201", // HTJ2K Lossless
-            "1.2.840.10008.1.2.4.202", // HTJ2K Lossless RPCL
-            "1.2.840.10008.1.2.4.203", // HTJ2K
-        ].includes(transferSyntax);
-    }
-
-    canEncode(transferSyntax: string): boolean {
-        return false;
-    }
-
-    async decode(encodedBuffer: Uint8Array[], info: any): Promise<Uint8Array> {
-        const combined = concatFragments(encodedBuffer);
-
-        if (!this.initPromise) {
-            this.initPromise = this.initWasm();
-        }
-        await this.initPromise;
-
-        return await this.wasmCodecs.decodeHtj2k(combined);
-    }
-
-    async encode(
-        pixelData: Uint8Array,
-        transferSyntax: string,
-        width: number,
-        height: number,
-        samples: number,
-        bits: number
-    ): Promise<Uint8Array[]> {
-        throw new Error("HTJ2K encoding not implemented");
-    }
+  async encode(
+    pixelData: Uint8Array,
+    transferSyntax: string,
+    width: number,
+    height: number,
+    samples: number,
+    bits: number
+  ): Promise<Uint8Array[]> {
+    throw new Error('HTJ2K encoding not implemented');
+  }
 }
 
 // Auto-register

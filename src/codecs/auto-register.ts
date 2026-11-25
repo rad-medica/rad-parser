@@ -1,51 +1,39 @@
 // This file configures the dynamic loading for all standard codecs.
 // It maps Transfer Syntax UIDs to the corresponding codec implementation.
 
-import { registry } from "../core/registry";
+import { registry } from '../core/registry';
 
 // RLE Lossless
-registry.registerDynamic("1.2.840.10008.1.2.5", () => import("./rle"));
+registry.registerDynamic('1.2.840.10008.1.2.5', () => import('./rle'));
 
 // JPEG Baseline (Process 1) & Extended (Process 2 & 4, 12-bit), via jpegexp-rs WASM
-registry.registerDynamic(
-    "1.2.840.10008.1.2.4.50",
-    () => import("./jpegNative")
-);
-registry.registerDynamic(
-    "1.2.840.10008.1.2.4.51",
-    () => import("./jpegNative")
-);
+registry.registerDynamic('1.2.840.10008.1.2.4.50', () => import('./jpegNative'));
+registry.registerDynamic('1.2.840.10008.1.2.4.51', () => import('./jpegNative'));
 
 // JPEG Lossless, Non-Hierarchical (Process 14)
-registry.registerDynamic(
-    "1.2.840.10008.1.2.4.57",
-    () => import("./jpegLossless")
-);
+registry.registerDynamic('1.2.840.10008.1.2.4.57', () => import('./jpegLossless'));
 
 // JPEG Lossless, Non-Hierarchical, First-Order Prediction (Process 14 [SV1])
-registry.registerDynamic(
-    "1.2.840.10008.1.2.4.70",
-    () => import("./jpegLossless")
-);
+registry.registerDynamic('1.2.840.10008.1.2.4.70', () => import('./jpegLossless'));
 
 // JPEG-LS Lossless and Near-Lossless
-registry.registerDynamic("1.2.840.10008.1.2.4.80", () => import("./jpegls"));
-registry.registerDynamic("1.2.840.10008.1.2.4.81", () => import("./jpegls"));
+registry.registerDynamic('1.2.840.10008.1.2.4.80', () => import('./jpegls'));
+registry.registerDynamic('1.2.840.10008.1.2.4.81', () => import('./jpegls'));
 
 // JPEG 2000 Lossless and Lossy
-registry.registerDynamic("1.2.840.10008.1.2.4.90", () => import("./jpeg2000"));
-registry.registerDynamic("1.2.840.10008.1.2.4.91", () => import("./jpeg2000"));
+registry.registerDynamic('1.2.840.10008.1.2.4.90', () => import('./jpeg2000'));
+registry.registerDynamic('1.2.840.10008.1.2.4.91', () => import('./jpeg2000'));
 
 // High-Throughput JPEG 2000: Lossless, Lossless RPCL, and lossy/lossless
-registry.registerDynamic("1.2.840.10008.1.2.4.201", () => import("./htj2k"));
-registry.registerDynamic("1.2.840.10008.1.2.4.202", () => import("./htj2k"));
-registry.registerDynamic("1.2.840.10008.1.2.4.203", () => import("./htj2k"));
+registry.registerDynamic('1.2.840.10008.1.2.4.201', () => import('./htj2k'));
+registry.registerDynamic('1.2.840.10008.1.2.4.202', () => import('./htj2k'));
+registry.registerDynamic('1.2.840.10008.1.2.4.203', () => import('./htj2k'));
 
 // MPEG2 and MPEG-4 AVC/H.264 Video
-registry.registerDynamic("1.2.840.10008.1.2.4.100", () => import("./video"));
-registry.registerDynamic("1.2.840.10008.1.2.4.101", () => import("./video"));
-registry.registerDynamic("1.2.840.10008.1.2.4.102", () => import("./video"));
-registry.registerDynamic("1.2.840.10008.1.2.4.103", () => import("./video"));
+registry.registerDynamic('1.2.840.10008.1.2.4.100', () => import('./video'));
+registry.registerDynamic('1.2.840.10008.1.2.4.101', () => import('./video'));
+registry.registerDynamic('1.2.840.10008.1.2.4.102', () => import('./video'));
+registry.registerDynamic('1.2.840.10008.1.2.4.103', () => import('./video'));
 
 // High-priority WebGPU and WebGL fallbacks can also be registered,
 // though they often claim to support many syntaxes and are chosen by priority.
